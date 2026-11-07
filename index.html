@@ -282,37 +282,37 @@
       <table class="w-full text-left text-[11px] sm:text-xs border-collapse table-fixed">
           <thead>
             <tr class="bg-slate-900 text-white font-extrabold uppercase tracking-tight sm:tracking-wider">
-              <th class="p-1.5 sm:p-3 w-[18%] sm:w-28 border-r border-slate-800 text-[10px] sm:text-xs">Team</th>
+              <th class="p-1.5 sm:p-3 w-[18%] sm:w-28 border-r border-slate-800 text-[10px] sm:text-xs text-center sm:text-left align-bottom">Team</th>
               <th class="p-1.5 sm:p-3 border-r border-slate-800">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-                  <span class="truncate">1. Skip</span>
+                <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(0)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
+                  <span class="truncate">1. Skip</span>
                 </div>
               </th>
               <th class="p-1.5 sm:p-3 border-r border-slate-800">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-                  <span class="truncate">2. Lead</span>
+                <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(1)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
+                  <span class="truncate">2. Lead</span>
                 </div>
               </th>
               <th class="p-1.5 sm:p-3 border-r border-slate-800">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-                  <span class="truncate">3. Two</span>
+                <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(2)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
+                  <span class="truncate">3. Two</span>
                 </div>
               </th>
               <th class="p-1.5 sm:p-3">
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1">
-                  <span class="truncate">4. Three</span>
+                <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(3)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
+                  <span class="truncate">4. Three</span>
                 </div>
               </th>
             </tr>
@@ -329,7 +329,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 21 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 23 &bull; Max 4 Bowls Safeguard Engine Active
     </div>
   </footer>
 
@@ -1036,16 +1036,16 @@
 
         rowsHTML += `
           <tr>
-            <td class="p-1 border-r border-slate-100 font-semibold bg-slate-50">${m}</td>
-            <td class="p-1 border-r border-slate-100 font-extrabold text-emerald-700">${rinkDisplay}</td>
-            <td class="p-1 border-r border-slate-100">
-              <div class="inline-flex items-center space-x-1">
-                <button type="button" onclick="setMatchResult('${teamLabel}', ${m}, 'W')" class="w-6 h-6 rounded text-[10px] transition ${wClass}">W</button>
-                <button type="button" onclick="setMatchResult('${teamLabel}', ${m}, 'D')" class="w-6 h-6 rounded text-[10px] transition ${dClass}">D</button>
-                <button type="button" onclick="setMatchResult('${teamLabel}', ${m}, 'L')" class="w-6 h-6 rounded text-[10px] transition ${lClass}">L</button>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-semibold bg-slate-50 text-[10px] sm:text-xs">${m}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-extrabold text-emerald-700 text-[10px] sm:text-xs">${rinkDisplay}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <div class="inline-flex items-center space-x-0.5 sm:space-x-1 justify-center">
+                <button type="button" onclick="setMatchResult('${teamLabel}', ${m}, 'W')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${wClass}">W</button>
+                <button type="button" onclick="setMatchResult('${teamLabel}', ${m}, 'D')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${dClass}">D</button>
+                <button type="button" onclick="setMatchResult('${teamLabel}', ${m}, 'L')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${lClass}">L</button>
               </div>
             </td>
-            <td class="p-1 border-r border-slate-100">
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                 id="scorecard_input_${safeLabel}_${m}_ends"
                 data-team="${teamLabel}" data-match="${m}" data-field="ends" data-col="0"
@@ -1053,10 +1053,10 @@
                 placeholder="0"
                 onclick="this.select()"
                 oninput="setScoreMetric('${teamLabel}', ${m}, 'ends', this.value)"
-                class="scorecard-nav-input w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-xs font-bold text-slate-800 outline-none transition"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
               />
             </td>
-            <td class="p-1 border-r border-slate-100">
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                 id="scorecard_input_${safeLabel}_${m}_ptsFor"
                 data-team="${teamLabel}" data-match="${m}" data-field="ptsFor" data-col="1"
@@ -1064,10 +1064,10 @@
                 placeholder="0"
                 onclick="this.select()"
                 oninput="setScoreMetric('${teamLabel}', ${m}, 'ptsFor', this.value)"
-                class="scorecard-nav-input w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-xs font-bold text-slate-800 outline-none transition"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
               />
             </td>
-            <td class="p-1">
+            <td class="p-0.5 sm:p-1">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                 id="scorecard_input_${safeLabel}_${m}_ptsAgainst"
                 data-team="${teamLabel}" data-match="${m}" data-field="ptsAgainst" data-col="2"
@@ -1075,7 +1075,7 @@
                 placeholder="0"
                 onclick="this.select()"
                 oninput="setScoreMetric('${teamLabel}', ${m}, 'ptsAgainst', this.value)"
-                class="scorecard-nav-input w-12 text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-xs font-bold text-slate-800 outline-none transition"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
               />
             </td>
           </tr>
@@ -1085,28 +1085,28 @@
       const safeLabel = teamLabel.replace(/\s+/g, '_');
 
       return `
-        <div class="bg-white p-2.5 rounded-lg border border-slate-200/80 shadow-xs min-h-[175px] h-full flex flex-col justify-between">
-          <table class="w-full text-center text-[11px] border-collapse">
+        <div class="bg-white p-1.5 sm:p-2.5 rounded-lg border border-slate-200/80 shadow-xs min-h-[175px] h-full flex flex-col justify-between">
+          <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
             <thead>
               <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
-                <th class="p-1 border-r border-slate-200">Game</th>
-                <th class="p-1 border-r border-slate-200">Rink</th>
-                <th class="p-1 border-r border-slate-200 min-w-[90px]">W / D / L</th>
-                <th class="p-1 border-r border-slate-200">Ends Won</th>
-                <th class="p-1 border-r border-slate-200">Pts For</th>
-                <th class="p-1">Pts Agst</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[10%]">M</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11%]">Rink</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[29%]">Result</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[16%]">Ends</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[17%]">Pts For</th>
+                <th class="p-1 sm:p-1.5 w-[17%]">Pts Agst</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
               ${rowsHTML}
             </tbody>
             <tfoot>
-              <tr class="bg-slate-50 font-black text-slate-800 border-t border-slate-200">
-                <td colspan="2" class="p-1 text-left pl-2 border-r border-slate-200">Total</td>
-                <td id="total_wdl_${safeLabel}" class="p-1 border-r border-slate-200 text-emerald-800 font-black">${hasOutcomes ? `${sumMatchPts} pts` : '--'}</td>
-                <td id="total_ends_${safeLabel}" class="p-1 border-r border-slate-200 text-emerald-800 font-black">${hasEnds ? sumEnds : '--'}</td>
-                <td id="total_ptsFor_${safeLabel}" class="p-1 border-r border-slate-200 text-emerald-800 font-black">${hasPtsFor ? sumPtsFor : '--'}</td>
-                <td id="total_ptsAgst_${safeLabel}" class="p-1 text-emerald-800 font-black">${hasPtsAgst ? sumPtsAgst : '--'}</td>
+              <tr class="bg-slate-50 font-black text-slate-800 border-t border-slate-200 text-[10px] sm:text-xs">
+                <td colspan="2" class="p-1 sm:p-1.5 text-right pr-1 sm:pr-3 border-r border-slate-200 truncate">Total</td>
+                <td id="total_wdl_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-200 text-emerald-800 font-black">${hasOutcomes ? `${sumMatchPts} pts` : '--'}</td>
+                <td id="total_ends_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-200 text-emerald-800 font-black">${hasEnds ? sumEnds : '--'}</td>
+                <td id="total_ptsFor_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-200 text-emerald-800 font-black">${hasPtsFor ? sumPtsFor : '--'}</td>
+                <td id="total_ptsAgst_${safeLabel}" class="p-1 sm:p-1.5 text-emerald-800 font-black">${hasPtsAgst ? sumPtsAgst : '--'}</td>
               </tr>
             </tfoot>
           </table>
@@ -1188,10 +1188,10 @@
                 </span>
               </div>
               <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
-                <div class="w-full sm:w-2/5">
+                <div class="w-full sm:w-2/5 flex-shrink-0">
                   ${buildTeamRosterHTML(teamAIndex, fixture.teamA.playerCount, fixture.teamA.bowlDist)}
                 </div>
-                <div class="w-full sm:w-auto max-w-full overflow-x-auto">
+                <div class="w-full sm:w-3/5 flex-1 min-w-0">
                   ${buildTeamScorecardHTML(fixture.teamA.label)}
                 </div>
               </div>
@@ -1209,10 +1209,10 @@
                 </span>
               </div>
               <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
-                <div class="w-full sm:w-2/5">
+                <div class="w-full sm:w-2/5 flex-shrink-0">
                   ${buildTeamRosterHTML(teamBIndex, fixture.teamB.playerCount, fixture.teamB.bowlDist)}
                 </div>
-                <div class="w-full sm:w-auto max-w-full overflow-x-auto">
+                <div class="w-full sm:w-3/5 flex-1 min-w-0">
                   ${buildTeamScorecardHTML(fixture.teamB.label)}
                 </div>
               </div>
