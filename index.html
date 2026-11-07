@@ -329,7 +329,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 24 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 26 &bull; Max 4 Bowls Safeguard Engine Active
     </div>
   </footer>
 
@@ -1089,14 +1089,12 @@
           <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
             <thead>
               <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[10%] align-middle">
-                  <span class="inline-block [writing-mode:vertical-lr] rotate-180 text-[9px] sm:text-[10px] uppercase tracking-wider font-extrabold py-0.5">Game</span>
-                </th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11%] leading-tight whitespace-normal">Rink</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[29%] leading-tight whitespace-normal">Result</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[16%] leading-tight whitespace-normal">Ends Won</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[17%] leading-tight whitespace-normal">Pts For</th>
-                <th class="p-1 sm:p-1.5 w-[17%] leading-tight whitespace-normal">Pts Agst</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[10%] truncate">Game</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11%]">Rink</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[29%]">Result</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[16%]">Ends</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[17%]">Pts For</th>
+                <th class="p-1 sm:p-1.5 w-[17%]">Pts Agst</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -1224,6 +1222,53 @@
         `;
 
         container.appendChild(card);
+      });
+      attachScorecardKeyboardNavigation();
+    }
+
+    function attachScorecardKeyboardNavigation() {
+      const inputs = document.querySelectorAll('.scorecard-nav-input');
+      inputs.forEach(input => {
+        input.addEventListener('keydown', function(e) {
+          const team = this.getAttribute('data-team');
+          const match = parseInt(this.getAttribute('data-match'), 10);
+          const col = parseInt(this.getAttribute('data-col'), 10);
+          const field = this.getAttribute('data-field');
+
+          let targetMatch = match;
+          let targetCol = col;
+
+          const fields = ['ends', 'ptsFor', 'ptsAgainst'];
+          const safeLabel = team.replace(/\s+/g, '_');
+
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            targetMatch = Math.max(1, match - 1);
+          } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
+            e.preventDefault();
+            const maxRounds = state.selectedRounds || 3;
+            targetMatch = Math.min(maxRounds, match + 1);
+          } else if (e.key === 'ArrowLeft') {
+            if (this.selectionStart === 0) {
+              e.preventDefault();
+              if (col > 0) targetCol = col - 1;
+            }
+          } else if (e.key === 'ArrowRight') {
+            if (this.selectionStart === this.value.length) {
+              e.preventDefault();
+              if (col < 2) targetCol = col + 1;
+            }
+          }
+
+          if (targetMatch !== match || targetCol !== col) {
+            const nextField = fields[targetCol];
+            const nextInput = document.getElementById(`scorecard_input_${safeLabel}_${targetMatch}_${nextField}`);
+            if (nextInput) {
+              nextInput.focus();
+              nextInput.select();
+            }
+          }
+        });
       });
     }
 
