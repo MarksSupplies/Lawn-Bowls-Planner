@@ -210,7 +210,7 @@
       <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-xl font-extrabold text-slate-900">Match Draw Schedule</h2>
         <div class="flex items-center space-x-2">
-          <!-- View Toggle Mode (Tabs vs All Matches Matrix) -->
+          <!-- View Toggle Mode (Cards vs All Matches Matrix) -->
           <div class="inline-flex rounded-xl bg-slate-200/70 p-1 border border-slate-300">
             <button id="viewTabsBtn" onclick="setScheduleView('tabs')" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs">
               <i class="ph-bold ph-cards"></i> Round Cards
@@ -223,11 +223,6 @@
             Optimize Teams Active
           </span>
         </div>
-      </div>
-
-      <!-- Tab Buttons (Shown in Tabs View) -->
-      <div id="tabButtons" class="flex space-x-2 border-b border-slate-200 pb-1 overflow-x-auto">
-        <!-- Dynamically Generated Tabs -->
       </div>
 
       <!-- Full Overview Matrix (Shown when All Matches Table View selected) -->
@@ -329,7 +324,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 26 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 35 &bull; Max 4 Bowls Safeguard Engine Active
     </div>
   </footer>
 
@@ -501,20 +496,17 @@
       const btnMatrix = document.getElementById('viewMatrixBtn');
       const containerCards = document.getElementById('matchCardsContainer');
       const containerMatrix = document.getElementById('fullScheduleMatrix');
-      const tabNav = document.getElementById('tabButtons');
 
       if (view === 'tabs') {
         btnTabs.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs';
         btnMatrix.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
         containerCards.classList.remove('hidden');
-        tabNav.classList.remove('hidden');
         containerMatrix.classList.add('hidden');
       } else {
         btnMatrix.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs';
         btnTabs.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
         containerMatrix.classList.remove('hidden');
         containerCards.classList.add('hidden');
-        tabNav.classList.add('hidden');
       }
       renderUI();
     }
@@ -906,21 +898,6 @@
 
       state.schedule = generateSchedule();
 
-      const tabButtons = document.getElementById('tabButtons');
-      tabButtons.innerHTML = '';
-      for (let r = 1; r <= state.selectedRounds; r++) {
-        const btn = document.createElement('button');
-        btn.onclick = () => switchTab(r);
-        const isActive = (r === state.activeTabRound);
-        btn.className = `px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
-          isActive
-            ? 'bg-bowls-900 text-white shadow-md'
-            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
-        }`;
-        btn.innerText = `Match ${r}`;
-        tabButtons.appendChild(btn);
-      }
-
       renderMasterRosterTable();
 
       if (state.viewMode === 'matrix') {
@@ -1089,24 +1066,24 @@
           <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
             <thead>
               <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[10%] truncate">Game</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11%]">Rink</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[29%]">Result</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[16%]">Ends</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[17%]">Pts For</th>
-                <th class="p-1 sm:p-1.5 w-[17%]">Pts Agst</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15%] sm:w-[12%] align-middle">Game</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11%] align-middle">Rink</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[29%] sm:w-[32%] align-middle">Result</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[14%] sm:w-[14%] align-middle">Ends</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15.5%] sm:w-[15.5%] leading-tight align-middle">Pts<br>For</th>
+                <th class="p-1 sm:p-1.5 w-[15.5%] sm:w-[15.5%] leading-tight align-middle">Pts<br>Agst</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
               ${rowsHTML}
             </tbody>
             <tfoot>
-              <tr class="bg-slate-50 font-black text-slate-800 border-t border-slate-200 text-[10px] sm:text-xs">
-                <td colspan="2" class="p-1 sm:p-1.5 text-right pr-1 sm:pr-3 border-r border-slate-200 truncate">Total</td>
-                <td id="total_wdl_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-200 text-emerald-800 font-black">${hasOutcomes ? `${sumMatchPts} pts` : '--'}</td>
-                <td id="total_ends_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-200 text-emerald-800 font-black">${hasEnds ? sumEnds : '--'}</td>
-                <td id="total_ptsFor_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-200 text-emerald-800 font-black">${hasPtsFor ? sumPtsFor : '--'}</td>
-                <td id="total_ptsAgst_${safeLabel}" class="p-1 sm:p-1.5 text-emerald-800 font-black">${hasPtsAgst ? sumPtsAgst : '--'}</td>
+              <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[10px] sm:text-xs">
+                <td colspan="2" class="p-1 sm:p-1.5 border-r border-slate-800 text-center uppercase tracking-tight">Total</td>
+                <td id="total_wdl_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-amber-300 font-black">${hasOutcomes ? `${sumMatchPts} pts` : '--'}</td>
+                <td id="total_ends_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-emerald-300 font-black">${hasEnds ? sumEnds : '--'}</td>
+                <td id="total_ptsFor_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-emerald-300 font-black">${hasPtsFor ? sumPtsFor : '--'}</td>
+                <td id="total_ptsAgst_${safeLabel}" class="p-1 sm:p-1.5 text-rose-300 font-black">${hasPtsAgst ? sumPtsAgst : '--'}</td>
               </tr>
             </tfoot>
           </table>
@@ -1118,146 +1095,275 @@
       const container = document.getElementById('matchCardsContainer');
       container.innerHTML = '';
 
-      const currentRoundFixtures = state.schedule[state.activeTabRound - 1] || [];
+      // Extract all unique active teams scheduled in the tournament
+      const uniqueTeamsMap = new Map();
+      state.schedule.forEach(roundFixtures => {
+        roundFixtures.forEach(fixture => {
+          if (fixture.teamA && fixture.teamA.label !== 'BYE_DUMMY') {
+            if (!uniqueTeamsMap.has(fixture.teamA.label)) {
+              uniqueTeamsMap.set(fixture.teamA.label, fixture.teamA);
+            }
+          }
+          if (fixture.teamB && fixture.teamB.label !== 'BYE_DUMMY' && fixture.teamB.label !== 'SIT-OUT BYE') {
+            if (!uniqueTeamsMap.has(fixture.teamB.label)) {
+              uniqueTeamsMap.set(fixture.teamB.label, fixture.teamB);
+            }
+          }
+        });
+      });
 
-      if (currentRoundFixtures.length === 0) {
-        container.innerHTML = `
-          <div class="p-6 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
-            No fixtures generated for Match ${state.activeTabRound}.
-          </div>
-        `;
+      // Sort teams alphabetically by Team Label (Team A, Team B, Team C, ...)
+      const sortedTeams = Array.from(uniqueTeamsMap.values()).sort((a, b) => {
+        return a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      if (sortedTeams.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">No match fixtures scheduled.</div>`;
         return;
       }
 
-      currentRoundFixtures.forEach((fixture, fIdx) => {
-        if (fixture.isBye) {
-          const card = document.createElement('div');
-          card.className = 'bg-amber-50/80 rounded-2xl border border-amber-200 p-4 shadow-xs flex items-center justify-between';
-          card.innerHTML = `
-            <div class="flex items-center space-x-3">
-              <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-800 font-black flex items-center justify-center text-xs">
-                BYE
-              </div>
-              <div>
-                <h4 class="font-extrabold text-amber-950 text-sm">${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)</h4>
-                <p class="text-xs text-amber-800/80">${fixture.note}</p>
-              </div>
-            </div>
-            <span class="text-xs font-bold bg-amber-200/80 text-amber-900 px-3 py-1 rounded-full">Sit-Out Match</span>
-          `;
-          container.appendChild(card);
-          return;
-        }
+      sortedTeams.forEach(team => {
+        const teamIdx = parseTeamIndexFromLabel(team.label);
 
-        const teamAIndex = parseTeamIndexFromLabel(fixture.teamA.label);
-        const teamBIndex = parseTeamIndexFromLabel(fixture.teamB.label);
-
-        const deltaA = fixture.teamA.deltaTag ? `<span class="mr-1 font-extrabold text-blue-700 bg-blue-100 border border-blue-300 px-1.5 py-0.5 rounded text-[10px]">${fixture.teamA.deltaTag}</span>` : '';
-        const deltaB = fixture.teamB.deltaTag ? `<span class="mr-1 font-extrabold text-blue-700 bg-blue-100 border border-blue-300 px-1.5 py-0.5 rounded text-[10px]">${fixture.teamB.deltaTag}</span>` : '';
+        // Build concise opponent list for fixture summary
+        const opponents = [];
+        state.schedule.forEach(roundFixtures => {
+          roundFixtures.forEach(f => {
+            if (f.teamA?.label === team.label) {
+              opponents.push(`M${f.round}: vs ${f.teamB.label}`);
+            } else if (f.teamB?.label === team.label) {
+              opponents.push(`M${f.round}: vs ${f.teamA.label}`);
+            }
+          });
+        });
 
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-2xl border border-slate-200/90 p-4 shadow-sm space-y-4';
+        card.className = 'bg-white rounded-2xl shadow-sm border border-slate-200/80 p-4 space-y-3';
+
         card.innerHTML = `
-          <!-- Match Header -->
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
             <div class="flex items-center space-x-2">
-              <span class="bg-bowls-900 text-white font-black text-xs px-3 py-1 rounded-lg">
-                Match ${fixture.round}
+              <span class="text-xs font-extrabold text-white bg-bowls-900 px-2.5 py-1 rounded-lg">
+                ${team.label}
               </span>
-              <span class="font-extrabold text-slate-800 text-sm">
-                Green ${fixture.greenNumber} &bull; Rink ${fixture.rinkNumber}
-              </span>
+              ${getTeamScheduleBadge(team.label)}
             </div>
-            <span class="text-xs text-slate-500 font-medium">
-              ${fixture.note}
+            <span class="text-[11px] font-semibold text-slate-600">
+              Schedule: <span class="font-bold text-slate-800">${opponents.join(' &bull; ')}</span>
             </span>
           </div>
 
-          <!-- Stacked Team Cards Layout (Team A above Team B) -->
-          <div class="grid grid-cols-1 gap-4">
-            
-            <!-- Team A Stack -->
-            <div class="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
-              <div class="flex items-center justify-between">
-                <h4 class="font-black text-slate-900 text-sm flex items-center flex-wrap gap-1">
-                  ${deltaA}${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)
-                  ${getTeamScheduleBadge(fixture.teamA.label)}
-                </h4>
-                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
-                  Target: ${fixture.teamA.bowlDist?.totalTeamBowls || 0} Bowls
-                </span>
-              </div>
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
-                <div class="w-full sm:w-2/5 flex-shrink-0">
-                  ${buildTeamRosterHTML(teamAIndex, fixture.teamA.playerCount, fixture.teamA.bowlDist)}
-                </div>
-                <div class="w-full sm:w-3/5 flex-1 min-w-0">
-                  ${buildTeamScorecardHTML(fixture.teamA.label)}
-                </div>
+          <div class="flex flex-col sm:flex-row gap-2 items-stretch">
+            <div class="sm:w-2/5 flex-shrink-0 flex flex-col justify-between">
+              <div class="h-full">
+                ${buildTeamRosterHTML(teamIdx, team.playerCount, team.bowlDist)}
               </div>
             </div>
-
-            <!-- Team B Stack -->
-            <div class="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
-              <div class="flex items-center justify-between">
-                <h4 class="font-black text-slate-900 text-sm flex items-center flex-wrap gap-1">
-                  ${deltaB}${fixture.teamB.label} (${fixture.teamB.playerCount} Bowlers)
-                  ${getTeamScheduleBadge(fixture.teamB.label)}
-                </h4>
-                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
-                  Target: ${fixture.teamB.bowlDist?.totalTeamBowls || 0} Bowls
-                </span>
-              </div>
-              <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
-                <div class="w-full sm:w-2/5 flex-shrink-0">
-                  ${buildTeamRosterHTML(teamBIndex, fixture.teamB.playerCount, fixture.teamB.bowlDist)}
-                </div>
-                <div class="w-full sm:w-3/5 flex-1 min-w-0">
-                  ${buildTeamScorecardHTML(fixture.teamB.label)}
-                </div>
+            <div class="flex-1 min-w-0 flex flex-col justify-between">
+              <div class="h-full">
+                ${buildTeamScorecardHTML(team.label)}
               </div>
             </div>
-
           </div>
         `;
 
         container.appendChild(card);
       });
-      attachScorecardKeyboardNavigation();
+
+      attachScorecardKeyboardNav();
     }
 
-    function attachScorecardKeyboardNavigation() {
-      const inputs = document.querySelectorAll('.scorecard-nav-input');
+    function renderScheduleMatrix() {
+      const body = document.getElementById('matrixTableBody');
+      body.innerHTML = '';
+
+      state.schedule.forEach(roundFixtures => {
+        roundFixtures.forEach(fixture => {
+          const tr = document.createElement('tr');
+          if (fixture.isBye) {
+            tr.className = 'bg-amber-50/50 text-slate-600';
+            tr.innerHTML = `
+              <td class="p-3 font-bold">Match ${fixture.round}</td>
+              <td class="p-3 font-semibold text-amber-700">BYE</td>
+              <td class="p-3 font-semibold text-slate-800">${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)</td>
+              <td class="p-3 text-center text-slate-400 font-bold">vs</td>
+              <td class="p-3 italic text-amber-700">SIT-OUT BYE</td>
+              <td class="p-3 text-slate-500">${fixture.note}</td>
+            `;
+          } else {
+            tr.className = 'hover:bg-slate-50 transition-colors';
+            tr.innerHTML = `
+              <td class="p-3 font-bold text-slate-900">Match ${fixture.round}</td>
+              <td class="p-3 font-bold text-emerald-700">Green ${fixture.greenNumber} - Rink ${fixture.rinkNumber}</td>
+              <td class="p-3 font-semibold text-slate-800">${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)</td>
+              <td class="p-3 text-center font-black text-emerald-600">vs</td>
+              <td class="p-3 font-semibold text-slate-800">${fixture.teamB.label} (${fixture.teamB.playerCount} Bowlers)</td>
+              <td class="p-3 text-emerald-800 font-medium">${fixture.note}</td>
+            `;
+          }
+          body.appendChild(tr);
+        });
+      });
+    }
+
+    function randomizeRosterColumn(colIdx) {
+      // Collect all non-blank names across all 160 teams in this column
+      const nonBlankNames = [];
+      for (let i = 0; i < 160; i++) {
+        const val = masterRoster[i][colIdx]?.trim();
+        if (val) nonBlankNames.push(val);
+      }
+
+      // Fisher-Yates shuffle the non-blank names
+      for (let i = 0; i < nonBlankNames.length - 1; i++) {
+        const j = i + Math.floor(Math.random() * (nonBlankNames.length - i));
+        [nonBlankNames[i], nonBlankNames[j]] = [nonBlankNames[j], nonBlankNames[i]];
+      }
+
+      // Place shuffled names at the top of the column sequentially and clear remaining blanks
+      for (let i = 0; i < 160; i++) {
+        masterRoster[i][colIdx] = i < nonBlankNames.length ? nonBlankNames[i] : '';
+      }
+
+      renderUI();
+    }
+
+    function updateRosterCell(teamIdx, posIdx, val) {
+      masterRoster[teamIdx][posIdx] = val;
+      // Do not call full renderUI() here as it destroys DOM nodes while navigating
+    }
+
+    function renderMasterRosterTable() {
+      const tbody = document.getElementById('masterRosterTableBody');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      for (let i = 0; i < 160; i++) {
+        const teamLabel = getTeamLabel(i);
+        const tr = document.createElement('tr');
+        tr.className = i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
+
+        let rowHTML = `<td class="p-1.5 sm:p-3 font-bold text-slate-900 border-r border-slate-200 text-center sm:text-left">${teamLabel}</td>`;
+
+        for (let posIdx = 0; posIdx < 4; posIdx++) {
+          const val = masterRoster[i][posIdx] || '';
+          rowHTML += `
+            <td class="p-1 sm:p-2 border-r border-slate-200 last:border-r-0">
+              <input type="text"
+                id="roster_input_${i}_${posIdx}"
+                data-row="${i}" data-col="${posIdx}"
+                value="${val}"
+                placeholder="${POSITIONS[posIdx]}"
+                oninput="updateRosterCell(${i}, ${posIdx}, this.value)"
+                onblur="renderMatchCards()"
+                class="roster-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs font-semibold text-slate-800 outline-none transition"
+              />
+            </td>
+          `;
+        }
+
+        tr.innerHTML = rowHTML;
+        tbody.appendChild(tr);
+      }
+
+      attachRosterKeyboardNav();
+    }
+
+    function attachRosterKeyboardNav() {
+      const inputs = document.querySelectorAll('.roster-nav-input');
+
+      // Auto-highlight text on focus for immediate edit mode
       inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          setTimeout(() => this.select(), 0);
+        });
+      });
+
+      inputs.forEach(input => {
+        input.addEventListener('keydown', function(e) {
+          const row = parseInt(this.getAttribute('data-row'), 10);
+          const col = parseInt(this.getAttribute('data-col'), 10);
+
+          let targetRow = row;
+          let targetCol = col;
+
+          if (e.key === 'ArrowUp') {
+            targetRow = Math.max(0, row - 1);
+            e.preventDefault();
+          } else if (e.key === 'ArrowDown') {
+            targetRow = Math.min(159, row + 1);
+            e.preventDefault();
+          } else if (e.key === 'ArrowLeft') {
+            if (col > 0) {
+              targetCol = col - 1;
+            } else if (row > 0) {
+              targetRow = row - 1;
+              targetCol = 3;
+            }
+            e.preventDefault();
+          } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+            if (col < 3) {
+              targetCol = col + 1;
+            } else if (row < 159) {
+              targetRow = row + 1;
+              targetCol = 0;
+            }
+            e.preventDefault();
+          }
+
+          if (targetRow !== row || targetCol !== col) {
+            const nextInput = document.getElementById(`roster_input_${targetRow}_${targetCol}`);
+            if (nextInput) {
+              nextInput.focus();
+            }
+          }
+        });
+      });
+    }
+
+    function attachScorecardKeyboardNav() {
+      const inputs = document.querySelectorAll('.scorecard-nav-input');
+
+      inputs.forEach(input => {
+        input.addEventListener('focus', function() {
+          setTimeout(() => this.select(), 0);
+        });
+
         input.addEventListener('keydown', function(e) {
           const team = this.getAttribute('data-team');
           const match = parseInt(this.getAttribute('data-match'), 10);
-          const col = parseInt(this.getAttribute('data-col'), 10);
           const field = this.getAttribute('data-field');
+          const col = parseInt(this.getAttribute('data-col'), 10);
+
+          const safeLabel = team.replace(/\s+/g, '_');
+          const matchCount = state.selectedRounds || 3;
+          const fields = ['ends', 'ptsFor', 'ptsAgainst'];
 
           let targetMatch = match;
           let targetCol = col;
 
-          const fields = ['ends', 'ptsFor', 'ptsAgainst'];
-          const safeLabel = team.replace(/\s+/g, '_');
-
           if (e.key === 'ArrowUp') {
-            e.preventDefault();
             targetMatch = Math.max(1, match - 1);
-          } else if (e.key === 'ArrowDown' || e.key === 'Enter') {
             e.preventDefault();
-            const maxRounds = state.selectedRounds || 3;
-            targetMatch = Math.min(maxRounds, match + 1);
+          } else if (e.key === 'ArrowDown') {
+            targetMatch = Math.min(matchCount, match + 1);
+            e.preventDefault();
           } else if (e.key === 'ArrowLeft') {
-            if (this.selectionStart === 0) {
-              e.preventDefault();
-              if (col > 0) targetCol = col - 1;
+            if (col > 0) {
+              targetCol = col - 1;
+            } else if (match > 1) {
+              targetMatch = match - 1;
+              targetCol = 2;
             }
-          } else if (e.key === 'ArrowRight') {
-            if (this.selectionStart === this.value.length) {
-              e.preventDefault();
-              if (col < 2) targetCol = col + 1;
+            e.preventDefault();
+          } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+            if (col < 2) {
+              targetCol = col + 1;
+            } else if (match < matchCount) {
+              targetMatch = match + 1;
+              targetCol = 0;
             }
+            e.preventDefault();
           }
 
           if (targetMatch !== match || targetCol !== col) {
@@ -1265,187 +1371,12 @@
             const nextInput = document.getElementById(`scorecard_input_${safeLabel}_${targetMatch}_${nextField}`);
             if (nextInput) {
               nextInput.focus();
-              nextInput.select();
             }
           }
         });
       });
     }
 
-    function renderScheduleMatrix() {
-      const tbody = document.getElementById('matrixTableBody');
-      tbody.innerHTML = '';
-
-      state.schedule.forEach((roundFixtures, rIdx) => {
-        roundFixtures.forEach((fixture) => {
-          const tr = document.createElement('tr');
-          tr.className = fixture.isBye ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-slate-50/80';
-
-          if (fixture.isBye) {
-            tr.innerHTML = `
-              <td class="p-3 font-bold text-slate-900">Match ${fixture.round}</td>
-              <td class="p-3 font-bold text-amber-700">BYE</td>
-              <td class="p-3 font-extrabold text-slate-900" colspan="3">${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers) - Scheduled Sit-Out</td>
-              <td class="p-3 text-slate-500">${fixture.note}</td>
-            `;
-          } else {
-            const teamAIdx = parseTeamIndexFromLabel(fixture.teamA.label);
-            const teamBIdx = parseTeamIndexFromLabel(fixture.teamB.label);
-
-            const rosterA = Array.from({ length: fixture.teamA.playerCount }, (_, i) => getFormattedPlayerName(teamAIdx, i % 4)).join(', ');
-            const rosterB = Array.from({ length: fixture.teamB.playerCount }, (_, i) => getFormattedPlayerName(teamBIdx, i % 4)).join(', ');
-
-            tr.innerHTML = `
-              <td class="p-3 font-bold text-slate-900">Match ${fixture.round}</td>
-              <td class="p-3 font-extrabold text-emerald-800">Green ${fixture.greenNumber} &bull; Rink ${fixture.rinkNumber}</td>
-              <td class="p-3">
-                <span class="font-extrabold text-slate-900">${fixture.teamA.label}:</span>
-                <span class="text-slate-600">${rosterA}</span>
-              </td>
-              <td class="p-3 font-black text-center text-slate-400">vs</td>
-              <td class="p-3">
-                <span class="font-extrabold text-slate-900">${fixture.teamB.label}:</span>
-                <span class="text-slate-600">${rosterB}</span>
-              </td>
-              <td class="p-3 font-medium text-emerald-800">${fixture.note}</td>
-            `;
-          }
-          tbody.appendChild(tr);
-        });
-      });
-    }
-
-    function renderMasterRosterTable() {
-      const tbody = document.getElementById('masterRosterTableBody');
-      tbody.innerHTML = '';
-
-      for (let t = 0; t < 160; t++) {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-50 transition-colors';
-
-        const teamLabel = getTeamName(t);
-        let cellsHTML = `<td class="p-1 sm:p-2 font-bold text-slate-900 bg-slate-50 border-r border-slate-200 text-[10px] sm:text-xs truncate">${teamLabel}</td>`;
-
-        for (let pos = 0; pos < 4; pos++) {
-          const val = masterRoster[t][pos] || '';
-          cellsHTML += `
-            <td class="p-0.5 sm:p-1 border-r border-slate-200">
-              <input type="text"
-                id="roster_input_${t}_${pos}"
-                data-roster-row="${t}"
-                data-roster-col="${pos}"
-                value="${val}"
-                placeholder="${POSITIONS[pos]}"
-                oninput="updateRosterName(${t}, ${pos}, this.value)"
-                onclick="this.select()"
-                class="roster-nav-input w-full bg-slate-50/60 border border-slate-200 focus:border-bowls-700 focus:bg-white rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold text-slate-800 outline-none transition truncate"
-              />
-            </td>
-          `;
-        }
-
-        tr.innerHTML = cellsHTML;
-        tbody.appendChild(tr);
-      }
-      attachRosterKeyboardNavigation();
-    }
-
-    function updateRosterName(teamIdx, posIdx, val) {
-      masterRoster[teamIdx][posIdx] = val;
-    }
-
-    function attachRosterKeyboardNavigation() {
-      const inputs = document.querySelectorAll('.roster-nav-input');
-      inputs.forEach(input => {
-        input.addEventListener('keydown', function(e) {
-          const currentRow = parseInt(this.getAttribute('data-roster-row'), 10);
-          const currentCol = parseInt(this.getAttribute('data-roster-col'), 10);
-          let targetRow = currentRow;
-          let targetCol = currentCol;
-
-          if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            targetRow = Math.max(0, currentRow - 1);
-          } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            targetRow = Math.min(159, currentRow + 1);
-          } else if (e.key === 'ArrowLeft') {
-            if (this.selectionStart === 0 && this.selectionEnd === this.value.length) {
-              e.preventDefault();
-              if (currentCol > 0) targetCol = currentCol - 1;
-            } else if (this.selectionStart === 0) {
-              e.preventDefault();
-              if (currentCol > 0) {
-                targetCol = currentCol - 1;
-              } else if (currentRow > 0) {
-                targetRow = currentRow - 1;
-                targetCol = 3;
-              }
-            }
-          } else if (e.key === 'ArrowRight') {
-            if (this.selectionStart === 0 && this.selectionEnd === this.value.length) {
-              e.preventDefault();
-              if (currentCol < 3) targetCol = currentCol + 1;
-            } else if (this.selectionStart === this.value.length) {
-              e.preventDefault();
-              if (currentCol < 3) {
-                targetCol = currentCol + 1;
-              } else if (currentRow < 159) {
-                targetRow = currentRow + 1;
-                targetCol = 0;
-              }
-            }
-          } else if (e.key === 'Enter') {
-            e.preventDefault();
-            if (e.shiftKey) {
-              targetRow = Math.max(0, currentRow - 1);
-            } else {
-              targetRow = Math.min(159, currentRow + 1);
-            }
-          }
-
-          if (targetRow !== currentRow || targetCol !== currentCol) {
-            const nextInput = document.getElementById(`roster_input_${targetRow}_${targetCol}`);
-            if (nextInput) {
-              nextInput.focus();
-              nextInput.select();
-            }
-          }
-        });
-      });
-    }
-
-    function randomizeRosterColumn(posIdx) {
-      // Collect non-blank names from the target column
-      const existingNames = [];
-      for (let t = 0; t < 160; t++) {
-        const val = (masterRoster[t][posIdx] || '').trim();
-        if (val !== '') {
-          existingNames.push(val);
-        }
-      }
-
-      if (existingNames.length === 0) return;
-
-      // Shuffle the non-blank names using Fisher-Yates shuffle
-      for (let i = existingNames.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [existingNames[i], existingNames[j]] = [existingNames[j], existingNames[i]];
-      }
-
-      // Reassign shuffled names back to the column and clear remaining rows
-      for (let t = 0; t < 160; t++) {
-        if (t < existingNames.length) {
-          masterRoster[t][posIdx] = existingNames[t];
-        } else {
-          masterRoster[t][posIdx] = '';
-        }
-      }
-
-      renderUI();
-    }
-
-    // Initialize application on window load
     window.onload = function() {
       renderUI();
     };
