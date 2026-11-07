@@ -329,7 +329,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 19 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 20 &bull; Max 4 Bowls Safeguard Engine Active
     </div>
   </footer>
 
@@ -1179,19 +1179,19 @@
             <!-- Team A Stack -->
             <div class="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
               <div class="flex items-center justify-between">
-                <h4 class="font-black text-slate-900 text-sm flex items-center">
+                <h4 class="font-black text-slate-900 text-sm flex items-center flex-wrap gap-1">
                   ${deltaA}${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)
                   ${getTeamScheduleBadge(fixture.teamA.label)}
                 </h4>
-                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
                   Target: ${fixture.teamA.bowlDist?.totalTeamBowls || 0} Bowls
                 </span>
               </div>
-              <div class="flex flex-row items-start gap-1 sm:gap-3">
-                <div class="w-3/12 min-w-[200px] flex-shrink-0">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
+                <div class="w-full sm:w-2/5">
                   ${buildTeamRosterHTML(teamAIndex, fixture.teamA.playerCount, fixture.teamA.bowlDist)}
                 </div>
-                <div class="w-auto max-w-full flex-shrink-0">
+                <div class="w-full sm:w-3/5 overflow-x-auto">
                   ${buildTeamScorecardHTML(fixture.teamA.label)}
                 </div>
               </div>
@@ -1200,19 +1200,19 @@
             <!-- Team B Stack -->
             <div class="bg-slate-50/70 p-3.5 rounded-xl border border-slate-200/80 space-y-2">
               <div class="flex items-center justify-between">
-                <h4 class="font-black text-slate-900 text-sm flex items-center">
+                <h4 class="font-black text-slate-900 text-sm flex items-center flex-wrap gap-1">
                   ${deltaB}${fixture.teamB.label} (${fixture.teamB.playerCount} Bowlers)
                   ${getTeamScheduleBadge(fixture.teamB.label)}
                 </h4>
-                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex-shrink-0">
                   Target: ${fixture.teamB.bowlDist?.totalTeamBowls || 0} Bowls
                 </span>
               </div>
-              <div class="flex flex-row items-start gap-1 sm:gap-3">
-                <div class="w-3/12 min-w-[200px] flex-shrink-0">
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-start gap-3">
+                <div class="w-full sm:w-2/5">
                   ${buildTeamRosterHTML(teamBIndex, fixture.teamB.playerCount, fixture.teamB.bowlDist)}
                 </div>
-                <div class="w-auto max-w-full flex-shrink-0">
+                <div class="w-full sm:w-3/5 overflow-x-auto">
                   ${buildTeamScorecardHTML(fixture.teamB.label)}
                 </div>
               </div>
