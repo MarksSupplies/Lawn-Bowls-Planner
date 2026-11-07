@@ -1181,11 +1181,11 @@
                   Target: ${fixture.teamA.bowlDist?.totalTeamBowls || 0} Bowls
                 </span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div class="md:col-span-7">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
                   ${buildTeamRosterHTML(teamAIndex, fixture.teamA.playerCount, fixture.teamA.bowlDist)}
                 </div>
-                <div class="md:col-span-5">
+                <div>
                   ${buildTeamScorecardHTML(fixture.teamA.label)}
                 </div>
               </div>
@@ -1202,11 +1202,11 @@
                   Target: ${fixture.teamB.bowlDist?.totalTeamBowls || 0} Bowls
                 </span>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-                <div class="md:col-span-7">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
                   ${buildTeamRosterHTML(teamBIndex, fixture.teamB.playerCount, fixture.teamB.bowlDist)}
                 </div>
-                <div class="md:col-span-5">
+                <div>
                   ${buildTeamScorecardHTML(fixture.teamB.label)}
                 </div>
               </div>
