@@ -329,7 +329,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 20 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 21 &bull; Max 4 Bowls Safeguard Engine Active
     </div>
   </footer>
 
@@ -1191,7 +1191,7 @@
                 <div class="w-full sm:w-2/5">
                   ${buildTeamRosterHTML(teamAIndex, fixture.teamA.playerCount, fixture.teamA.bowlDist)}
                 </div>
-                <div class="w-full sm:w-3/5 overflow-x-auto">
+                <div class="w-full sm:w-auto max-w-full overflow-x-auto">
                   ${buildTeamScorecardHTML(fixture.teamA.label)}
                 </div>
               </div>
@@ -1212,7 +1212,7 @@
                 <div class="w-full sm:w-2/5">
                   ${buildTeamRosterHTML(teamBIndex, fixture.teamB.playerCount, fixture.teamB.bowlDist)}
                 </div>
-                <div class="w-full sm:w-3/5 overflow-x-auto">
+                <div class="w-full sm:w-auto max-w-full overflow-x-auto">
                   ${buildTeamScorecardHTML(fixture.teamB.label)}
                 </div>
               </div>
