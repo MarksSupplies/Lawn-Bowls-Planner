@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v46
+              v47
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -344,14 +344,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 46 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 47 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v46';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v47';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -395,7 +395,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 46,
+          version: 47,
           timestamp: new Date().toISOString(),
           state: state,
           masterRoster: masterRoster,
@@ -440,7 +440,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 46,
+        version: 47,
         exportDate: new Date().toISOString(),
         state: state,
         masterRoster: masterRoster,
@@ -448,14 +448,22 @@
         matchResultStore: matchResultStore
       };
 
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
-      const downloadAnchor = document.createElement('a');
+      const jsonStr = JSON.stringify(payload, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const blobUrl = URL.createObjectURL(blob);
       const dateTag = new Date().toISOString().split('T')[0];
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `lawn_bowls_tournament_${dateTag}.json`);
+
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.href = blobUrl;
+      downloadAnchor.download = `lawn_bowls_tournament_${dateTag}.json`;
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
-      downloadAnchor.remove();
+      
+      // Cleanup to close download stream cleanly on mobile devices
+      setTimeout(() => {
+        downloadAnchor.remove();
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
     }
 
     // Trigger file input programmatically for mobile compatibility
