@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v59
+              v60
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 59 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 60 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v59';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v60';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -469,7 +469,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 59,
+          version: 60,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -550,6 +550,7 @@
               placeholder="e.g. 1, A"
               oninput="handlePriorityInput(${index}, 'name', this.value)"
               onchange="handlePriorityInput(${index}, 'name', this.value)"
+              onblur="handlePriorityInput(${index}, 'name', this.value)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition uppercase" />
           </td>
           <td class="p-2 border-r border-slate-200">
@@ -625,7 +626,7 @@
           try { newlyAdded.setSelectionRange(newlyAdded.value.length, newlyAdded.value.length); } catch (e) {}
         }
         isExpandingPriorityTable = false;
-      }, 150);
+      }, 100);
     }
 
     function removePriorityGreenRow(index) {
@@ -652,13 +653,15 @@
         priorityGreens[index][field] = val;
       }
 
-      // Auto-contract: trim trailing empty rows down to minimum of 3 (works on both PC & Mobile input/delete)
+      // Auto-contract: trim trailing empty rows down to minimum of 3 (works reliably on both PC & Mobile)
+      let contracted = false;
       while (
         priorityGreens.length > 3 &&
         (!priorityGreens[priorityGreens.length - 1].name || 
          priorityGreens[priorityGreens.length - 1].name.trim() === '')
       ) {
         priorityGreens.pop();
+        contracted = true;
       }
 
       saveAppStateToLocalStorage();
@@ -679,7 +682,7 @@
         };
 
         const handleKeyAction = (e) => {
-          const isEnter = e.key === 'Enter' || e.keyCode === 13;
+          const isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
           if (!isEnter) return;
 
           e.preventDefault();
@@ -690,10 +693,10 @@
           triggerExpandOrMove(row, col);
         };
 
-        // Keyboard navigation for desktop and mobile touch keyup/keydown events
+        // Complete listener set covering mobile virtual keyboard actions (Enter / Go / Next) and desktop keypresses
         input.addEventListener('keydown', handleKeyAction);
         input.addEventListener('keyup', (e) => {
-          if (e.key === 'Enter' || e.keyCode === 13) {
+          if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
             e.preventDefault();
           }
         });
@@ -704,7 +707,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 59,
+        version: 60,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
