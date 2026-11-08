@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v49
+              v50
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -344,14 +344,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 49 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 50 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v49';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v50';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -395,7 +395,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 49,
+          version: 50,
           timestamp: new Date().toISOString(),
           state: state,
           masterRoster: masterRoster,
@@ -440,7 +440,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 49,
+        version: 50,
         exportDate: new Date().toISOString(),
         state: state,
         masterRoster: masterRoster,
@@ -1187,7 +1187,6 @@
                 data-team="${teamLabel}" data-match="${m}" data-field="ends" data-col="0"
                 value="${matchData.ends || ''}" 
                 placeholder="0"
-                onclick="this.select()"
                 oninput="setScoreMetric('${teamLabel}', ${m}, 'ends', this.value)"
                 class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
               />
@@ -1198,7 +1197,6 @@
                 data-team="${teamLabel}" data-match="${m}" data-field="ptsFor" data-col="1"
                 value="${matchData.ptsFor || ''}" 
                 placeholder="0"
-                onclick="this.select()"
                 oninput="setScoreMetric('${teamLabel}', ${m}, 'ptsFor', this.value)"
                 class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
               />
@@ -1209,7 +1207,6 @@
                 data-team="${teamLabel}" data-match="${m}" data-field="ptsAgainst" data-col="2"
                 value="${matchData.ptsAgainst || ''}" 
                 placeholder="0"
-                onclick="this.select()"
                 oninput="setScoreMetric('${teamLabel}', ${m}, 'ptsAgainst', this.value)"
                 class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
               />
@@ -1416,6 +1413,24 @@
       const tbody = document.getElementById('masterRosterTableBody');
       if (!tbody) return;
 
+      // Capture currently focused active roster input to preserve cursor & edit mode across dynamic expansion
+      const activeEl = document.activeElement;
+      let activeRow = null;
+      let activeCol = null;
+      let selectionStart = 0;
+      let selectionEnd = 0;
+
+      if (activeEl && activeEl.classList.contains('roster-nav-input')) {
+        activeRow = parseInt(activeEl.getAttribute('data-row'), 10);
+        activeCol = parseInt(activeEl.getAttribute('data-col'), 10);
+        try {
+          selectionStart = activeEl.selectionStart;
+          selectionEnd = activeEl.selectionEnd;
+        } catch (e) {
+          // Fallback for browsers that don't support selection on certain types
+        }
+      }
+
       let lastFilledRow = -1;
       for (let r = 0; r < 160; r++) {
         if (masterRoster[r].some(name => name && name.trim() !== '')) {
@@ -1456,16 +1471,23 @@
       }
 
       attachRosterKeyboardNav();
+
+      // Restore focus and cursor position if user was typing during table re-render
+      if (activeRow !== null && activeCol !== null) {
+        const restoredInput = document.getElementById(`roster_input_${activeRow}_${activeCol}`);
+        if (restoredInput) {
+          restoredInput.focus();
+          try {
+            restoredInput.setSelectionRange(selectionStart, selectionEnd);
+          } catch (e) {
+            // Ignore selection range errors if unsupported
+          }
+        }
+      }
     }
 
     function attachRosterKeyboardNav() {
       const inputs = document.querySelectorAll('.roster-nav-input');
-
-      inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-          setTimeout(() => this.select(), 0);
-        });
-      });
 
       inputs.forEach(input => {
         input.addEventListener('keydown', function(e) {
@@ -1518,10 +1540,6 @@
       const inputs = document.querySelectorAll('.scorecard-nav-input');
 
       inputs.forEach(input => {
-        input.addEventListener('focus', function() {
-          setTimeout(() => this.select(), 0);
-        });
-
         input.addEventListener('keydown', function(e) {
           const team = this.getAttribute('data-team');
           const match = parseInt(this.getAttribute('data-match'), 10);
@@ -1546,7 +1564,6 @@
               targetCol = col - 1;
             } else if (match > 1) {
               targetMatch = match - 1;
-              targetCol = 0;
               targetCol = 2;
             }
             e.preventDefault();
