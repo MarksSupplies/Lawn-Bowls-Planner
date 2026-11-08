@@ -43,16 +43,22 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v40
+              v43
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
         </div>
       </div>
-      <span class="bg-bowls-800 border border-emerald-600/60 text-emerald-100 text-xs px-3 py-1.5 rounded-full font-semibold shadow-inner hidden sm:inline-flex items-center space-x-1.5">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Equalized Draw Generator</span>
-      </span>
+      <div class="flex items-center space-x-2">
+        <button type="button" onclick="resetAllAppData()" class="bg-emerald-800/80 hover:bg-emerald-700 text-emerald-100 border border-emerald-600/60 text-xs px-2.5 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1" title="Reset all settings and rosters to defaults">
+          <i class="ph-bold ph-arrow-counter-clockwise text-xs"></i>
+          <span class="hidden sm:inline">Reset All</span>
+        </button>
+        <span class="bg-bowls-800 border border-emerald-600/60 text-emerald-100 text-xs px-3 py-1.5 rounded-full font-semibold shadow-inner hidden md:inline-flex items-center space-x-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Equalized Draw Generator</span>
+        </span>
+      </div>
     </div>
   </header>
 
@@ -260,25 +266,33 @@
     </section>
 
     <!-- Master Roster Section (160 Teams) -->
-  <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3 sm:p-5 space-y-4">
-    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-      <div class="flex items-center space-x-2">
-        <i class="ph-bold ph-users-three text-bowls-700 text-xl"></i>
-        <h2 class="text-base sm:text-lg font-bold text-slate-900">Master Roster Entry</h2>
-      </div>
-      <div class="flex items-center space-x-2">
-        <button type="button" onclick="clearAllRosterNames()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
-          <i class="ph-bold ph-trash text-xs"></i>
-          <span>Delete All Names</span>
-        </button>
-        <span class="text-[10px] sm:text-xs bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2.5 py-1 rounded-full">
-          Auto-expanding &bull; Max 160 Teams
-        </span>
-      </div>
-    </div>
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3 sm:p-5 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2">
+          <i class="ph-bold ph-users-three text-bowls-700 text-xl"></i>
+          <h2 class="text-base sm:text-lg font-bold text-slate-900">Master Roster Entry</h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Export / Import File Controls -->
+          <button type="button" onclick="exportFullTournamentJSON()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
+            <i class="ph-bold ph-download-simple text-xs"></i>
+            <span>Export Full File</span>
+          </button>
+          <label class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1 cursor-pointer">
+            <i class="ph-bold ph-upload-simple text-xs"></i>
+            <span>Import File</span>
+            <input type="file" id="importJsonFileInput" accept=".json" onchange="importFullTournamentJSON(event)" class="hidden">
+          </label>
 
-    <div class="w-full rounded-xl border border-slate-200">
-      <table class="w-full text-left text-[11px] sm:text-xs border-collapse table-fixed">
+          <button type="button" onclick="clearAllRosterNames()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
+            <i class="ph-bold ph-trash text-xs"></i>
+            <span>Delete All Names</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="w-full rounded-xl border border-slate-200">
+        <table class="w-full text-left text-[11px] sm:text-xs border-collapse table-fixed">
           <thead>
             <tr class="bg-slate-900 text-white font-extrabold uppercase tracking-tight sm:tracking-wider">
               <th class="p-1.5 sm:p-3 w-[18%] sm:w-28 border-r border-slate-800 text-[10px] sm:text-xs text-center sm:text-left align-bottom">Team</th>
@@ -317,7 +331,7 @@
             </tr>
           </thead>
           <tbody id="masterRosterTableBody" class="divide-y divide-slate-100 bg-white">
-            <!-- 160 Team Rows dynamically rendered -->
+            <!-- Dynamically rendered team rows -->
           </tbody>
         </table>
       </div>
@@ -328,14 +342,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 40 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 43 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
-    // System State with LocalStorage Persistence for Greens
-    const savedGreens = parseInt(localStorage.getItem('lawn_bowls_greens') || '1', 10);
+    // System State Storage Key
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v43';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -346,15 +360,151 @@
       fours: { key: 'fours', name: 'Fours', targetTeamSize: 4, bowlsPerPlayer: 2, totalTeamBowls: 8 }
     };
 
+    // Default Application State
+    const defaultState = {
+      totalBowlers: 23,
+      greensAvailable: 1,
+      rinksPerGreen: 8,
+      selectedFormat: 'threeBowlTriples',
+      isBestFitActive: false,
+      selectedRounds: 3,
+      balancingMode: 'optimizeTeamNumbers', // 'optimizeTeamNumbers' or 'byes'
+      activeTabRound: 1,
+      viewMode: 'tabs', // 'tabs' or 'matrix'
+      schedule: []
+    };
+
+    // Active Application State
+    let state = { ...defaultState };
+
     // Master roster store: 160 teams x 4 bowler positions [Skip, Lead, Two, Three]
-    const masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
+    let masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
     const POSITIONS = ['Skip', 'Lead', 'Two', 'Three'];
 
     // Track minimum visible rows (default 10)
     let minVisibleRosterRows = 10;
 
     // Store scorecard results: matchResultStore[teamLabel][matchNum] = { outcome: 'W'|'D'|'L'|'', ends: '', ptsFor: '', ptsAgainst: '' }
-    const matchResultStore = {};
+    let matchResultStore = {};
+
+    // --- HYBRID PERSISTENCE ENGINE ---
+
+    // Save full application state to LocalStorage
+    function saveAppStateToLocalStorage() {
+      try {
+        const payload = {
+          version: 43,
+          timestamp: new Date().toISOString(),
+          state: state,
+          masterRoster: masterRoster,
+          minVisibleRosterRows: minVisibleRosterRows,
+          matchResultStore: matchResultStore
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      } catch (err) {
+        console.warn('LocalStorage save failed:', err);
+      }
+    }
+
+    // Load full application state from LocalStorage on startup
+    function loadAppStateFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.state && parsed.masterRoster) {
+          state = { ...defaultState, ...parsed.state };
+          masterRoster = parsed.masterRoster;
+          minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
+          matchResultStore = parsed.matchResultStore || {};
+          
+          // Sync format select dropdown element if exists
+          const selectEl = document.getElementById('formatSelect');
+          if (selectEl) {
+            selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
+          }
+          const roundsEl = document.getElementById('roundsSelect');
+          if (roundsEl) {
+            roundsEl.value = state.selectedRounds;
+          }
+          return true;
+        }
+      } catch (err) {
+        console.warn('LocalStorage load failed:', err);
+      }
+      return false;
+    }
+
+    // Export full state to a JSON file download
+    function exportFullTournamentJSON() {
+      const payload = {
+        appName: 'Lawn Bowls Tournament Planner Engine',
+        version: 43,
+        exportDate: new Date().toISOString(),
+        state: state,
+        masterRoster: masterRoster,
+        minVisibleRosterRows: minVisibleRosterRows,
+        matchResultStore: matchResultStore
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+      const downloadAnchor = document.createElement('a');
+      const dateTag = new Date().toISOString().split('T')[0];
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `lawn_bowls_tournament_${dateTag}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Import full state from a JSON file
+    function importFullTournamentJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (parsed && parsed.state && parsed.masterRoster) {
+            state = { ...defaultState, ...parsed.state };
+            masterRoster = parsed.masterRoster;
+            minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
+            matchResultStore = parsed.matchResultStore || {};
+
+            const selectEl = document.getElementById('formatSelect');
+            if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
+            const roundsEl = document.getElementById('roundsSelect');
+            if (roundsEl) roundsEl.value = state.selectedRounds;
+
+            saveAppStateToLocalStorage();
+            renderUI();
+          } else {
+            alert('Invalid tournament preset file format.');
+          }
+        } catch (err) {
+          alert('Could not parse the selected file. Please ensure it is a valid JSON tournament backup file.');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = ''; // Reset file input
+    }
+
+    // Reset all application state back to factory defaults
+    function resetAllAppData() {
+      state = { ...defaultState };
+      masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
+      minVisibleRosterRows = 10;
+      matchResultStore = {};
+
+      const selectEl = document.getElementById('formatSelect');
+      if (selectEl) selectEl.value = 'threeBowlTriples';
+      const roundsEl = document.getElementById('roundsSelect');
+      if (roundsEl) roundsEl.value = '3';
+
+      saveAppStateToLocalStorage();
+      renderUI();
+    }
 
     function setMatchResult(teamLabel, matchNum, val) {
       if (!matchResultStore[teamLabel]) {
@@ -365,6 +515,7 @@
       }
       const current = matchResultStore[teamLabel][matchNum].outcome;
       matchResultStore[teamLabel][matchNum].outcome = (current === val) ? '' : val;
+      saveAppStateToLocalStorage();
       renderUI();
     }
 
@@ -378,6 +529,7 @@
         matchResultStore[teamLabel][matchNum] = { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
       }
       matchResultStore[teamLabel][matchNum][field] = cleanVal;
+      saveAppStateToLocalStorage();
       updateScorecardTotals(teamLabel);
     }
 
@@ -437,19 +589,6 @@
       return "Team " + result;
     }
 
-    const state = {
-      totalBowlers: 23,
-      greensAvailable: isNaN(savedGreens) ? 1 : savedGreens,
-      rinksPerGreen: 8,
-      selectedFormat: 'threeBowlTriples',
-      isBestFitActive: false,
-      selectedRounds: 3,
-      balancingMode: 'optimizeTeamNumbers', // 'optimizeTeamNumbers' or 'byes'
-      activeTabRound: 1,
-      viewMode: 'tabs', // 'tabs' or 'matrix'
-      schedule: []
-    };
-
     // Steppers and control handlers
     function adjustBowlers(delta) {
       state.totalBowlers = Math.max(2, Math.min(160, state.totalBowlers + delta));
@@ -458,7 +597,6 @@
 
     function adjustGreens(delta) {
       state.greensAvailable = Math.max(1, Math.min(10, state.greensAvailable + delta));
-      localStorage.setItem('lawn_bowls_greens', state.greensAvailable);
       updateEngine();
     }
 
@@ -515,6 +653,7 @@
         containerMatrix.classList.remove('hidden');
         containerCards.classList.add('hidden');
       }
+      saveAppStateToLocalStorage();
       renderUI();
     }
 
@@ -554,6 +693,7 @@
     }
 
     function updateEngine() {
+      saveAppStateToLocalStorage();
       renderUI();
     }
 
@@ -934,7 +1074,6 @@
 
       if (scheduleItems.length === 0) return '';
 
-      // Group rinks by green if all on same green, or list clearly
       const greensMap = {};
       scheduleItems.forEach(item => {
         if (!greensMap[item.green]) greensMap[item.green] = [];
@@ -975,7 +1114,6 @@
       let hasOutcomes = false;
 
       for (let m = 1; m <= matchCount; m++) {
-        // Look up assigned rink across all generated rounds for this team
         let rinkDisplay = '--';
         const roundFixtures = state.schedule[m - 1] || [];
         const fixture = roundFixtures.find(f => f.teamA?.label === teamLabel || f.teamB?.label === teamLabel);
@@ -1101,7 +1239,6 @@
       const container = document.getElementById('matchCardsContainer');
       container.innerHTML = '';
 
-      // Extract all unique active teams scheduled in the tournament
       const uniqueTeamsMap = new Map();
       state.schedule.forEach(roundFixtures => {
         roundFixtures.forEach(fixture => {
@@ -1118,7 +1255,6 @@
         });
       });
 
-      // Sort teams alphabetically by Team Label (Team A, Team B, Team C, ...)
       const sortedTeams = Array.from(uniqueTeamsMap.values()).sort((a, b) => {
         return a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' });
       });
@@ -1131,7 +1267,6 @@
       sortedTeams.forEach(team => {
         const teamIdx = parseTeamIndexFromLabel(team.label);
 
-        // Build concise opponent list for fixture summary
         const opponents = [];
         state.schedule.forEach(roundFixtures => {
           roundFixtures.forEach(f => {
@@ -1213,31 +1348,28 @@
     }
 
     function randomizeRosterColumn(colIdx) {
-      // Collect all non-blank names across all 160 teams in this column
       const nonBlankNames = [];
       for (let i = 0; i < 160; i++) {
         const val = masterRoster[i][colIdx]?.trim();
         if (val) nonBlankNames.push(val);
       }
 
-      // Fisher-Yates shuffle the non-blank names
       for (let i = 0; i < nonBlankNames.length - 1; i++) {
         const j = i + Math.floor(Math.random() * (nonBlankNames.length - i));
         [nonBlankNames[i], nonBlankNames[j]] = [nonBlankNames[j], nonBlankNames[i]];
       }
 
-      // Place shuffled names at the top of the column sequentially and clear remaining blanks
       for (let i = 0; i < 160; i++) {
         masterRoster[i][colIdx] = i < nonBlankNames.length ? nonBlankNames[i] : '';
       }
 
+      saveAppStateToLocalStorage();
       renderUI();
     }
 
     function updateRosterCell(teamIdx, posIdx, val) {
       masterRoster[teamIdx][posIdx] = val;
       
-      // Calculate active filled row threshold and ensure at least 2 empty rows are visible
       let lastFilledRow = -1;
       for (let r = 0; r < 160; r++) {
         if (masterRoster[r].some(name => name && name.trim() !== '')) {
@@ -1245,13 +1377,14 @@
         }
       }
 
-      // Required visible rows: max(10, lastFilledRow + 3) capped at 160
       const newRequiredVisible = Math.max(10, Math.min(160, lastFilledRow + 3));
       
       if (newRequiredVisible > minVisibleRosterRows) {
         minVisibleRosterRows = newRequiredVisible;
         renderMasterRosterTable();
       }
+
+      saveAppStateToLocalStorage();
     }
 
     function clearAllRosterNames() {
@@ -1259,6 +1392,8 @@
         masterRoster[i] = ['', '', '', ''];
       }
       minVisibleRosterRows = 10;
+      matchResultStore = {};
+      saveAppStateToLocalStorage();
       renderUI();
     }
 
@@ -1266,7 +1401,6 @@
       const tbody = document.getElementById('masterRosterTableBody');
       if (!tbody) return;
 
-      // Find the last row with at least one name entered
       let lastFilledRow = -1;
       for (let r = 0; r < 160; r++) {
         if (masterRoster[r].some(name => name && name.trim() !== '')) {
@@ -1274,7 +1408,6 @@
         }
       }
 
-      // Ensure at least 2 empty rows are always visible below the last filled row
       const displayRowCount = Math.max(minVisibleRosterRows, Math.min(160, lastFilledRow + 3));
 
       tbody.innerHTML = '';
@@ -1313,7 +1446,6 @@
     function attachRosterKeyboardNav() {
       const inputs = document.querySelectorAll('.roster-nav-input');
 
-      // Auto-highlight text on focus for immediate edit mode
       inputs.forEach(input => {
         input.addEventListener('focus', function() {
           setTimeout(() => this.select(), 0);
@@ -1353,7 +1485,6 @@
           }
 
           if (targetRow !== row || targetCol !== col) {
-            // Expand rows if navigating past visible limit
             if (targetRow >= minVisibleRosterRows) {
               minVisibleRosterRows = Math.min(160, targetRow + 3);
               renderMasterRosterTable();
@@ -1425,6 +1556,7 @@
     }
 
     window.onload = function() {
+      loadAppStateFromLocalStorage();
       renderUI();
     };
   </script>
