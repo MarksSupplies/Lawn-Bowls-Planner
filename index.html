@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v50
+              v52
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -298,36 +298,48 @@
           <thead>
             <tr class="bg-slate-900 text-white font-extrabold uppercase tracking-tight sm:tracking-wider">
               <th class="p-1.5 sm:p-3 w-[18%] sm:w-28 border-r border-slate-800 text-[10px] sm:text-xs text-center sm:text-left align-bottom">Team</th>
-              <th class="p-1.5 sm:p-3 border-r border-slate-800">
+              <th id="th_col_0" class="p-1.5 sm:p-3 border-r border-slate-800 transition-all duration-200">
                 <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(0)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
-                  <span class="truncate">1. Skip</span>
+                  <div class="flex items-center justify-between w-full">
+                    <span class="truncate">1. Skip</span>
+                    <span id="badge_col_0" class="hidden text-[9px] bg-slate-700 text-slate-300 font-semibold px-1 py-0.5 rounded ml-1">Active</span>
+                  </div>
                 </div>
               </th>
-              <th class="p-1.5 sm:p-3 border-r border-slate-800">
+              <th id="th_col_1" class="p-1.5 sm:p-3 border-r border-slate-800 transition-all duration-200">
                 <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(1)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
-                  <span class="truncate">2. Lead</span>
+                  <div class="flex items-center justify-between w-full">
+                    <span class="truncate">2. Lead</span>
+                    <span id="badge_col_1" class="hidden text-[9px] bg-slate-800 text-slate-400 font-normal px-1 py-0.5 rounded ml-1">Not Needed</span>
+                  </div>
                 </div>
               </th>
-              <th class="p-1.5 sm:p-3 border-r border-slate-800">
+              <th id="th_col_2" class="p-1.5 sm:p-3 border-r border-slate-800 transition-all duration-200">
                 <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(2)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
-                  <span class="truncate">3. Two</span>
+                  <div class="flex items-center justify-between w-full">
+                    <span class="truncate">3. Two</span>
+                    <span id="badge_col_2" class="hidden text-[9px] bg-slate-800 text-slate-400 font-normal px-1 py-0.5 rounded ml-1">Not Needed</span>
+                  </div>
                 </div>
               </th>
-              <th class="p-1.5 sm:p-3">
+              <th id="th_col_3" class="p-1.5 sm:p-3 transition-all duration-200">
                 <div class="flex flex-col items-center sm:items-start gap-1">
                   <button type="button" onclick="randomizeRosterColumn(3)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] tracking-normal capitalize transition shadow-xs">
                     <i class="ph-bold ph-shuffle text-[9px] sm:text-[10px]"></i> <span class="hidden sm:inline">Randomize</span><span class="sm:hidden">Rnd</span>
                   </button>
-                  <span class="truncate">4. Three</span>
+                  <div class="flex items-center justify-between w-full">
+                    <span class="truncate">4. Three</span>
+                    <span id="badge_col_3" class="hidden text-[9px] bg-slate-800 text-slate-400 font-normal px-1 py-0.5 rounded ml-1">Not Needed</span>
+                  </div>
                 </div>
               </th>
             </tr>
@@ -344,14 +356,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 50 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 52 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v50';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v52';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -389,13 +401,19 @@
     // Store scorecard results
     let matchResultStore = {};
 
+    // Helper: Determine how many roster columns are needed for the current format
+    function getRequiredRosterCols() {
+      const spec = FORMAT_SPECS[state.selectedFormat];
+      return spec ? spec.targetTeamSize : 4;
+    }
+
     // --- HYBRID PERSISTENCE ENGINE ---
 
     // Save full application state to LocalStorage
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 50,
+          version: 52,
           timestamp: new Date().toISOString(),
           state: state,
           masterRoster: masterRoster,
@@ -440,7 +458,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 50,
+        version: 52,
         exportDate: new Date().toISOString(),
         state: state,
         masterRoster: masterRoster,
@@ -1413,6 +1431,30 @@
       const tbody = document.getElementById('masterRosterTableBody');
       if (!tbody) return;
 
+      const requiredCols = getRequiredRosterCols();
+
+      // Dynamically update column headers & indicator badges based on selected format
+      for (let colIdx = 0; colIdx < 4; colIdx++) {
+        const th = document.getElementById(`th_col_${colIdx}`);
+        const badge = document.getElementById(`badge_col_${colIdx}`);
+        
+        if (th) {
+          if (colIdx < requiredCols) {
+            th.className = 'p-1.5 sm:p-3 border-r border-slate-800 transition-all duration-200 bg-slate-900 opacity-100 text-white font-extrabold';
+            if (badge) {
+              badge.innerText = 'Active';
+              badge.className = 'hidden sm:inline-block text-[9px] bg-emerald-600/80 text-emerald-100 font-bold px-1.5 py-0.5 rounded ml-1 border border-emerald-500/40';
+            }
+          } else {
+            th.className = 'p-1.5 sm:p-3 border-r border-slate-800 transition-all duration-200 bg-slate-950/70 opacity-60 text-slate-400 font-normal';
+            if (badge) {
+              badge.innerText = 'Not Needed';
+              badge.className = 'hidden sm:inline-block text-[9px] bg-slate-800 text-slate-400 font-semibold px-1.5 py-0.5 rounded ml-1 border border-slate-700/60';
+            }
+          }
+        }
+      }
+
       // Capture currently focused active roster input to preserve cursor & edit mode across dynamic expansion
       const activeEl = document.activeElement;
       let activeRow = null;
@@ -1451,6 +1493,13 @@
 
         for (let posIdx = 0; posIdx < 4; posIdx++) {
           const val = masterRoster[i][posIdx] || '';
+          const isNeeded = posIdx < requiredCols;
+          
+          // Enhanced contrast: Active inputs now use text-slate-950 font-bold for deep black readability
+          const cellBgStyle = isNeeded 
+            ? 'bg-slate-50 border-slate-300 text-slate-950 font-bold shadow-2xs focus:border-bowls-700 focus:bg-white placeholder:text-slate-400' 
+            : 'bg-slate-100/60 border-slate-200/80 text-slate-400 font-medium opacity-65 focus:opacity-100 focus:bg-white focus:text-slate-950 focus:border-bowls-700 placeholder:text-slate-300';
+
           rowHTML += `
             <td class="p-1 sm:p-2 border-r border-slate-200 last:border-r-0">
               <input type="text"
@@ -1460,7 +1509,7 @@
                 placeholder="${POSITIONS[posIdx]}"
                 oninput="updateRosterCell(${i}, ${posIdx}, this.value)"
                 onblur="renderMatchCards()"
-                class="roster-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs font-semibold text-slate-800 outline-none transition"
+                class="roster-nav-input w-full ${cellBgStyle} rounded px-1.5 sm:px-2 py-1 text-[11px] sm:text-xs outline-none transition"
               />
             </td>
           `;
