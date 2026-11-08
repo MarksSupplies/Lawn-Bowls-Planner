@@ -40,7 +40,12 @@
           <i class="ph-duotone ph-trophy text-2xl text-emerald-400"></i>
         </div>
         <div>
-          <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
+            <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
+              v40
+            </span>
+          </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
         </div>
       </div>
@@ -259,11 +264,17 @@
     <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
       <div class="flex items-center space-x-2">
         <i class="ph-bold ph-users-three text-bowls-700 text-xl"></i>
-        <h2 class="text-base sm:text-lg font-bold text-slate-900">Master Roster Entry (160 Teams)</h2>
+        <h2 class="text-base sm:text-lg font-bold text-slate-900">Master Roster Entry</h2>
       </div>
-      <span class="text-[10px] sm:text-xs bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2.5 py-1 rounded-full">
-        Teams A to HD &bull; 4 Positions / Team
-      </span>
+      <div class="flex items-center space-x-2">
+        <button type="button" onclick="clearAllRosterNames()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
+          <i class="ph-bold ph-trash text-xs"></i>
+          <span>Delete All Names</span>
+        </button>
+        <span class="text-[10px] sm:text-xs bg-slate-100 text-slate-600 border border-slate-200 font-semibold px-2.5 py-1 rounded-full">
+          Auto-expanding &bull; Max 160 Teams
+        </span>
+      </div>
     </div>
 
     <div class="w-full rounded-xl border border-slate-200">
@@ -317,7 +328,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 38 &bull; Max 4 Bowls Safeguard Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 40 &bull; Max 4 Bowls Safeguard Engine Active
     </div>
   </footer>
 
@@ -338,6 +349,9 @@
     // Master roster store: 160 teams x 4 bowler positions [Skip, Lead, Two, Three]
     const masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
     const POSITIONS = ['Skip', 'Lead', 'Two', 'Three'];
+
+    // Track minimum visible rows (default 10)
+    let minVisibleRosterRows = 10;
 
     // Store scorecard results: matchResultStore[teamLabel][matchNum] = { outcome: 'W'|'D'|'L'|'', ends: '', ptsFor: '', ptsAgainst: '' }
     const matchResultStore = {};
@@ -1222,15 +1236,50 @@
 
     function updateRosterCell(teamIdx, posIdx, val) {
       masterRoster[teamIdx][posIdx] = val;
-      // Do not call full renderUI() here as it destroys DOM nodes while navigating
+      
+      // Calculate active filled row threshold and ensure at least 2 empty rows are visible
+      let lastFilledRow = -1;
+      for (let r = 0; r < 160; r++) {
+        if (masterRoster[r].some(name => name && name.trim() !== '')) {
+          lastFilledRow = r;
+        }
+      }
+
+      // Required visible rows: max(10, lastFilledRow + 3) capped at 160
+      const newRequiredVisible = Math.max(10, Math.min(160, lastFilledRow + 3));
+      
+      if (newRequiredVisible > minVisibleRosterRows) {
+        minVisibleRosterRows = newRequiredVisible;
+        renderMasterRosterTable();
+      }
+    }
+
+    function clearAllRosterNames() {
+      for (let i = 0; i < 160; i++) {
+        masterRoster[i] = ['', '', '', ''];
+      }
+      minVisibleRosterRows = 10;
+      renderUI();
     }
 
     function renderMasterRosterTable() {
       const tbody = document.getElementById('masterRosterTableBody');
       if (!tbody) return;
+
+      // Find the last row with at least one name entered
+      let lastFilledRow = -1;
+      for (let r = 0; r < 160; r++) {
+        if (masterRoster[r].some(name => name && name.trim() !== '')) {
+          lastFilledRow = r;
+        }
+      }
+
+      // Ensure at least 2 empty rows are always visible below the last filled row
+      const displayRowCount = Math.max(minVisibleRosterRows, Math.min(160, lastFilledRow + 3));
+
       tbody.innerHTML = '';
 
-      for (let i = 0; i < 160; i++) {
+      for (let i = 0; i < displayRowCount; i++) {
         const teamLabel = getTeamLabel(i);
         const tr = document.createElement('tr');
         tr.className = i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50';
@@ -1304,6 +1353,12 @@
           }
 
           if (targetRow !== row || targetCol !== col) {
+            // Expand rows if navigating past visible limit
+            if (targetRow >= minVisibleRosterRows) {
+              minVisibleRosterRows = Math.min(160, targetRow + 3);
+              renderMasterRosterTable();
+            }
+
             const nextInput = document.getElementById(`roster_input_${targetRow}_${targetCol}`);
             if (nextInput) {
               nextInput.focus();
