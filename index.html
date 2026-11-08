@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v48
+              v49
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -344,14 +344,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 48 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 49 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v48';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v49';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -395,7 +395,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 48,
+          version: 49,
           timestamp: new Date().toISOString(),
           state: state,
           masterRoster: masterRoster,
@@ -440,7 +440,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 48,
+        version: 49,
         exportDate: new Date().toISOString(),
         state: state,
         masterRoster: masterRoster,
@@ -449,27 +449,23 @@
       };
 
       const jsonStr = JSON.stringify(payload, null, 2);
-      const blob = new Blob([jsonStr], { type: 'application/json' });
-      const blobUrl = URL.createObjectURL(blob);
+      const encodedUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
       const dateTag = new Date().toISOString().split('T')[0];
 
       const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute('href', encodedUri);
+      downloadAnchor.setAttribute('download', `lawn_bowls_tournament_${dateTag}.json`);
       downloadAnchor.style.display = 'none';
-      downloadAnchor.href = blobUrl;
-      downloadAnchor.download = `lawn_bowls_tournament_${dateTag}.json`;
       
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
 
-      // Immediate double revocation mechanism for Mobile WebKit / Chromium notification manager
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          if (document.body.contains(downloadAnchor)) {
-            document.body.removeChild(downloadAnchor);
-          }
-          URL.revokeObjectURL(blobUrl);
-        }, 50);
-      });
+      // Instantly remove anchor to close mobile transfer stream cleanly
+      setTimeout(() => {
+        if (downloadAnchor.parentNode) {
+          downloadAnchor.parentNode.removeChild(downloadAnchor);
+        }
+      }, 10);
     }
 
     // Trigger file input programmatically for mobile compatibility
