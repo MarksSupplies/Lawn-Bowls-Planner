@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v52
+              v54
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 52 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 54 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v52';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v54';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -466,7 +466,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 52,
+          version: 54,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -514,6 +514,21 @@
       const summaryContainer = document.getElementById('priorityCombinedSummary');
       if (!tbody || !summaryContainer) return;
 
+      const activeEl = document.activeElement;
+      let activeRow = null;
+      let activeCol = null;
+      let selectionStart = 0;
+      let selectionEnd = 0;
+
+      if (activeEl && activeEl.classList.contains('priority-nav-input')) {
+        activeRow = parseInt(activeEl.getAttribute('data-row'), 10);
+        activeCol = parseInt(activeEl.getAttribute('data-col'), 10);
+        try {
+          selectionStart = activeEl.selectionStart;
+          selectionEnd = activeEl.selectionEnd;
+        } catch (e) {}
+      }
+
       tbody.innerHTML = '';
       summaryContainer.innerHTML = '';
 
@@ -526,20 +541,26 @@
         tr.innerHTML = `
           <td class="p-2 text-center font-bold text-slate-600 bg-slate-50 border-r border-slate-200">#${index + 1}</td>
           <td class="p-2 border-r border-slate-200">
-            <input type="text" value="${item.name}" 
-              placeholder="e.g. 1, A, B"
+            <input type="text" maxlength="5" value="${item.name}" 
+              id="priority_input_${index}_0"
+              data-row="${index}" data-col="0"
+              placeholder="e.g. 1, A"
               oninput="updatePriorityGreen(${index}, 'name', this.value)"
-              class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition uppercase" />
           </td>
           <td class="p-2 border-r border-slate-200">
             <input type="number" min="1" max="50" value="${item.startRink}" 
+              id="priority_input_${index}_1"
+              data-row="${index}" data-col="1"
               oninput="updatePriorityGreen(${index}, 'startRink', this.value)"
-              class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200">
             <input type="number" min="1" max="50" value="${item.endRink}" 
+              id="priority_input_${index}_2"
+              data-row="${index}" data-col="2"
               oninput="updatePriorityGreen(${index}, 'endRink', this.value)"
-              class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200 font-semibold text-emerald-800 bg-emerald-50/40">
             ${summaryText}
@@ -562,6 +583,18 @@
         tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">No priority greens defined. Click "Add Priority Green" above to start.</td></tr>`;
         summaryContainer.innerHTML = `<span class="text-slate-400 italic">None defined</span>`;
       }
+
+      attachPriorityKeyboardNav();
+
+      if (activeRow !== null && activeCol !== null) {
+        const restored = document.getElementById(`priority_input_${activeRow}_${activeCol}`);
+        if (restored) {
+          restored.focus();
+          try {
+            restored.setSelectionRange(selectionStart, selectionEnd);
+          } catch (e) {}
+        }
+      }
     }
 
     function addPriorityGreenRow() {
@@ -569,6 +602,12 @@
       priorityGreens.push({ name: nextLetter, startRink: 1, endRink: 8 });
       saveAppStateToLocalStorage();
       renderPriorityGreensTable();
+
+      const lastIdx = priorityGreens.length - 1;
+      setTimeout(() => {
+        const newlyAdded = document.getElementById(`priority_input_${lastIdx}_0`);
+        if (newlyAdded) newlyAdded.focus();
+      }, 10);
     }
 
     function removePriorityGreenRow(index) {
@@ -579,7 +618,9 @@
 
     function updatePriorityGreen(index, field, val) {
       if (!priorityGreens[index]) return;
-      if (field === 'startRink' || field === 'endRink') {
+      if (field === 'name') {
+        priorityGreens[index][field] = val.slice(0, 5);
+      } else if (field === 'startRink' || field === 'endRink') {
         priorityGreens[index][field] = parseInt(val, 10) || 1;
       } else {
         priorityGreens[index][field] = val;
@@ -588,11 +629,56 @@
       renderPriorityGreensTable();
     }
 
+    function attachPriorityKeyboardNav() {
+      const inputs = document.querySelectorAll('.priority-nav-input');
+
+      inputs.forEach(input => {
+        input.addEventListener('keydown', function(e) {
+          const row = parseInt(this.getAttribute('data-row'), 10);
+          const col = parseInt(this.getAttribute('data-col'), 10);
+
+          let targetRow = row;
+          let targetCol = col;
+
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            if (row < priorityGreens.length - 1) {
+              targetRow = row + 1;
+            } else {
+              addPriorityGreenRow();
+              return;
+            }
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            targetRow = Math.max(0, row - 1);
+          } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            targetRow = Math.min(priorityGreens.length - 1, row + 1);
+          } else if (e.key === 'ArrowLeft') {
+            if (col > 0) {
+              e.preventDefault();
+              targetCol = col - 1;
+            }
+          } else if (e.key === 'ArrowRight') {
+            if (col < 2) {
+              e.preventDefault();
+              targetCol = col + 1;
+            }
+          }
+
+          if (targetRow !== row || targetCol !== col) {
+            const nextInput = document.getElementById(`priority_input_${targetRow}_${targetCol}`);
+            if (nextInput) nextInput.focus();
+          }
+        });
+      });
+    }
+
     // Export full state to a JSON file download with Mobile Stream Revocation
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 52,
+        version: 54,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
