@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v62
+              v63
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 62 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 63 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v62';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v63';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -469,7 +469,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 62,
+          version: 63,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -548,6 +548,7 @@
               id="priority_input_${index}_0"
               data-row="${index}" data-col="0"
               placeholder="e.g. A, B"
+              enterkeyhint="next"
               oninput="handlePriorityInput(${index}, 'name', this.value)"
               onchange="handlePriorityInput(${index}, 'name', this.value)"
               onblur="handlePriorityInput(${index}, 'name', this.value)"
@@ -557,6 +558,7 @@
             <input type="number" min="1" max="50" value="${item.startRink}" 
               id="priority_input_${index}_1"
               data-row="${index}" data-col="1"
+              enterkeyhint="next"
               oninput="handlePriorityInput(${index}, 'startRink', this.value)"
               onchange="handlePriorityInput(${index}, 'startRink', this.value)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
@@ -565,6 +567,7 @@
             <input type="number" min="1" max="12" value="${item.endRink}" 
               id="priority_input_${index}_2"
               data-row="${index}" data-col="2"
+              enterkeyhint="next"
               oninput="handlePriorityInput(${index}, 'endRink', this.value)"
               onchange="handlePriorityInput(${index}, 'endRink', this.value)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
@@ -626,7 +629,7 @@
           try { newlyAdded.setSelectionRange(newlyAdded.value.length, newlyAdded.value.length); } catch (e) {}
         }
         isExpandingPriorityTable = false;
-      }, 100);
+      }, 80);
     }
 
     function removePriorityGreenRow(index) {
@@ -689,19 +692,24 @@
           const isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
           if (!isEnter) return;
 
+          // Prevent default mobile browser focus jump to lower page inputs
           e.preventDefault();
-          if (isExpandingPriorityTable || e.repeat) return;
+          e.stopPropagation();
+
+          if (isExpandingPriorityTable || e.repeat) return false;
 
           const row = parseInt(input.getAttribute('data-row'), 10);
           const col = parseInt(input.getAttribute('data-col'), 10);
           triggerExpandOrMove(row, col);
+          return false;
         };
 
-        // Complete listener set covering mobile virtual keyboard actions (Enter / Go / Next) and desktop keypresses
+        // Complete listener set preventing focus leakage to lower elements on mobile soft keyboards
         input.addEventListener('keydown', handleKeyAction);
         input.addEventListener('keyup', (e) => {
           if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
             e.preventDefault();
+            e.stopPropagation();
           }
         });
       });
@@ -711,7 +719,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 62,
+        version: 63,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
