@@ -66,14 +66,15 @@
   <main class="max-w-6xl mx-auto px-4 py-6 flex-1 w-full space-y-6">
 
     <!-- Venue & Setup Parameters Card -->
-    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
-      <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-5">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
         <div class="flex items-center space-x-2">
           <i class="ph-bold ph-map-pin text-bowls-700 text-xl"></i>
           <h2 class="text-lg font-bold text-slate-900">Venue Setup</h2>
         </div>
       </div>
 
+      <!-- Preserved Core Stepper Controls -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Bowlers Stepper -->
         <div class="flex items-center justify-between p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
@@ -123,6 +124,52 @@
           </div>
         </div>
       </div>
+
+      <!-- Priority Greens/Rinks Entry Element -->
+      <div class="pt-3 border-t border-slate-100 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
+            <i class="ph-bold ph-sort-ascending text-bowls-700 text-base"></i>
+            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Available Greens/Rinks in Priority Order</h3>
+          </div>
+          <button type="button" onclick="addPriorityGreenRow()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
+            <i class="ph-bold ph-plus text-xs"></i>
+            <span>Add Priority Green</span>
+          </button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 overflow-hidden bg-slate-50/50">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200 uppercase tracking-wider text-[10px]">
+                  <th class="p-2.5 w-16 text-center">Priority</th>
+                  <th class="p-2.5 w-32">Green ID / Name</th>
+                  <th class="p-2.5 w-28">Start Rink #</th>
+                  <th class="p-2.5 w-28">End Rink #</th>
+                  <th class="p-2.5">Priority Summary Output</th>
+                  <th class="p-2.5 w-16 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody id="priorityGreensTableBody" class="divide-y divide-slate-200 bg-white">
+                <!-- Dynamic priority rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Live Priority Output Visual Preview -->
+        <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80 flex flex-wrap items-center gap-2">
+          <span class="text-xs font-bold text-emerald-900 flex items-center space-x-1">
+            <i class="ph-bold ph-list-numbers text-emerald-700"></i>
+            <span>Combined Output Sequence:</span>
+          </span>
+          <div id="priorityCombinedSummary" class="flex flex-wrap gap-1.5 text-xs">
+            <!-- Dynamic visual chips -->
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- Balancing Mode Card -->
@@ -265,7 +312,7 @@
       </div>
     </section>
 
-    <!-- Master Roster Section (160 Teams) -->
+    <!-- Master Roster Section -->
     <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-3 sm:p-5 space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div class="flex items-center space-x-2">
@@ -382,20 +429,27 @@
       selectedFormat: 'threeBowlTriples',
       isBestFitActive: false,
       selectedRounds: 3,
-      balancingMode: 'optimizeTeamNumbers', // 'optimizeTeamNumbers' or 'byes'
+      balancingMode: 'optimizeTeamNumbers',
       activeTabRound: 1,
-      viewMode: 'tabs', // 'tabs' or 'matrix'
+      viewMode: 'tabs',
       schedule: []
     };
 
     // Active Application State
     let state = { ...defaultState };
 
+    // Priority Greens Array
+    let priorityGreens = [
+      { name: 'A', startRink: 1, endRink: 8 },
+      { name: 'B', startRink: 2, endRink: 6 },
+      { name: 'C', startRink: 1, endRink: 9 }
+    ];
+
     // Master roster store: 160 teams x 4 bowler positions [Skip, Lead, Two, Three]
     let masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
     const POSITIONS = ['Skip', 'Lead', 'Two', 'Three'];
 
-    // Track minimum visible rows (default 10)
+    // Track minimum visible rows
     let minVisibleRosterRows = 10;
 
     // Store scorecard results
@@ -409,13 +463,13 @@
 
     // --- HYBRID PERSISTENCE ENGINE ---
 
-    // Save full application state to LocalStorage
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
           version: 52,
           timestamp: new Date().toISOString(),
           state: state,
+          priorityGreens: priorityGreens,
           masterRoster: masterRoster,
           minVisibleRosterRows: minVisibleRosterRows,
           matchResultStore: matchResultStore
@@ -426,7 +480,6 @@
       }
     }
 
-    // Load full application state from LocalStorage on startup
     function loadAppStateFromLocalStorage() {
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
@@ -434,6 +487,7 @@
         const parsed = JSON.parse(raw);
         if (parsed && parsed.state && parsed.masterRoster) {
           state = { ...defaultState, ...parsed.state };
+          if (parsed.priorityGreens) priorityGreens = parsed.priorityGreens;
           masterRoster = parsed.masterRoster;
           minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
           matchResultStore = parsed.matchResultStore || {};
@@ -454,6 +508,86 @@
       return false;
     }
 
+    // --- PRIORITY GREENS HANDLERS ---
+    function renderPriorityGreensTable() {
+      const tbody = document.getElementById('priorityGreensTableBody');
+      const summaryContainer = document.getElementById('priorityCombinedSummary');
+      if (!tbody || !summaryContainer) return;
+
+      tbody.innerHTML = '';
+      summaryContainer.innerHTML = '';
+
+      priorityGreens.forEach((item, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition-colors';
+
+        const summaryText = `Green ${item.name || (index + 1)} Rink ${item.startRink || 1}-${item.endRink || 1}`;
+
+        tr.innerHTML = `
+          <td class="p-2 text-center font-bold text-slate-600 bg-slate-50 border-r border-slate-200">#${index + 1}</td>
+          <td class="p-2 border-r border-slate-200">
+            <input type="text" value="${item.name}" 
+              placeholder="e.g. 1, A, B"
+              oninput="updatePriorityGreen(${index}, 'name', this.value)"
+              class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+          </td>
+          <td class="p-2 border-r border-slate-200">
+            <input type="number" min="1" max="50" value="${item.startRink}" 
+              oninput="updatePriorityGreen(${index}, 'startRink', this.value)"
+              class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+          </td>
+          <td class="p-2 border-r border-slate-200">
+            <input type="number" min="1" max="50" value="${item.endRink}" 
+              oninput="updatePriorityGreen(${index}, 'endRink', this.value)"
+              class="w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+          </td>
+          <td class="p-2 border-r border-slate-200 font-semibold text-emerald-800 bg-emerald-50/40">
+            ${summaryText}
+          </td>
+          <td class="p-2 text-center">
+            <button type="button" onclick="removePriorityGreenRow(${index})" class="text-rose-600 hover:text-rose-800 p-1 font-bold rounded transition">
+              <i class="ph-bold ph-trash text-sm"></i>
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        const chip = document.createElement('span');
+        chip.className = 'bg-white text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded shadow-2xs';
+        chip.innerText = summaryText;
+        summaryContainer.appendChild(chip);
+      });
+
+      if (priorityGreens.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">No priority greens defined. Click "Add Priority Green" above to start.</td></tr>`;
+        summaryContainer.innerHTML = `<span class="text-slate-400 italic">None defined</span>`;
+      }
+    }
+
+    function addPriorityGreenRow() {
+      const nextLetter = String.fromCharCode(65 + (priorityGreens.length % 26));
+      priorityGreens.push({ name: nextLetter, startRink: 1, endRink: 8 });
+      saveAppStateToLocalStorage();
+      renderPriorityGreensTable();
+    }
+
+    function removePriorityGreenRow(index) {
+      priorityGreens.splice(index, 1);
+      saveAppStateToLocalStorage();
+      renderPriorityGreensTable();
+    }
+
+    function updatePriorityGreen(index, field, val) {
+      if (!priorityGreens[index]) return;
+      if (field === 'startRink' || field === 'endRink') {
+        priorityGreens[index][field] = parseInt(val, 10) || 1;
+      } else {
+        priorityGreens[index][field] = val;
+      }
+      saveAppStateToLocalStorage();
+      renderPriorityGreensTable();
+    }
+
     // Export full state to a JSON file download with Mobile Stream Revocation
     function exportFullTournamentJSON() {
       const payload = {
@@ -461,6 +595,7 @@
         version: 52,
         exportDate: new Date().toISOString(),
         state: state,
+        priorityGreens: priorityGreens,
         masterRoster: masterRoster,
         minVisibleRosterRows: minVisibleRosterRows,
         matchResultStore: matchResultStore
@@ -478,7 +613,6 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
 
-      // Instantly remove anchor to close mobile transfer stream cleanly
       setTimeout(() => {
         if (downloadAnchor.parentNode) {
           downloadAnchor.parentNode.removeChild(downloadAnchor);
@@ -486,7 +620,6 @@
       }, 10);
     }
 
-    // Trigger file input programmatically for mobile compatibility
     function triggerFileInput() {
       const fileInput = document.getElementById('importJsonFileInput');
       if (fileInput) {
@@ -495,7 +628,6 @@
       }
     }
 
-    // Import full state from a JSON file
     function importFullTournamentJSON(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -506,6 +638,7 @@
           const parsed = JSON.parse(e.target.result);
           if (parsed && parsed.state && parsed.masterRoster) {
             state = { ...defaultState, ...parsed.state };
+            if (parsed.priorityGreens) priorityGreens = parsed.priorityGreens;
             masterRoster = parsed.masterRoster;
             minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
             matchResultStore = parsed.matchResultStore || {};
@@ -528,9 +661,13 @@
       event.target.value = '';
     }
 
-    // Reset all application state back to factory defaults
     function resetAllAppData() {
       state = { ...defaultState };
+      priorityGreens = [
+        { name: 'A', startRink: 1, endRink: 8 },
+        { name: 'B', startRink: 2, endRink: 6 },
+        { name: 'C', startRink: 1, endRink: 9 }
+      ];
       masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
       minVisibleRosterRows = 10;
       matchResultStore = {};
@@ -1025,6 +1162,8 @@
       document.getElementById('greensValue').innerText = state.greensAvailable;
       document.getElementById('rinksValue').innerText = state.rinksPerGreen;
 
+      renderPriorityGreensTable();
+
       const byesLockedChip = document.getElementById('byesLockedChip');
       const labelByes = document.getElementById('labelByes');
       const radioByes = document.getElementById('radioByes');
@@ -1433,7 +1572,6 @@
 
       const requiredCols = getRequiredRosterCols();
 
-      // Dynamically update column headers & indicator badges based on selected format
       for (let colIdx = 0; colIdx < 4; colIdx++) {
         const th = document.getElementById(`th_col_${colIdx}`);
         const badge = document.getElementById(`badge_col_${colIdx}`);
@@ -1455,7 +1593,6 @@
         }
       }
 
-      // Capture currently focused active roster input to preserve cursor & edit mode across dynamic expansion
       const activeEl = document.activeElement;
       let activeRow = null;
       let activeCol = null;
@@ -1468,9 +1605,7 @@
         try {
           selectionStart = activeEl.selectionStart;
           selectionEnd = activeEl.selectionEnd;
-        } catch (e) {
-          // Fallback for browsers that don't support selection on certain types
-        }
+        } catch (e) {}
       }
 
       let lastFilledRow = -1;
@@ -1495,7 +1630,6 @@
           const val = masterRoster[i][posIdx] || '';
           const isNeeded = posIdx < requiredCols;
           
-          // Enhanced contrast: Active inputs now use text-slate-950 font-bold for deep black readability
           const cellBgStyle = isNeeded 
             ? 'bg-slate-50 border-slate-300 text-slate-950 font-bold shadow-2xs focus:border-bowls-700 focus:bg-white placeholder:text-slate-400' 
             : 'bg-slate-100/60 border-slate-200/80 text-slate-400 font-medium opacity-65 focus:opacity-100 focus:bg-white focus:text-slate-950 focus:border-bowls-700 placeholder:text-slate-300';
@@ -1521,16 +1655,13 @@
 
       attachRosterKeyboardNav();
 
-      // Restore focus and cursor position if user was typing during table re-render
       if (activeRow !== null && activeCol !== null) {
         const restoredInput = document.getElementById(`roster_input_${activeRow}_${activeCol}`);
         if (restoredInput) {
           restoredInput.focus();
           try {
             restoredInput.setSelectionRange(selectionStart, selectionEnd);
-          } catch (e) {
-            // Ignore selection range errors if unsupported
-          }
+          } catch (e) {}
         }
       }
     }
