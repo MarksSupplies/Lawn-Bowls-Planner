@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v43
+              v45
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -278,11 +278,13 @@
             <i class="ph-bold ph-download-simple text-xs"></i>
             <span>Export Full File</span>
           </button>
-          <label class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1 cursor-pointer">
-            <i class="ph-bold ph-upload-simple text-xs"></i>
-            <span>Import File</span>
-            <input type="file" id="importJsonFileInput" accept=".json" onchange="importFullTournamentJSON(event)" class="hidden">
-          </label>
+          <div class="relative inline-block">
+            <button type="button" class="bg-slate-700 hover:bg-slate-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1 pointer-events-none">
+              <i class="ph-bold ph-upload-simple text-xs"></i>
+              <span>Import File</span>
+            </button>
+            <input type="file" id="importJsonFileInput" accept=".json,application/json,text/plain,text/json,*/*" onchange="importFullTournamentJSON(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer text-[0px] z-10">
+          </div>
 
           <button type="button" onclick="clearAllRosterNames()" class="bg-rose-600 hover:bg-rose-700 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
             <i class="ph-bold ph-trash text-xs"></i>
@@ -342,14 +344,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 43 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 45 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v43';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v45';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -384,7 +386,7 @@
     // Track minimum visible rows (default 10)
     let minVisibleRosterRows = 10;
 
-    // Store scorecard results: matchResultStore[teamLabel][matchNum] = { outcome: 'W'|'D'|'L'|'', ends: '', ptsFor: '', ptsAgainst: '' }
+    // Store scorecard results
     let matchResultStore = {};
 
     // --- HYBRID PERSISTENCE ENGINE ---
@@ -393,7 +395,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 43,
+          version: 45,
           timestamp: new Date().toISOString(),
           state: state,
           masterRoster: masterRoster,
@@ -418,7 +420,6 @@
           minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
           matchResultStore = parsed.matchResultStore || {};
           
-          // Sync format select dropdown element if exists
           const selectEl = document.getElementById('formatSelect');
           if (selectEl) {
             selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
@@ -439,7 +440,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 43,
+        version: 45,
         exportDate: new Date().toISOString(),
         state: state,
         masterRoster: masterRoster,
@@ -455,6 +456,15 @@
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+    }
+
+    // Trigger file input programmatically for mobile compatibility
+    function triggerFileInput() {
+      const fileInput = document.getElementById('importJsonFileInput');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
     }
 
     // Import full state from a JSON file
@@ -487,7 +497,7 @@
         }
       };
       reader.readAsText(file);
-      event.target.value = ''; // Reset file input
+      event.target.value = '';
     }
 
     // Reset all application state back to factory defaults
@@ -520,7 +530,6 @@
     }
 
     function setScoreMetric(teamLabel, matchNum, field, val) {
-      // Filter out non-numeric characters
       const cleanVal = val.replace(/[^0-9]/g, '');
       if (!matchResultStore[teamLabel]) {
         matchResultStore[teamLabel] = {};
@@ -589,7 +598,6 @@
       return "Team " + result;
     }
 
-    // Steppers and control handlers
     function adjustBowlers(delta) {
       state.totalBowlers = Math.max(2, Math.min(160, state.totalBowlers + delta));
       updateEngine();
@@ -766,7 +774,6 @@
       const teamRosters = [];
 
       if (mode === 'optimizeTeamNumbers') {
-        // Find nearest even team count that strictly obeys the Max 4 Bowls per Bowler rule
         let candidateTeams = getNearestEvenTeamCount(totalBowlers, targetSize);
         
         let isValid = false;
@@ -787,12 +794,10 @@
             isValid = true;
             totalTeams = candidateTeams;
           } else {
-            // Decrease team count to force larger player rosters per team (lowering bowls/player)
             candidateTeams -= 2;
           }
         }
 
-        // Fallback safety
         if (!totalTeams || totalTeams < 2) {
           totalTeams = 2;
         }
