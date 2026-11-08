@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v54
+              v55
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 54 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 55 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v54';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v55';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -466,7 +466,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 54,
+          version: 55,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -633,6 +633,19 @@
       const inputs = document.querySelectorAll('.priority-nav-input');
 
       inputs.forEach(input => {
+        const handleEnterKey = (e) => {
+          if (e.key === 'Enter' || e.keyCode === 13) {
+            e.preventDefault();
+            const row = parseInt(input.getAttribute('data-row'), 10);
+            if (row < priorityGreens.length - 1) {
+              const nextInput = document.getElementById(`priority_input_${row + 1}_${input.getAttribute('data-col')}`);
+              if (nextInput) nextInput.focus();
+            } else {
+              addPriorityGreenRow();
+            }
+          }
+        };
+
         input.addEventListener('keydown', function(e) {
           const row = parseInt(this.getAttribute('data-row'), 10);
           const col = parseInt(this.getAttribute('data-col'), 10);
@@ -640,14 +653,9 @@
           let targetRow = row;
           let targetCol = col;
 
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            if (row < priorityGreens.length - 1) {
-              targetRow = row + 1;
-            } else {
-              addPriorityGreenRow();
-              return;
-            }
+          if (e.key === 'Enter' || e.keyCode === 13) {
+            handleEnterKey(e);
+            return;
           } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             targetRow = Math.max(0, row - 1);
@@ -671,6 +679,13 @@
             if (nextInput) nextInput.focus();
           }
         });
+
+        // Keyup fallback for mobile soft keyboards emitting action key codes
+        input.addEventListener('keyup', function(e) {
+          if (e.key === 'Enter' || e.keyCode === 13) {
+            handleEnterKey(e);
+          }
+        });
       });
     }
 
@@ -678,7 +693,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 54,
+        version: 55,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
