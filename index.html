@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v55
+              v56
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 55 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 56 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v55';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v56';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -438,7 +438,7 @@
     // Active Application State
     let state = { ...defaultState };
 
-    // Priority Greens Array
+    // Priority Greens Array (Default 3 rows)
     let priorityGreens = [
       { name: 'A', startRink: 1, endRink: 8 },
       { name: 'B', startRink: 2, endRink: 6 },
@@ -466,7 +466,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 55,
+          version: 56,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -573,21 +573,26 @@
         `;
         tbody.appendChild(tr);
 
-        const chip = document.createElement('span');
-        chip.className = 'bg-white text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded shadow-2xs';
-        chip.innerText = summaryText;
-        summaryContainer.appendChild(chip);
+        if (item.name && item.name.trim() !== '') {
+          const chip = document.createElement('span');
+          chip.className = 'bg-white text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded shadow-2xs';
+          chip.innerText = summaryText;
+          summaryContainer.appendChild(chip);
+        }
       });
 
       if (priorityGreens.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">No priority greens defined. Click "Add Priority Green" above to start.</td></tr>`;
+      }
+      if (summaryContainer.children.length === 0) {
         summaryContainer.innerHTML = `<span class="text-slate-400 italic">None defined</span>`;
       }
 
       attachPriorityKeyboardNav();
 
       if (activeRow !== null && activeCol !== null) {
-        const restored = document.getElementById(`priority_input_${activeRow}_${activeCol}`);
+        const targetRow = Math.min(activeRow, priorityGreens.length - 1);
+        const restored = document.getElementById(`priority_input_${targetRow}_${activeCol}`);
         if (restored) {
           restored.focus();
           try {
@@ -612,12 +617,20 @@
 
     function removePriorityGreenRow(index) {
       priorityGreens.splice(index, 1);
+
+      // Maintain minimum 3 default rows if table contracts below 3
+      while (priorityGreens.length < 3) {
+        const nextLetter = String.fromCharCode(65 + (priorityGreens.length % 26));
+        priorityGreens.push({ name: '', startRink: 1, endRink: 8 });
+      }
+
       saveAppStateToLocalStorage();
       renderPriorityGreensTable();
     }
 
     function updatePriorityGreen(index, field, val) {
       if (!priorityGreens[index]) return;
+      
       if (field === 'name') {
         priorityGreens[index][field] = val.slice(0, 5);
       } else if (field === 'startRink' || field === 'endRink') {
@@ -625,6 +638,16 @@
       } else {
         priorityGreens[index][field] = val;
       }
+
+      // Auto-contract: trim trailing empty rows down to minimum of 3
+      while (
+        priorityGreens.length > 3 &&
+        (!priorityGreens[priorityGreens.length - 1].name || 
+         priorityGreens[priorityGreens.length - 1].name.trim() === '')
+      ) {
+        priorityGreens.pop();
+      }
+
       saveAppStateToLocalStorage();
       renderPriorityGreensTable();
     }
@@ -693,7 +716,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 55,
+        version: 56,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
