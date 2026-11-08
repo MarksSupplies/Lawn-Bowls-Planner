@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v58
+              v59
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 58 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 59 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v58';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v59';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -469,7 +469,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 58,
+          version: 59,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -548,24 +548,24 @@
               id="priority_input_${index}_0"
               data-row="${index}" data-col="0"
               placeholder="e.g. 1, A"
-              oninput="updatePriorityGreen(${index}, 'name', this.value)"
-              onchange="updatePriorityGreen(${index}, 'name', this.value)"
+              oninput="handlePriorityInput(${index}, 'name', this.value)"
+              onchange="handlePriorityInput(${index}, 'name', this.value)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition uppercase" />
           </td>
           <td class="p-2 border-r border-slate-200">
             <input type="number" min="1" max="50" value="${item.startRink}" 
               id="priority_input_${index}_1"
               data-row="${index}" data-col="1"
-              oninput="updatePriorityGreen(${index}, 'startRink', this.value)"
-              onchange="updatePriorityGreen(${index}, 'startRink', this.value)"
+              oninput="handlePriorityInput(${index}, 'startRink', this.value)"
+              onchange="handlePriorityInput(${index}, 'startRink', this.value)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200">
             <input type="number" min="1" max="50" value="${item.endRink}" 
               id="priority_input_${index}_2"
               data-row="${index}" data-col="2"
-              oninput="updatePriorityGreen(${index}, 'endRink', this.value)"
-              onchange="updatePriorityGreen(${index}, 'endRink', this.value)"
+              oninput="handlePriorityInput(${index}, 'endRink', this.value)"
+              onchange="handlePriorityInput(${index}, 'endRink', this.value)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200 font-semibold text-emerald-800 bg-emerald-50/40">
@@ -641,7 +641,7 @@
       renderPriorityGreensTable();
     }
 
-    function updatePriorityGreen(index, field, val) {
+    function handlePriorityInput(index, field, val) {
       if (!priorityGreens[index]) return;
       
       if (field === 'name') {
@@ -652,15 +652,13 @@
         priorityGreens[index][field] = val;
       }
 
-      // Auto-contract: trim trailing empty rows down to minimum of 3
-      let contracted = false;
+      // Auto-contract: trim trailing empty rows down to minimum of 3 (works on both PC & Mobile input/delete)
       while (
         priorityGreens.length > 3 &&
         (!priorityGreens[priorityGreens.length - 1].name || 
          priorityGreens[priorityGreens.length - 1].name.trim() === '')
       ) {
         priorityGreens.pop();
-        contracted = true;
       }
 
       saveAppStateToLocalStorage();
@@ -671,52 +669,32 @@
       const inputs = document.querySelectorAll('.priority-nav-input');
 
       inputs.forEach(input => {
-        const handleEnterKey = (e) => {
-          if (isExpandingPriorityTable) return;
-
-          const row = parseInt(input.getAttribute('data-row'), 10);
+        const triggerExpandOrMove = (row, col) => {
           if (row < priorityGreens.length - 1) {
-            const nextInput = document.getElementById(`priority_input_${row + 1}_${input.getAttribute('data-col')}`);
+            const nextInput = document.getElementById(`priority_input_${row + 1}_${col}`);
             if (nextInput) nextInput.focus();
           } else {
             addPriorityGreenRow();
           }
         };
 
-        input.addEventListener('keydown', function(e) {
-          const row = parseInt(this.getAttribute('data-row'), 10);
-          const col = parseInt(this.getAttribute('data-col'), 10);
+        const handleKeyAction = (e) => {
+          const isEnter = e.key === 'Enter' || e.keyCode === 13;
+          if (!isEnter) return;
 
-          let targetRow = row;
-          let targetCol = col;
+          e.preventDefault();
+          if (isExpandingPriorityTable || e.repeat) return;
 
+          const row = parseInt(input.getAttribute('data-row'), 10);
+          const col = parseInt(input.getAttribute('data-col'), 10);
+          triggerExpandOrMove(row, col);
+        };
+
+        // Keyboard navigation for desktop and mobile touch keyup/keydown events
+        input.addEventListener('keydown', handleKeyAction);
+        input.addEventListener('keyup', (e) => {
           if (e.key === 'Enter' || e.keyCode === 13) {
             e.preventDefault();
-            if (!e.repeat) {
-              handleEnterKey(e);
-            }
-            return;
-          } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            targetRow = Math.max(0, row - 1);
-          } else if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            targetRow = Math.min(priorityGreens.length - 1, row + 1);
-          } else if (e.key === 'ArrowLeft') {
-            if (col > 0) {
-              e.preventDefault();
-              targetCol = col - 1;
-            }
-          } else if (e.key === 'ArrowRight') {
-            if (col < 2) {
-              e.preventDefault();
-              targetCol = col + 1;
-            }
-          }
-
-          if (targetRow !== row || targetCol !== col) {
-            const nextInput = document.getElementById(`priority_input_${targetRow}_${targetCol}`);
-            if (nextInput) nextInput.focus();
           }
         });
       });
@@ -726,7 +704,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 58,
+        version: 59,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
