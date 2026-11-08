@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v60
+              v61
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 60 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 61 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v60';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v61';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -438,11 +438,11 @@
     // Active Application State
     let state = { ...defaultState };
 
-    // Priority Greens Array (Default 3 rows)
+    // Priority Greens Array (Defaults: Green Names A, B, C; Start Rink 1; End Rink 8)
     let priorityGreens = [
       { name: 'A', startRink: 1, endRink: 8 },
-      { name: 'B', startRink: 2, endRink: 6 },
-      { name: 'C', startRink: 1, endRink: 9 }
+      { name: 'B', startRink: 1, endRink: 8 },
+      { name: 'C', startRink: 1, endRink: 8 }
     ];
 
     // Lock flag for debouncing rapid Enter presses on Priority Table
@@ -469,7 +469,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 60,
+          version: 61,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -539,7 +539,7 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition-colors';
 
-        const summaryText = `Green ${item.name || (index + 1)} Rink ${item.startRink || 1}-${item.endRink || 1}`;
+        const summaryText = `Green ${item.name || (index + 1)} Rink ${item.startRink || 1}-${item.endRink || 8}`;
 
         tr.innerHTML = `
           <td class="p-2 text-center font-bold text-slate-600 bg-slate-50 border-r border-slate-200">#${index + 1}</td>
@@ -547,7 +547,7 @@
             <input type="text" maxlength="5" value="${item.name}" 
               id="priority_input_${index}_0"
               data-row="${index}" data-col="0"
-              placeholder="e.g. 1, A"
+              placeholder="e.g. A, B"
               oninput="handlePriorityInput(${index}, 'name', this.value)"
               onchange="handlePriorityInput(${index}, 'name', this.value)"
               onblur="handlePriorityInput(${index}, 'name', this.value)"
@@ -562,7 +562,7 @@
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200">
-            <input type="number" min="1" max="50" value="${item.endRink}" 
+            <input type="number" min="1" max="12" value="${item.endRink}" 
               id="priority_input_${index}_2"
               data-row="${index}" data-col="2"
               oninput="handlePriorityInput(${index}, 'endRink', this.value)"
@@ -647,8 +647,12 @@
       
       if (field === 'name') {
         priorityGreens[index][field] = val.slice(0, 5);
-      } else if (field === 'startRink' || field === 'endRink') {
+      } else if (field === 'startRink') {
         priorityGreens[index][field] = parseInt(val, 10) || 1;
+      } else if (field === 'endRink') {
+        let parsedVal = parseInt(val, 10) || 1;
+        if (parsedVal > 12) parsedVal = 12;
+        priorityGreens[index][field] = parsedVal;
       } else {
         priorityGreens[index][field] = val;
       }
@@ -707,7 +711,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 60,
+        version: 61,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -780,8 +784,8 @@
       state = { ...defaultState };
       priorityGreens = [
         { name: 'A', startRink: 1, endRink: 8 },
-        { name: 'B', startRink: 2, endRink: 6 },
-        { name: 'C', startRink: 1, endRink: 9 }
+        { name: 'B', startRink: 1, endRink: 8 },
+        { name: 'C', startRink: 1, endRink: 8 }
       ];
       masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
       minVisibleRosterRows = 10;
