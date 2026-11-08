@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v57
+              v58
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,14 +403,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 57 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 58 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v57';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v58';
 
     // Format Specifications
     const FORMAT_SPECS = {
@@ -445,6 +445,9 @@
       { name: 'C', startRink: 1, endRink: 9 }
     ];
 
+    // Lock flag for debouncing rapid Enter presses on Priority Table
+    let isExpandingPriorityTable = false;
+
     // Master roster store: 160 teams x 4 bowler positions [Skip, Lead, Two, Three]
     let masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
     const POSITIONS = ['Skip', 'Lead', 'Two', 'Three'];
@@ -466,7 +469,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 57,
+          version: 58,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -606,6 +609,9 @@
     }
 
     function addPriorityGreenRow() {
+      if (isExpandingPriorityTable) return;
+      isExpandingPriorityTable = true;
+
       const nextLetter = String.fromCharCode(65 + (priorityGreens.length % 26));
       priorityGreens.push({ name: nextLetter, startRink: 1, endRink: 8 });
       saveAppStateToLocalStorage();
@@ -618,7 +624,8 @@
           newlyAdded.focus();
           try { newlyAdded.setSelectionRange(newlyAdded.value.length, newlyAdded.value.length); } catch (e) {}
         }
-      }, 30);
+        isExpandingPriorityTable = false;
+      }, 150);
     }
 
     function removePriorityGreenRow(index) {
@@ -665,6 +672,8 @@
 
       inputs.forEach(input => {
         const handleEnterKey = (e) => {
+          if (isExpandingPriorityTable) return;
+
           const row = parseInt(input.getAttribute('data-row'), 10);
           if (row < priorityGreens.length - 1) {
             const nextInput = document.getElementById(`priority_input_${row + 1}_${input.getAttribute('data-col')}`);
@@ -683,7 +692,9 @@
 
           if (e.key === 'Enter' || e.keyCode === 13) {
             e.preventDefault();
-            handleEnterKey(e);
+            if (!e.repeat) {
+              handleEnterKey(e);
+            }
             return;
           } else if (e.key === 'ArrowUp') {
             e.preventDefault();
@@ -708,14 +719,6 @@
             if (nextInput) nextInput.focus();
           }
         });
-
-        // Keyup & Input fallbacks for mobile soft keyboards emitting action key codes or touch submissions
-        input.addEventListener('keyup', function(e) {
-          if (e.key === 'Enter' || e.keyCode === 13) {
-            e.preventDefault();
-            handleEnterKey(e);
-          }
-        });
       });
     }
 
@@ -723,7 +726,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 57,
+        version: 58,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
