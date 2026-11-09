@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v72
+              v74
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -241,7 +241,7 @@
         <h2 class="text-lg font-bold text-slate-900">Match Preferences</h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Match Format -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
@@ -264,15 +264,15 @@
           </div>
         </div>
 
-        <!-- Number of Rounds -->
+        <!-- Number of Games / Rounds -->
         <div>
-          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Matches / Rounds</label>
+          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Games / Rounds</label>
           <select id="roundsSelect" onchange="onRoundsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-            <option value="1">1 Match</option>
-            <option value="2">2 Matches</option>
-            <option value="3" selected>3 Matches</option>
-            <option value="4">4 Matches</option>
-            <option value="5">5 Matches</option>
+            <option value="1">1 Game</option>
+            <option value="2">2 Games</option>
+            <option value="3" selected>3 Games</option>
+            <option value="4">4 Games</option>
+            <option value="5">5 Games</option>
           </select>
         </div>
 
@@ -292,6 +292,29 @@
             <option value="21">21 Ends</option>
           </select>
         </div>
+
+        <!-- Estimated Duration Card -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Est. Total Duration</label>
+          <div class="bg-emerald-50/80 border border-emerald-200/90 rounded-xl px-3 py-2 flex flex-col justify-center min-h-[46px] shadow-2xs space-y-0.5">
+            <div id="standardDurationWrapper" class="space-y-0.5">
+              <div class="flex items-center justify-between text-xs font-bold text-emerald-950">
+                <span class="flex items-center space-x-1">
+                  <i class="ph-bold ph-clock text-bowls-700 text-xs"></i>
+                  <span>Estimated Total Match Time -</span>
+                </span>
+                <span id="estimatedMatchTimeDisplay" class="font-extrabold text-emerald-900 ml-1">--</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-0.5">
+                <span>Estimated Game Time -</span>
+                <span id="estimatedGameTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
+              </div>
+            </div>
+            <div id="singlesDurationNote" class="hidden text-xs font-medium text-emerald-900 leading-snug">
+              Singles can be difficult to estimate but if playing the first to 21 points they normally last between 1.5 to 2.5 hours.
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -306,7 +329,7 @@
               <i class="ph-bold ph-cards"></i> Round Cards
             </button>
             <button id="viewMatrixBtn" onclick="setScheduleView('matrix')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
-              <i class="ph-bold ph-table"></i> All Matches Table
+              <i class="ph-bold ph-table"></i> All Games Table
             </button>
           </div>
           <span id="activeModeBadge" class="text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200">
@@ -315,7 +338,7 @@
         </div>
       </div>
 
-      <!-- Full Overview Matrix (Shown when All Matches Table View selected) -->
+      <!-- Full Overview Matrix (Shown when All Games Table View selected) -->
       <div id="fullScheduleMatrix" class="hidden bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
           <div class="flex items-center space-x-2">
@@ -330,7 +353,7 @@
           <table class="w-full text-left text-xs border-collapse">
             <thead>
               <tr class="bg-slate-100 text-slate-700 font-extrabold border-b border-slate-200 uppercase tracking-wider">
-                <th class="p-3">Match</th>
+                <th class="p-3">Game</th>
                 <th class="p-3">Green &amp; Rink</th>
                 <th class="p-3">Team A Roster</th>
                 <th class="p-3 text-center">vs</th>
@@ -442,14 +465,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 72 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 74 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v72';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v74';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -838,7 +861,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 72,
+        version: 74,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1068,6 +1091,53 @@
     function onEndsChange() {
       state.selectedEnds = parseInt(document.getElementById('endsSelect').value) || 8;
       saveAppStateToLocalStorage();
+      updateEstimatedMatchTime();
+    }
+
+    function formatDurationString(totalMinutes) {
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+
+      if (hours > 0 && mins > 0) {
+        return `${hours} hr${hours > 1 ? 's' : ''} ${mins} mins`;
+      } else if (hours > 0) {
+        return `${hours} hr${hours > 1 ? 's' : ''}`;
+      } else {
+        return `${mins} mins`;
+      }
+    }
+
+    function updateEstimatedMatchTime() {
+      const standardWrapper = document.getElementById('standardDurationWrapper');
+      const singlesNote = document.getElementById('singlesDurationNote');
+
+      if (state.selectedFormat === 'singles') {
+        if (standardWrapper) standardWrapper.classList.add('hidden');
+        if (singlesNote) singlesNote.classList.remove('hidden');
+        return;
+      } else {
+        if (standardWrapper) standardWrapper.classList.remove('hidden');
+        if (singlesNote) singlesNote.classList.add('hidden');
+      }
+
+      const rounds = state.selectedRounds || 3;
+      const ends = state.selectedEnds || 8;
+      
+      const gameMinutes = ends * 10;
+      const totalMatchMinutes = rounds * gameMinutes;
+
+      const formattedMatchTime = formatDurationString(totalMatchMinutes);
+      const formattedGameTime = formatDurationString(gameMinutes);
+
+      const matchDisplayEl = document.getElementById('estimatedMatchTimeDisplay');
+      if (matchDisplayEl) {
+        matchDisplayEl.innerText = formattedMatchTime;
+      }
+
+      const gameDisplayEl = document.getElementById('estimatedGameTimeDisplay');
+      if (gameDisplayEl) {
+        gameDisplayEl.innerText = formattedGameTime;
+      }
     }
 
     function setScheduleView(view) {
@@ -1327,7 +1397,7 @@
                   teamA: activeTeam,
                   teamB: { label: 'SIT-OUT BYE', playerCount: 0, deltaTag: '' },
                   isBye: true,
-                  note: `${activeTeam.label} (${activeTeam.playerCount} Bowlers) has a scheduled sit-out bye in Match ${round}.`
+                  note: `${activeTeam.label} (${activeTeam.playerCount} Bowlers) has a scheduled sit-out bye in Game ${round}.`
                 };
               } else {
                 rawPairs.push({ teamA, teamB });
@@ -1378,7 +1448,7 @@
           teamA.bowlDist = bowlDistA;
           teamB.bowlDist = bowlDistB;
 
-          let note = `Equal Match Bowls: ${bowlDistA.totalTeamBowls} Bowls per Team (Max 4 bowls/player constraint verified).`;
+          let note = `Equal Game Bowls: ${bowlDistA.totalTeamBowls} Bowls per Team (Max 4 bowls/player constraint verified).`;
 
           roundFixtures.push({
             round,
@@ -1417,6 +1487,8 @@
         bestFitBadge.classList.add('hidden');
         bestFitBadge.classList.remove('flex');
       }
+
+      updateEstimatedMatchTime();
 
       const byeEval = evaluateByeRules();
 
@@ -1707,9 +1779,9 @@
         state.schedule.forEach(roundFixtures => {
           roundFixtures.forEach(f => {
             if (f.teamA?.label === team.label) {
-              opponents.push(`M${f.round}: vs ${f.teamB.label}`);
+              opponents.push(`G${f.round}: vs ${f.teamB.label}`);
             } else if (f.teamB?.label === team.label) {
-              opponents.push(`M${f.round}: vs ${f.teamA.label}`);
+              opponents.push(`G${f.round}: vs ${f.teamA.label}`);
             }
           });
         });
@@ -1760,7 +1832,7 @@
           if (fixture.isBye) {
             tr.className = 'bg-amber-50/50 text-slate-600';
             tr.innerHTML = `
-              <td class="p-3 font-bold">Match ${fixture.round}</td>
+              <td class="p-3 font-bold">Game ${fixture.round}</td>
               <td class="p-3 font-semibold text-amber-700">BYE</td>
               <td class="p-3 font-semibold text-slate-800">${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)</td>
               <td class="p-3 text-center text-slate-400 font-bold">vs</td>
@@ -1770,7 +1842,7 @@
           } else {
             tr.className = 'hover:bg-slate-50 transition-colors';
             tr.innerHTML = `
-              <td class="p-3 font-bold text-slate-900">Match ${fixture.round}</td>
+              <td class="p-3 font-bold text-slate-900">Game ${fixture.round}</td>
               <td class="p-3 font-bold text-emerald-700">Green ${fixture.greenNumber} - Rink ${fixture.rinkNumber}</td>
               <td class="p-3 font-semibold text-slate-800">${fixture.teamA.label} (${fixture.teamA.playerCount} Bowlers)</td>
               <td class="p-3 text-center font-black text-emerald-600">vs</td>
