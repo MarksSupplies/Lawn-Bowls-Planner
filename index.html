@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v63
+              v64
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -74,7 +74,29 @@
         </div>
       </div>
 
-      <!-- Preserved Core Stepper Controls -->
+      <!-- Club / Tournament Name Input Field -->
+      <div class="space-y-1.5">
+        <label for="tournamentNameInput" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+          Club / Tournament Name
+        </label>
+        <div class="relative rounded-xl shadow-2xs">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <i class="ph-bold ph-flag-banner text-bowls-700 text-base"></i>
+          </div>
+          <input 
+            type="text" 
+            id="tournamentNameInput" 
+            maxlength="15"
+            enterkeyhint="next"
+            oninput="updateTournamentName(this.value)" 
+            onkeydown="handleTournamentNameKeyDown(event)"
+            placeholder="Comp 09-11-2026"
+            class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-extrabold text-slate-900 focus:bg-white focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition placeholder:text-slate-400 placeholder:font-normal uppercase"
+          />
+        </div>
+      </div>
+
+      <!-- Core Stepper Controls -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Bowlers Stepper -->
         <div class="flex items-center justify-between p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
@@ -83,10 +105,10 @@
             <div id="bowlersValue" class="text-xl font-black text-slate-900">23</div>
           </div>
           <div class="flex items-center space-x-1">
-            <button onclick="adjustBowlers(-1)" class="w-9 h-9 rounded-lg bg-white border border-slate-300 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 font-bold text-slate-700 shadow-sm transition">
+            <button id="btnBowlersDec" onclick="adjustBowlers(-1)" class="w-9 h-9 rounded-lg bg-white border border-slate-300 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 font-bold text-slate-700 shadow-sm transition focus:ring-2 focus:ring-bowls-700 outline-none">
               <i class="ph-bold ph-minus text-xs"></i>
             </button>
-            <button onclick="adjustBowlers(1)" class="w-9 h-9 rounded-lg bg-white border border-slate-300 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 font-bold text-slate-700 shadow-sm transition">
+            <button id="btnBowlersInc" onclick="adjustBowlers(1)" class="w-9 h-9 rounded-lg bg-white border border-slate-300 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 font-bold text-slate-700 shadow-sm transition focus:ring-2 focus:ring-bowls-700 outline-none">
               <i class="ph-bold ph-plus text-xs"></i>
             </button>
           </div>
@@ -403,26 +425,36 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 63 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 64 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v63';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v64';
 
-    // Format Specifications
+    // Format Specifications Definition
     const FORMAT_SPECS = {
-      singles: { key: 'singles', name: 'Singles', targetTeamSize: 1, bowlsPerPlayer: 4, totalTeamBowls: 4 },
-      twoBowlPairs: { key: 'twoBowlPairs', name: '2 Bowl Pairs', targetTeamSize: 2, bowlsPerPlayer: 2, totalTeamBowls: 4 },
-      twoBowlTriples: { key: 'twoBowlTriples', name: '2 Bowl Triples', targetTeamSize: 3, bowlsPerPlayer: 2, totalTeamBowls: 6 },
-      threeBowlTriples: { key: 'threeBowlTriples', name: '3 Bowl Triples', targetTeamSize: 3, bowlsPerPlayer: 3, totalTeamBowls: 9 },
-      fours: { key: 'fours', name: 'Fours', targetTeamSize: 4, bowlsPerPlayer: 2, totalTeamBowls: 8 }
+      singles: { name: 'Singles (1v1)', targetTeamSize: 1, bowlsPerPlayer: 4 },
+      twoBowlPairs: { name: '2 Bowl Pairs (2v2)', targetTeamSize: 2, bowlsPerPlayer: 2 },
+      twoBowlTriples: { name: '2 Bowl Triples (3v3)', targetTeamSize: 3, bowlsPerPlayer: 2 },
+      threeBowlTriples: { name: '3 Bowl Triples (3v3)', targetTeamSize: 3, bowlsPerPlayer: 3 },
+      fours: { name: 'Fours (4v4)', targetTeamSize: 4, bowlsPerPlayer: 2 }
     };
+
+    // Helper: Generate default tournament name formatted as "Comp DD-MM-YYYY" (max 15 chars)
+    function getDefaultTournamentName() {
+      const today = new Date();
+      const dd = String(today.getDate()).padStart(2, '0');
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const yyyy = today.getFullYear();
+      return `Comp ${dd}-${mm}-${yyyy}`.slice(0, 15);
+    }
 
     // Default Application State
     const defaultState = {
+      tournamentName: getDefaultTournamentName(),
       totalBowlers: 23,
       greensAvailable: 1,
       rinksPerGreen: 8,
@@ -469,7 +501,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 63,
+          version: 64,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -490,11 +522,18 @@
         const parsed = JSON.parse(raw);
         if (parsed && parsed.state && parsed.masterRoster) {
           state = { ...defaultState, ...parsed.state };
+          if (!state.tournamentName) {
+            state.tournamentName = getDefaultTournamentName();
+          }
           if (parsed.priorityGreens) priorityGreens = parsed.priorityGreens;
           masterRoster = parsed.masterRoster;
           minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
           matchResultStore = parsed.matchResultStore || {};
           
+          const titleInput = document.getElementById('tournamentNameInput');
+          if (titleInput) {
+            titleInput.value = state.tournamentName;
+          }
           const selectEl = document.getElementById('formatSelect');
           if (selectEl) {
             selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
@@ -509,6 +548,29 @@
         console.warn('LocalStorage load failed:', err);
       }
       return false;
+    }
+
+    function updateTournamentName(val) {
+      // Limit to 15 chars and sanitize illegal filename characters
+      const cleanVal = val.slice(0, 15).replace(/[/\\?%*:|"<>]/g, '');
+      state.tournamentName = cleanVal;
+      
+      const titleInput = document.getElementById('tournamentNameInput');
+      if (titleInput && titleInput.value !== cleanVal) {
+        titleInput.value = cleanVal;
+      }
+      saveAppStateToLocalStorage();
+    }
+
+    function handleTournamentNameKeyDown(e) {
+      if (e.key === 'Enter' || e.keyCode === 13) {
+        e.preventDefault();
+        e.stopPropagation();
+        const nextTarget = document.getElementById('btnBowlersDec');
+        if (nextTarget) {
+          nextTarget.focus();
+        }
+      }
     }
 
     // --- PRIORITY GREENS HANDLERS ---
@@ -719,7 +781,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 63,
+        version: 64,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -730,11 +792,15 @@
 
       const jsonStr = JSON.stringify(payload, null, 2);
       const encodedUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
-      const dateTag = new Date().toISOString().split('T')[0];
+      
+      // Sanitize tournament name for filename or fallback to default pattern
+      const safeName = (state.tournamentName || getDefaultTournamentName())
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 15);
 
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute('href', encodedUri);
-      downloadAnchor.setAttribute('download', `lawn_bowls_tournament_${dateTag}.json`);
+      downloadAnchor.setAttribute('download', `${safeName}.json`);
       downloadAnchor.style.display = 'none';
       
       document.body.appendChild(downloadAnchor);
@@ -770,6 +836,8 @@
             minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
             matchResultStore = parsed.matchResultStore || {};
 
+            const titleInput = document.getElementById('tournamentNameInput');
+            if (titleInput) titleInput.value = state.tournamentName || '';
             const selectEl = document.getElementById('formatSelect');
             if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
             const roundsEl = document.getElementById('roundsSelect');
@@ -789,7 +857,7 @@
     }
 
     function resetAllAppData() {
-      state = { ...defaultState };
+      state = { ...defaultState, tournamentName: getDefaultTournamentName() };
       priorityGreens = [
         { name: 'A', startRink: 1, endRink: 8 },
         { name: 'B', startRink: 1, endRink: 8 },
@@ -799,6 +867,8 @@
       minVisibleRosterRows = 10;
       matchResultStore = {};
 
+      const titleInput = document.getElementById('tournamentNameInput');
+      if (titleInput) titleInput.value = state.tournamentName;
       const selectEl = document.getElementById('formatSelect');
       if (selectEl) selectEl.value = 'threeBowlTriples';
       const roundsEl = document.getElementById('roundsSelect');
@@ -1284,6 +1354,11 @@
       }
 
       const byeEval = evaluateByeRules();
+
+      const nameInput = document.getElementById('tournamentNameInput');
+      if (nameInput && state.tournamentName !== undefined) {
+        nameInput.value = state.tournamentName;
+      }
 
       document.getElementById('bowlersValue').innerText = state.totalBowlers;
       document.getElementById('greensValue').innerText = state.greensAvailable;
