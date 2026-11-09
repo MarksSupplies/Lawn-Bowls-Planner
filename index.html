@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v67
+              v69
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -425,14 +425,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 67 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 69 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v67';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v69';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -470,15 +470,12 @@
     // Active Application State
     let state = { ...defaultState };
 
-    // Priority Greens Array (Defaults: Green Names A, B, C; Start Rink 1; End Rink 8)
+    // Priority Greens Array (First row defaults to Green ID 'A', others blank)
     let priorityGreens = [
       { name: 'A', startRink: 1, endRink: 8 },
-      { name: 'B', startRink: 1, endRink: 8 },
-      { name: 'C', startRink: 1, endRink: 8 }
+      { name: '', startRink: 1, endRink: 8 },
+      { name: '', startRink: 1, endRink: 8 }
     ];
-
-    // Lock flag for debouncing rapid Enter presses on Priority Table
-    let isExpandingPriorityTable = false;
 
     // Master roster store: 160 teams x 4 bowler positions [Skip, Lead, Two, Three]
     let masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
@@ -501,7 +498,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 67,
+          version: 69,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -551,7 +548,6 @@
     }
 
     function updateTournamentName(val) {
-      // Limit to 15 chars and sanitize illegal filename characters
       const cleanVal = val.slice(0, 15).replace(/[/\\?%*:|"<>]/g, '');
       state.tournamentName = cleanVal;
       
@@ -574,55 +570,36 @@
     }
 
     // --- PRIORITY GREENS HANDLERS ---
-    function renderPriorityGreensTable() {
+    function renderPriorityGreensTable(restoreFocusTarget = null) {
       const tbody = document.getElementById('priorityGreensTableBody');
-      const summaryContainer = document.getElementById('priorityCombinedSummary');
-      if (!tbody || !summaryContainer) return;
-
-      const activeEl = document.activeElement;
-      let activeRow = null;
-      let activeCol = null;
-      let selectionStart = 0;
-      let selectionEnd = 0;
-
-      if (activeEl && activeEl.classList.contains('priority-nav-input')) {
-        activeRow = parseInt(activeEl.getAttribute('data-row'), 10);
-        activeCol = parseInt(activeEl.getAttribute('data-col'), 10);
-        try {
-          selectionStart = activeEl.selectionStart;
-          selectionEnd = activeEl.selectionEnd;
-        } catch (e) {}
-      }
+      if (!tbody) return;
 
       tbody.innerHTML = '';
-      summaryContainer.innerHTML = '';
 
       priorityGreens.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition-colors';
 
-        const summaryText = `Green ${item.name || (index + 1)} Rink ${item.startRink || 1}-${item.endRink || 8}`;
+        const greenLabel = item.name && item.name.trim() !== '' ? item.name : `(Green ${index + 1})`;
+        const summaryText = `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`;
 
         tr.innerHTML = `
           <td class="p-2 text-center font-bold text-slate-600 bg-slate-50 border-r border-slate-200">#${index + 1}</td>
           <td class="p-2 border-r border-slate-200">
-            <input type="text" maxlength="5" value="${item.name}" 
+            <input type="text" maxlength="5" value="${item.name || ''}" 
               id="priority_input_${index}_0"
               data-row="${index}" data-col="0"
-              placeholder="e.g. A, B"
+              placeholder="No Green"
               enterkeyhint="next"
-              oninput="handlePriorityInput(${index}, 'name', this.value)"
-              onchange="handlePriorityInput(${index}, 'name', this.value)"
-              onblur="handlePriorityInput(${index}, 'name', this.value)"
-              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition uppercase" />
+              oninput="handlePriorityInput(${index}, 'name', this.value, 0)"
+              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition uppercase placeholder:normal-case placeholder:font-normal placeholder:text-slate-400" />
           </td>
           <td class="p-2 border-r border-slate-200">
             <input type="number" min="1" max="50" value="${item.startRink}" 
               id="priority_input_${index}_1"
               data-row="${index}" data-col="1"
               enterkeyhint="next"
-              oninput="handlePriorityInput(${index}, 'startRink', this.value)"
-              onchange="handlePriorityInput(${index}, 'startRink', this.value)"
+              oninput="handlePriorityInput(${index}, 'startRink', this.value, 1)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200">
@@ -630,11 +607,10 @@
               id="priority_input_${index}_2"
               data-row="${index}" data-col="2"
               enterkeyhint="${index === priorityGreens.length - 1 ? 'done' : 'next'}"
-              oninput="handlePriorityInput(${index}, 'endRink', this.value)"
-              onchange="handlePriorityInput(${index}, 'endRink', this.value)"
+              oninput="handlePriorityInput(${index}, 'endRink', this.value, 2)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
           </td>
-          <td class="p-2 border-r border-slate-200 font-semibold text-emerald-800 bg-emerald-50/40">
+          <td id="priority_summary_${index}" class="p-2 border-r border-slate-200 font-semibold text-emerald-800 bg-emerald-50/40">
             ${summaryText}
           </td>
           <td class="p-2 text-center">
@@ -644,6 +620,38 @@
           </td>
         `;
         tbody.appendChild(tr);
+      });
+
+      if (priorityGreens.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">No priority greens defined. Click "Add Priority Green" above to start.</td></tr>`;
+      }
+
+      updatePrioritySummaryDisplay();
+      attachPriorityKeyboardNav();
+
+      if (restoreFocusTarget) {
+        const { row, col } = restoreFocusTarget;
+        const targetInput = document.getElementById(`priority_input_${row}_${col}`);
+        if (targetInput) {
+          targetInput.focus();
+          try { targetInput.select(); } catch(e) {}
+        }
+      }
+    }
+
+    function updatePrioritySummaryDisplay() {
+      const summaryContainer = document.getElementById('priorityCombinedSummary');
+      if (!summaryContainer) return;
+      summaryContainer.innerHTML = '';
+
+      priorityGreens.forEach((item, index) => {
+        const greenLabel = item.name && item.name.trim() !== '' ? item.name : `(Green ${index + 1})`;
+        const summaryText = `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`;
+        
+        const summaryTd = document.getElementById(`priority_summary_${index}`);
+        if (summaryTd) {
+          summaryTd.innerText = summaryText;
+        }
 
         if (item.name && item.name.trim() !== '') {
           const chip = document.createElement('span');
@@ -653,53 +661,26 @@
         }
       });
 
-      if (priorityGreens.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">No priority greens defined. Click "Add Priority Green" above to start.</td></tr>`;
-      }
       if (summaryContainer.children.length === 0) {
         summaryContainer.innerHTML = `<span class="text-slate-400 italic">None defined</span>`;
       }
-
-      attachPriorityKeyboardNav();
-
-      if (activeRow !== null && activeCol !== null) {
-        const targetRow = Math.min(activeRow, priorityGreens.length - 1);
-        const restored = document.getElementById(`priority_input_${targetRow}_${activeCol}`);
-        if (restored) {
-          restored.focus();
-          try {
-            restored.setSelectionRange(selectionStart, selectionEnd);
-          } catch (e) {}
-        }
-      }
     }
 
-    function addPriorityGreenRow() {
-      if (isExpandingPriorityTable) return;
-      isExpandingPriorityTable = true;
-
-      const nextLetter = String.fromCharCode(65 + (priorityGreens.length % 26));
-      priorityGreens.push({ name: nextLetter, startRink: 1, endRink: 8 });
+    function addPriorityGreenRow(focusCol = null) {
+      priorityGreens.push({ name: '', startRink: 1, endRink: 8 });
       saveAppStateToLocalStorage();
-      renderPriorityGreensTable();
-
-      const lastIdx = priorityGreens.length - 1;
-      setTimeout(() => {
-        const newlyAdded = document.getElementById(`priority_input_${lastIdx}_0`);
-        if (newlyAdded) {
-          newlyAdded.focus();
-          try { newlyAdded.setSelectionRange(newlyAdded.value.length, newlyAdded.value.length); } catch (e) {}
-        }
-        isExpandingPriorityTable = false;
-      }, 80);
+      const newRowIdx = priorityGreens.length - 1;
+      if (focusCol !== null) {
+        renderPriorityGreensTable({ row: newRowIdx, col: focusCol });
+      } else {
+        renderPriorityGreensTable();
+      }
     }
 
     function removePriorityGreenRow(index) {
       priorityGreens.splice(index, 1);
 
-      // Maintain minimum 3 default rows if table contracts below 3
       while (priorityGreens.length < 3) {
-        const nextLetter = String.fromCharCode(65 + (priorityGreens.length % 26));
         priorityGreens.push({ name: '', startRink: 1, endRink: 8 });
       }
 
@@ -707,7 +688,7 @@
       renderPriorityGreensTable();
     }
 
-    function handlePriorityInput(index, field, val) {
+    function handlePriorityInput(index, field, val, colIdx) {
       if (!priorityGreens[index]) return;
       
       if (field === 'name') {
@@ -722,69 +703,89 @@
         priorityGreens[index][field] = val;
       }
 
-      // Auto-contract: trim trailing empty rows down to minimum of 3 (works reliably on both PC & Mobile)
-      let contracted = false;
-      while (
-        priorityGreens.length > 3 &&
-        (!priorityGreens[priorityGreens.length - 1].name || 
-         priorityGreens[priorityGreens.length - 1].name.trim() === '')
-      ) {
-        priorityGreens.pop();
-        contracted = true;
+      // Auto-Contraction logic: Trigger when user clears all data from Column 0 on the PENULTIMATE row (index === length - 2)
+      if (colIdx === 0 && field === 'name' && val.trim() === '' && index === priorityGreens.length - 2 && priorityGreens.length > 3) {
+        while (priorityGreens.length > 3 && priorityGreens[priorityGreens.length - 1].name.trim() === '') {
+          priorityGreens.pop();
+        }
+        saveAppStateToLocalStorage();
+        const targetRow = Math.min(index, priorityGreens.length - 1);
+        renderPriorityGreensTable({ row: targetRow, col: 0 });
+        return;
       }
 
+      updatePrioritySummaryDisplay();
       saveAppStateToLocalStorage();
-      renderPriorityGreensTable();
+
+      // Trigger auto-expansion on any user input in Column 0 of the last row
+      if (field === 'name' && val.trim() !== '' && index === priorityGreens.length - 1) {
+        addPriorityGreenRow(null);
+        // Maintain current active input focus while user types
+        const currentInput = document.getElementById(`priority_input_${index}_${colIdx}`);
+        if (currentInput) {
+          currentInput.focus();
+        }
+      }
     }
 
     function attachPriorityKeyboardNav() {
       const inputs = document.querySelectorAll('.priority-nav-input');
 
       inputs.forEach(input => {
-        const handleKeyAction = (e) => {
-          const isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
-          if (!isEnter) return;
+        input.addEventListener('keydown', function(e) {
+          const key = e.key;
+          const isEnter = key === 'Enter' || e.keyCode === 13 || e.which === 13;
+          const isArrowUp = key === 'ArrowUp';
+          const isArrowDown = key === 'ArrowDown';
+          const isArrowLeft = key === 'ArrowLeft';
+          const isArrowRight = key === 'ArrowRight';
 
-          // Strictly stop mobile soft keyboard from advancing focus to lower elements outside the table
+          if (!isEnter && !isArrowUp && !isArrowDown && !isArrowLeft && !isArrowRight) return;
+
           e.preventDefault();
           e.stopPropagation();
 
-          if (isExpandingPriorityTable || e.repeat) return false;
+          const row = parseInt(this.getAttribute('data-row'), 10);
+          const col = parseInt(this.getAttribute('data-col'), 10);
+          const totalRows = priorityGreens.length;
+          const isLastRow = (row === totalRows - 1);
 
-          const row = parseInt(input.getAttribute('data-row'), 10);
-          const col = parseInt(input.getAttribute('data-col'), 10);
-          const isLastRow = (row === priorityGreens.length - 1);
+          let targetRow = row;
+          let targetCol = col;
 
-          // Horizontal Left-To-Right navigation within current row (col 0 -> 1 -> 2)
-          if (col < 2) {
-            const nextColInput = document.getElementById(`priority_input_${row}_${col + 1}`);
-            if (nextColInput) {
-              nextColInput.focus();
-              try { nextColInput.select(); } catch (err) {}
-            }
-          } else { 
-            // On End Rink (col 2)
-            if (isLastRow) {
-              // Trigger auto-expand on End Rink of final row & shift focus down to new row
-              addPriorityGreenRow();
+          if (isEnter || isArrowRight) {
+            if (col < 2) {
+              targetCol = col + 1;
             } else {
-              // Move to next row's Green ID field
-              const nextRowInput = document.getElementById(`priority_input_${row + 1}_0`);
-              if (nextRowInput) {
-                nextRowInput.focus();
-                try { nextRowInput.select(); } catch (err) {}
+              if (isLastRow) {
+                addPriorityGreenRow(0);
+                return;
+              } else {
+                targetRow = row + 1;
+                targetCol = 0;
               }
             }
+          } else if (isArrowLeft) {
+            if (col > 0) {
+              targetCol = col - 1;
+            } else if (row > 0) {
+              targetRow = row - 1;
+              targetCol = 2;
+            }
+          } else if (isArrowUp) {
+            if (row > 0) {
+              targetRow = row - 1;
+            }
+          } else if (isArrowDown) {
+            if (row < totalRows - 1) {
+              targetRow = row + 1;
+            }
           }
-          return false;
-        };
 
-        // Multi-event handlers ensuring full cross-device soft-keyboard compliance
-        input.addEventListener('keydown', handleKeyAction);
-        input.addEventListener('keyup', (e) => {
-          if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
-            e.preventDefault();
-            e.stopPropagation();
+          const nextInput = document.getElementById(`priority_input_${targetRow}_${targetCol}`);
+          if (nextInput) {
+            nextInput.focus();
+            try { nextInput.select(); } catch (err) {}
           }
         });
       });
@@ -794,7 +795,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 67,
+        version: 69,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -806,7 +807,6 @@
       const jsonStr = JSON.stringify(payload, null, 2);
       const encodedUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(jsonStr);
       
-      // Sanitize tournament name for filename or fallback to default pattern
       const safeName = (state.tournamentName || getDefaultTournamentName())
         .replace(/[^a-zA-Z0-9_-]/g, '_')
         .slice(0, 15);
@@ -873,8 +873,8 @@
       state = { ...defaultState, tournamentName: getDefaultTournamentName() };
       priorityGreens = [
         { name: 'A', startRink: 1, endRink: 8 },
-        { name: 'B', startRink: 1, endRink: 8 },
-        { name: 'C', startRink: 1, endRink: 8 }
+        { name: '', startRink: 1, endRink: 8 },
+        { name: '', startRink: 1, endRink: 8 }
       ];
       masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
       minVisibleRosterRows = 10;
