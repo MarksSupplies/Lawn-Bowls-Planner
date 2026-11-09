@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v71
+              v72
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -241,7 +241,7 @@
         <h2 class="text-lg font-bold text-slate-900">Match Preferences</h2>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Match Format -->
         <div>
           <div class="flex items-center justify-between mb-1.5">
@@ -273,6 +273,23 @@
             <option value="3" selected>3 Matches</option>
             <option value="4">4 Matches</option>
             <option value="5">5 Matches</option>
+          </select>
+        </div>
+
+        <!-- Number of Ends -->
+        <div>
+          <label for="endsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Ends Required</label>
+          <select id="endsSelect" onchange="onEndsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+            <option value="4">4 Ends</option>
+            <option value="5">5 Ends</option>
+            <option value="6">6 Ends</option>
+            <option value="8" selected>8 Ends</option>
+            <option value="10">10 Ends</option>
+            <option value="12">12 Ends</option>
+            <option value="14">14 Ends</option>
+            <option value="15">15 Ends</option>
+            <option value="18">18 Ends</option>
+            <option value="21">21 Ends</option>
           </select>
         </div>
       </div>
@@ -425,14 +442,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 71 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 72 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v71';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v72';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -461,6 +478,7 @@
       selectedFormat: 'threeBowlTriples',
       isBestFitActive: false,
       selectedRounds: 3,
+      selectedEnds: 8,
       balancingMode: 'optimizeTeamNumbers',
       activeTabRound: 1,
       viewMode: 'tabs',
@@ -498,7 +516,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 71,
+          version: 72,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -538,6 +556,10 @@
           const roundsEl = document.getElementById('roundsSelect');
           if (roundsEl) {
             roundsEl.value = state.selectedRounds;
+          }
+          const endsEl = document.getElementById('endsSelect');
+          if (endsEl) {
+            endsEl.value = state.selectedEnds || 8;
           }
           return true;
         }
@@ -816,7 +838,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 71,
+        version: 72,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -876,6 +898,8 @@
             if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
             const roundsEl = document.getElementById('roundsSelect');
             if (roundsEl) roundsEl.value = state.selectedRounds;
+            const endsEl = document.getElementById('endsSelect');
+            if (endsEl) endsEl.value = state.selectedEnds || 8;
 
             saveAppStateToLocalStorage();
             renderUI();
@@ -907,6 +931,8 @@
       if (selectEl) selectEl.value = 'threeBowlTriples';
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) roundsEl.value = '3';
+      const endsEl = document.getElementById('endsSelect');
+      if (endsEl) endsEl.value = '8';
 
       saveAppStateToLocalStorage();
       renderUI();
@@ -1037,6 +1063,11 @@
         state.activeTabRound = 1;
       }
       updateEngine();
+    }
+
+    function onEndsChange() {
+      state.selectedEnds = parseInt(document.getElementById('endsSelect').value) || 8;
+      saveAppStateToLocalStorage();
     }
 
     function setScheduleView(view) {
