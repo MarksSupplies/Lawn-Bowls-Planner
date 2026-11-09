@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v69
+              v71
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -425,14 +425,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 69 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 71 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v69';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v71';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -498,7 +498,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 69,
+          version: 71,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -580,8 +580,16 @@
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition-colors';
 
-        const greenLabel = item.name && item.name.trim() !== '' ? item.name : `(Green ${index + 1})`;
-        const summaryText = `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`;
+        const rawNameUpper = item.name ? item.name.toUpperCase() : '';
+        const greenLabel = rawNameUpper && rawNameUpper.trim() !== '' ? rawNameUpper : `(GREEN ${index + 1})`;
+        const summaryText = rawNameUpper && rawNameUpper.trim() !== '' 
+          ? `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`
+          : 'Disabled (No Green ID)';
+
+        const isRowDisabled = !item.name || item.name.trim() === '';
+        const disabledInputStyle = isRowDisabled 
+          ? 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-60 border-slate-300' 
+          : 'bg-slate-50 border-slate-200 text-slate-800 focus:bg-white focus:border-bowls-700';
 
         tr.innerHTML = `
           <td class="p-2 text-center font-bold text-slate-600 bg-slate-50 border-r border-slate-200">#${index + 1}</td>
@@ -589,7 +597,7 @@
             <input type="text" maxlength="5" value="${item.name || ''}" 
               id="priority_input_${index}_0"
               data-row="${index}" data-col="0"
-              placeholder="No Green"
+              placeholder="N/A"
               enterkeyhint="next"
               oninput="handlePriorityInput(${index}, 'name', this.value, 0)"
               class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition uppercase placeholder:normal-case placeholder:font-normal placeholder:text-slate-400" />
@@ -599,18 +607,20 @@
               id="priority_input_${index}_1"
               data-row="${index}" data-col="1"
               enterkeyhint="next"
+              ${isRowDisabled ? 'disabled' : ''}
               oninput="handlePriorityInput(${index}, 'startRink', this.value, 1)"
-              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+              class="priority-nav-input w-full ${disabledInputStyle} rounded px-2 py-1 font-bold text-xs outline-none transition" />
           </td>
           <td class="p-2 border-r border-slate-200">
             <input type="number" min="1" max="12" value="${item.endRink}" 
               id="priority_input_${index}_2"
               data-row="${index}" data-col="2"
               enterkeyhint="${index === priorityGreens.length - 1 ? 'done' : 'next'}"
+              ${isRowDisabled ? 'disabled' : ''}
               oninput="handlePriorityInput(${index}, 'endRink', this.value, 2)"
-              class="priority-nav-input w-full bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded px-2 py-1 font-bold text-slate-800 text-xs outline-none transition" />
+              class="priority-nav-input w-full ${disabledInputStyle} rounded px-2 py-1 font-bold text-xs outline-none transition" />
           </td>
-          <td id="priority_summary_${index}" class="p-2 border-r border-slate-200 font-semibold text-emerald-800 bg-emerald-50/40">
+          <td id="priority_summary_${index}" class="p-2 border-r border-slate-200 font-semibold ${isRowDisabled ? 'text-slate-400 bg-slate-100/50 italic' : 'text-emerald-800 bg-emerald-50/40 uppercase'}">
             ${summaryText}
           </td>
           <td class="p-2 text-center">
@@ -632,7 +642,7 @@
       if (restoreFocusTarget) {
         const { row, col } = restoreFocusTarget;
         const targetInput = document.getElementById(`priority_input_${row}_${col}`);
-        if (targetInput) {
+        if (targetInput && !targetInput.disabled) {
           targetInput.focus();
           try { targetInput.select(); } catch(e) {}
         }
@@ -645,17 +655,22 @@
       summaryContainer.innerHTML = '';
 
       priorityGreens.forEach((item, index) => {
-        const greenLabel = item.name && item.name.trim() !== '' ? item.name : `(Green ${index + 1})`;
-        const summaryText = `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`;
+        const isRowDisabled = !item.name || item.name.trim() === '';
+        const rawNameUpper = item.name ? item.name.toUpperCase() : '';
+        const greenLabel = !isRowDisabled ? rawNameUpper : `(GREEN ${index + 1})`;
+        const summaryText = !isRowDisabled 
+          ? `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`
+          : 'Disabled (No Green ID)';
         
         const summaryTd = document.getElementById(`priority_summary_${index}`);
         if (summaryTd) {
           summaryTd.innerText = summaryText;
+          summaryTd.className = `p-2 border-r border-slate-200 font-semibold ${isRowDisabled ? 'text-slate-400 bg-slate-100/50 italic' : 'text-emerald-800 bg-emerald-50/40 uppercase'}`;
         }
 
-        if (item.name && item.name.trim() !== '') {
+        if (!isRowDisabled) {
           const chip = document.createElement('span');
-          chip.className = 'bg-white text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded shadow-2xs';
+          chip.className = 'bg-white text-emerald-900 border border-emerald-300 font-bold px-2 py-0.5 rounded shadow-2xs uppercase';
           chip.innerText = summaryText;
           summaryContainer.appendChild(chip);
         }
@@ -691,6 +706,8 @@
     function handlePriorityInput(index, field, val, colIdx) {
       if (!priorityGreens[index]) return;
       
+      const prevName = priorityGreens[index].name;
+
       if (field === 'name') {
         priorityGreens[index][field] = val.slice(0, 5);
       } else if (field === 'startRink') {
@@ -703,29 +720,33 @@
         priorityGreens[index][field] = val;
       }
 
-      // Auto-Contraction logic: Trigger when user clears all data from Column 0 on the PENULTIMATE row (index === length - 2)
-      if (colIdx === 0 && field === 'name' && val.trim() === '' && index === priorityGreens.length - 2 && priorityGreens.length > 3) {
-        while (priorityGreens.length > 3 && priorityGreens[priorityGreens.length - 1].name.trim() === '') {
-          priorityGreens.pop();
+      const wasBlank = !prevName || prevName.trim() === '';
+      const isBlank = !val || val.trim() === '';
+      
+      if (field === 'name' && (wasBlank !== isBlank)) {
+        if (isBlank && index === priorityGreens.length - 2 && priorityGreens.length > 3) {
+          while (priorityGreens.length > 3 && priorityGreens[priorityGreens.length - 1].name.trim() === '') {
+            priorityGreens.pop();
+          }
+          saveAppStateToLocalStorage();
+          const targetRow = Math.min(index, priorityGreens.length - 1);
+          renderPriorityGreensTable({ row: targetRow, col: 0 });
+          return;
         }
+
         saveAppStateToLocalStorage();
-        const targetRow = Math.min(index, priorityGreens.length - 1);
-        renderPriorityGreensTable({ row: targetRow, col: 0 });
+        renderPriorityGreensTable({ row: index, col: 0 });
+
+        if (!isBlank && index === priorityGreens.length - 1) {
+          addPriorityGreenRow(null);
+          const currentInput = document.getElementById(`priority_input_${index}_0`);
+          if (currentInput) currentInput.focus();
+        }
         return;
       }
 
       updatePrioritySummaryDisplay();
       saveAppStateToLocalStorage();
-
-      // Trigger auto-expansion on any user input in Column 0 of the last row
-      if (field === 'name' && val.trim() !== '' && index === priorityGreens.length - 1) {
-        addPriorityGreenRow(null);
-        // Maintain current active input focus while user types
-        const currentInput = document.getElementById(`priority_input_${index}_${colIdx}`);
-        if (currentInput) {
-          currentInput.focus();
-        }
-      }
     }
 
     function attachPriorityKeyboardNav() {
@@ -783,7 +804,7 @@
           }
 
           const nextInput = document.getElementById(`priority_input_${targetRow}_${targetCol}`);
-          if (nextInput) {
+          if (nextInput && !nextInput.disabled) {
             nextInput.focus();
             try { nextInput.select(); } catch (err) {}
           }
@@ -791,11 +812,11 @@
       });
     }
 
-    // Export full state to a JSON file download with Mobile Stream Revocation
+    // Export full state to a JSON file download
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 69,
+        version: 71,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
