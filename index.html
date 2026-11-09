@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v74
+              v75
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -311,7 +311,7 @@
               </div>
             </div>
             <div id="singlesDurationNote" class="hidden text-xs font-medium text-emerald-900 leading-snug">
-              Singles can be difficult to estimate but if playing the first to 21 points they normally last between 1.5 to 2.5 hours.
+              Singles can be difficult to estimate but if playing the first to 21 points they normally last between <span class="font-bold">1.5 to 2.5 hours</span>. Alternatively you may want to use a timer to limit the singles to 2 hours.
             </div>
           </div>
         </div>
@@ -465,14 +465,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 74 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 75 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v74';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v75';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -539,7 +539,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 72,
+          version: 75,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -861,7 +861,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 74,
+        version: 75,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
