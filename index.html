@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v65
+              v66
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -425,14 +425,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 65 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 66 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v65';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v66';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -501,7 +501,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 65,
+          version: 66,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -745,7 +745,7 @@
           const isEnter = e.key === 'Enter' || e.keyCode === 13 || e.which === 13;
           if (!isEnter) return;
 
-          // Stop mobile browser default form submission / focus leakage to lower elements
+          // Strictly stop mobile soft keyboard from advancing focus to lower elements outside the table
           e.preventDefault();
           e.stopPropagation();
 
@@ -755,21 +755,17 @@
           const col = parseInt(input.getAttribute('data-col'), 10);
           const isLastRow = (row === priorityGreens.length - 1);
 
-          // Horizontal LTR navigation within row (col 0 -> 1 -> 2)
+          // Horizontal Left-To-Right navigation within current row (col 0 -> 1 -> 2)
           if (col < 2) {
-            // Trigger auto-expand if Enter pressed on Green ID / Name (col 0) on last row
-            if (col === 0 && isLastRow) {
-              addPriorityGreenRow();
-            } else {
-              const nextColInput = document.getElementById(`priority_input_${row}_${col + 1}`);
-              if (nextColInput) {
-                nextColInput.focus();
-                try { nextColInput.select(); } catch (err) {}
-              }
+            const nextColInput = document.getElementById(`priority_input_${row}_${col + 1}`);
+            if (nextColInput) {
+              nextColInput.focus();
+              try { nextColInput.select(); } catch (err) {}
             }
-          } else { // End Rink (col 2)
+          } else { 
+            // On End Rink (col 2)
             if (isLastRow) {
-              // Auto-expand on End Rink of final row
+              // Trigger auto-expand on End Rink of final row & shift focus down to new row
               addPriorityGreenRow();
             } else {
               // Move to next row's Green ID field
@@ -783,7 +779,7 @@
           return false;
         };
 
-        // Multi-event handlers ensuring cross-device soft keyboard compliance
+        // Multi-event handlers ensuring full cross-device soft-keyboard compliance
         input.addEventListener('keydown', handleKeyAction);
         input.addEventListener('keyup', (e) => {
           if (e.key === 'Enter' || e.keyCode === 13 || e.which === 13) {
@@ -798,7 +794,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 65,
+        version: 66,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
