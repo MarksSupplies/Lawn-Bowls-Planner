@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v93
+              v94
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -121,7 +121,7 @@
           <h2 class="text-lg font-bold text-slate-900">Match Preferences</h2>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <!-- Match Format -->
           <div>
             <div class="flex items-center justify-between mb-1.5">
@@ -142,6 +142,16 @@
               </span>
               <span class="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-1.5 py-0.5 rounded">Override Available</span>
             </div>
+          </div>
+
+          <!-- Tournament Format -->
+          <div>
+            <label for="tournamentFormatSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tournament Format</label>
+            <select id="tournamentFormatSelect" onchange="onTournamentFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="roundRobin" selected>Round Robin (Roll ups)</option>
+              <option value="sectionKnockout">Section Play + Knockout Bracket</option>
+              <option value="sectionTwoLife">Section Play + 2 Life Knockout Bracket</option>
+            </select>
           </div>
 
           <!-- Number of Games / Rounds -->
@@ -433,7 +443,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 93 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 94 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -462,7 +472,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v93';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v94';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -479,6 +489,7 @@
       totalBowlers: 23,
       greensAvailable: 1,
       rinksPerGreen: 8,
+      selectedTournamentFormat: 'roundRobin',
       selectedFormat: 'threeBowlTriples',
       isBestFitActive: false,
       selectedRounds: 3,
@@ -528,7 +539,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 93,
+          version: 94,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -564,6 +575,10 @@
           const selectEl = document.getElementById('formatSelect');
           if (selectEl) {
             selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
+          }
+          const tFormatEl = document.getElementById('tournamentFormatSelect');
+          if (tFormatEl) {
+            tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
           }
           const roundsEl = document.getElementById('roundsSelect');
           if (roundsEl) {
@@ -913,6 +928,14 @@
       saveAppStateToLocalStorage();
     }
 
+    function onTournamentFormatChange() {
+      const tFormatEl = document.getElementById('tournamentFormatSelect');
+      if (tFormatEl) {
+        state.selectedTournamentFormat = tFormatEl.value;
+        saveAppStateToLocalStorage();
+      }
+    }
+
     function onRoundsChange() {
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
@@ -962,7 +985,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 93,
+        version: 94,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1020,6 +1043,8 @@
             if (titleInput) titleInput.value = state.tournamentName || '';
             const selectEl = document.getElementById('formatSelect');
             if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
+            const tFormatEl = document.getElementById('tournamentFormatSelect');
+            if (tFormatEl) tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
             const roundsEl = document.getElementById('roundsSelect');
             if (roundsEl) roundsEl.value = state.selectedRounds;
             const endsEl = document.getElementById('endsSelect');
