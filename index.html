@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v86
+              v90
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -67,13 +67,6 @@
 
     <!-- Venue & Setup Parameters Card -->
     <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-5">
-      <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
-        <div class="flex items-center space-x-2">
-          <i class="ph-bold ph-map-pin text-bowls-700 text-xl"></i>
-          <h2 class="text-lg font-bold text-slate-900">Venue Setup</h2>
-        </div>
-      </div>
-
       <!-- Club / Tournament Name Input Field -->
       <div class="space-y-1.5">
         <label for="tournamentNameInput" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">
@@ -102,7 +95,12 @@
         <div class="flex items-center justify-between p-3.5 bg-slate-50/80 rounded-xl border border-slate-200/80">
           <div>
             <div class="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Bowlers</div>
-            <div id="bowlersValue" class="text-xl font-black text-slate-900">23</div>
+            <div class="flex items-center space-x-2">
+              <div id="bowlersValue" class="text-xl font-black text-slate-900">23</div>
+              <button id="bowlersWarningIcon" type="button" onclick="showSkipsMismatchModal()" class="hidden w-6 h-6 rounded-full bg-orange-100 hover:bg-orange-200 border border-orange-300 text-orange-600 flex items-center justify-center transition shadow-2xs" title="Total Bowlers & Roster Skips mismatch detected. Click for details.">
+                <i class="ph-bold ph-warning text-sm"></i>
+              </button>
+            </div>
           </div>
           <div class="flex items-center space-x-1">
             <button id="btnBowlersDec" onclick="adjustBowlers(-1)" class="w-9 h-9 rounded-lg bg-white border border-slate-300 flex items-center justify-center hover:bg-slate-100 active:bg-slate-200 font-bold text-slate-700 shadow-sm transition focus:ring-2 focus:ring-bowls-700 outline-none">
@@ -113,19 +111,107 @@
             </button>
           </div>
         </div>
+
+      </div>
+
+      <!-- Match Preferences Section -->
+      <div class="pt-3 border-t border-slate-100">
+        <div class="flex items-center space-x-2 mb-4">
+          <i class="ph-bold ph-sliders-horizontal text-bowls-700 text-xl"></i>
+          <h2 class="text-lg font-bold text-slate-900">Match Preferences</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Match Format -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Match Format</label>
+            </div>
+            <select id="formatSelect" onchange="onFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="bestFit">✨ Best Fit (Auto-Calculate Format)</option>
+              <option value="singles">Singles (1v1)</option>
+              <option value="twoBowlPairs">2 Bowl Pairs (2v2)</option>
+              <option value="twoBowlTriples">2 Bowl Triples (3v3)</option>
+              <option value="threeBowlTriples" selected>3 Bowl Triples (3v3)</option>
+              <option value="fours">Fours (4v4)</option>
+            </select>
+            <div id="bestFitBadge" class="hidden mt-2 p-2 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs font-medium text-emerald-900 flex items-center justify-between">
+              <span class="flex items-center space-x-1.5">
+                <i class="ph-bold ph-check-circle text-emerald-600"></i>
+                <span id="bestFitText">--</span>
+              </span>
+              <span class="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-1.5 py-0.5 rounded">Override Available</span>
+            </div>
+          </div>
+
+          <!-- Number of Games / Rounds -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Games / Rounds</label>
+            <select id="roundsSelect" onchange="onRoundsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="1">1 Game</option>
+              <option value="2">2 Games</option>
+              <option value="3" selected>3 Games</option>
+              <option value="4">4 Games</option>
+              <option value="5">5 Games</option>
+            </select>
+          </div>
+
+          <!-- Number of Ends -->
+          <div>
+            <label for="endsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Ends Required</label>
+            <select id="endsSelect" onchange="onEndsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="4">4 Ends</option>
+              <option value="5">5 Ends</option>
+              <option value="6">6 Ends</option>
+              <option value="8" selected>8 Ends</option>
+              <option value="10">10 Ends</option>
+              <option value="12">12 Ends</option>
+              <option value="14">14 Ends</option>
+              <option value="15">15 Ends</option>
+              <option value="18">18 Ends</option>
+              <option value="21">21 Ends</option>
+            </select>
+          </div>
+
+          <!-- Estimated Duration Card -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Est. Total Duration</label>
+            <div class="bg-emerald-50/80 border border-emerald-200/90 rounded-xl px-3 py-2 flex flex-col justify-center min-h-[46px] shadow-2xs space-y-0.5">
+              <div id="standardDurationWrapper" class="space-y-0.5">
+                <div class="flex items-center justify-between text-xs font-bold text-emerald-950">
+                  <span class="flex items-center space-x-1">
+                    <i class="ph-bold ph-clock text-bowls-700 text-xs"></i>
+                    <span>Estimated Total Match Time -</span>
+                  </span>
+                  <span id="estimatedMatchTimeDisplay" class="font-extrabold text-emerald-900 ml-1">--</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-0.5">
+                  <span>Estimated Game Time -</span>
+                  <span id="estimatedGameTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
+                </div>
+              </div>
+              <div id="singlesDurationNote" class="hidden text-xs font-medium text-emerald-900 leading-snug">
+                Singles can be difficult to estimate but if playing the first to 21 points they normally last between <span class="font-bold">1.5 to 2.5 hours</span>. Alternatively you may want to use a timer to limit the singles to 2 hours.
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Priority Greens/Rinks Entry Element -->
       <div class="pt-3 border-t border-slate-100 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center space-x-2">
+            <i class="ph-bold ph-map-pin text-bowls-700 text-xl"></i>
+            <h2 class="text-lg font-bold text-slate-900">Venue Setup</h2>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center space-x-2">
             <i class="ph-bold ph-sort-ascending text-bowls-700 text-base"></i>
             <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Available Greens/Rinks in Priority Order</h3>
           </div>
-          <button type="button" onclick="addPriorityGreenRow()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-2.5 py-1 rounded-lg text-xs transition shadow-xs flex items-center space-x-1">
-            <i class="ph-bold ph-plus text-xs"></i>
-            <span>Add Priority Green</span>
-          </button>
         </div>
 
         <div class="rounded-xl border border-slate-200 overflow-hidden bg-slate-50/50">
@@ -137,8 +223,6 @@
                   <th class="p-2.5 w-32">Green ID / Name</th>
                   <th class="p-2.5 w-28">Start Rink #</th>
                   <th class="p-2.5 w-28">End Rink #</th>
-                  <th class="p-2.5">Priority Summary Output</th>
-                  <th class="p-2.5 w-16 text-center">Action</th>
                 </tr>
               </thead>
               <tbody id="priorityGreensTableBody" class="divide-y divide-slate-200 bg-white">
@@ -199,90 +283,6 @@
             </span>
           </div>
         </label>
-      </div>
-    </section>
-
-    <!-- Match Preferences Card -->
-    <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
-      <div class="flex items-center space-x-2 mb-4">
-        <i class="ph-bold ph-sliders-horizontal text-bowls-700 text-xl"></i>
-        <h2 class="text-lg font-bold text-slate-900">Match Preferences</h2>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Match Format -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Match Format</label>
-          </div>
-          <select id="formatSelect" onchange="onFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-            <option value="bestFit">✨ Best Fit (Auto-Calculate Format)</option>
-            <option value="singles">Singles (1v1)</option>
-            <option value="twoBowlPairs">2 Bowl Pairs (2v2)</option>
-            <option value="twoBowlTriples">2 Bowl Triples (3v3)</option>
-            <option value="threeBowlTriples" selected>3 Bowl Triples (3v3)</option>
-            <option value="fours">Fours (4v4)</option>
-          </select>
-          <div id="bestFitBadge" class="hidden mt-2 p-2 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs font-medium text-emerald-900 flex items-center justify-between">
-            <span class="flex items-center space-x-1.5">
-              <i class="ph-bold ph-check-circle text-emerald-600"></i>
-              <span id="bestFitText">--</span>
-            </span>
-            <span class="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-1.5 py-0.5 rounded">Override Available</span>
-          </div>
-        </div>
-
-        <!-- Number of Games / Rounds -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Games / Rounds</label>
-          <select id="roundsSelect" onchange="onRoundsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-            <option value="1">1 Game</option>
-            <option value="2">2 Games</option>
-            <option value="3" selected>3 Games</option>
-            <option value="4">4 Games</option>
-            <option value="5">5 Games</option>
-          </select>
-        </div>
-
-        <!-- Number of Ends -->
-        <div>
-          <label for="endsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Ends Required</label>
-          <select id="endsSelect" onchange="onEndsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-            <option value="4">4 Ends</option>
-            <option value="5">5 Ends</option>
-            <option value="6">6 Ends</option>
-            <option value="8" selected>8 Ends</option>
-            <option value="10">10 Ends</option>
-            <option value="12">12 Ends</option>
-            <option value="14">14 Ends</option>
-            <option value="15">15 Ends</option>
-            <option value="18">18 Ends</option>
-            <option value="21">21 Ends</option>
-          </select>
-        </div>
-
-        <!-- Estimated Duration Card -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Est. Total Duration</label>
-          <div class="bg-emerald-50/80 border border-emerald-200/90 rounded-xl px-3 py-2 flex flex-col justify-center min-h-[46px] shadow-2xs space-y-0.5">
-            <div id="standardDurationWrapper" class="space-y-0.5">
-              <div class="flex items-center justify-between text-xs font-bold text-emerald-950">
-                <span class="flex items-center space-x-1">
-                  <i class="ph-bold ph-clock text-bowls-700 text-xs"></i>
-                  <span>Estimated Total Match Time -</span>
-                </span>
-                <span id="estimatedMatchTimeDisplay" class="font-extrabold text-emerald-900 ml-1">--</span>
-              </div>
-              <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-0.5">
-                <span>Estimated Game Time -</span>
-                <span id="estimatedGameTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
-              </div>
-            </div>
-            <div id="singlesDurationNote" class="hidden text-xs font-medium text-emerald-900 leading-snug">
-              Singles can be difficult to estimate but if playing the first to 21 points they normally last between <span class="font-bold">1.5 to 2.5 hours</span>. Alternatively you may want to use a timer to limit the singles to 2 hours.
-            </div>
-          </div>
-        </div>
       </div>
     </section>
 
@@ -433,14 +433,36 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 86 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 90 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
+
+  <!-- Warning Alert Modal -->
+  <div id="skipsMismatchModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl border border-orange-200 shadow-2xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
+      <div class="flex items-start space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-600 flex-shrink-0">
+          <i class="ph-bold ph-warning text-xl"></i>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-base font-bold text-slate-900">Bowlers Roster Warning</h3>
+          <p class="text-xs font-semibold text-orange-600 mt-2 leading-relaxed">
+            The Total Bowler count is not equal to the skips within the Roster at the bottom of this page, this is a warning only, adding names to the roster does not affect the functionality of this app as long as the bowlers know what team they are in, such as Team A or Team B etc.
+          </p>
+        </div>
+      </div>
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button type="button" onclick="closeSkipsMismatchModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v86';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v90';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -506,7 +528,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 86,
+          version: 90,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -593,10 +615,6 @@
         tr.className = 'hover:bg-slate-50 transition-colors';
 
         const rawNameUpper = item.name ? item.name.toUpperCase() : '';
-        const greenLabel = rawNameUpper && rawNameUpper.trim() !== '' ? rawNameUpper : `(GREEN ${index + 1})`;
-        const summaryText = rawNameUpper && rawNameUpper.trim() !== '' 
-          ? `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`
-          : 'Disabled (No Green ID)';
 
         const isRowDisabled = !item.name || item.name.trim() === '';
         const disabledInputStyle = isRowDisabled 
@@ -623,7 +641,7 @@
               oninput="handlePriorityInput(${index}, 'startRink', this.value, 1)"
               class="priority-nav-input w-full ${disabledInputStyle} rounded px-2 py-1 font-bold text-xs outline-none transition" />
           </td>
-          <td class="p-2 border-r border-slate-200">
+          <td class="p-2">
             <input type="number" min="1" max="12" value="${item.endRink}" 
               id="priority_input_${index}_2"
               data-row="${index}" data-col="2"
@@ -632,20 +650,12 @@
               oninput="handlePriorityInput(${index}, 'endRink', this.value, 2)"
               class="priority-nav-input w-full ${disabledInputStyle} rounded px-2 py-1 font-bold text-xs outline-none transition" />
           </td>
-          <td id="priority_summary_${index}" class="p-2 border-r border-slate-200 font-semibold ${isRowDisabled ? 'text-slate-400 bg-slate-100/50 italic' : 'text-emerald-800 bg-emerald-50/40 uppercase'}">
-            ${summaryText}
-          </td>
-          <td class="p-2 text-center">
-            <button type="button" onclick="removePriorityGreenRow(${index})" class="text-rose-600 hover:text-rose-800 p-1 font-bold rounded transition">
-              <i class="ph-bold ph-trash text-sm"></i>
-            </button>
-          </td>
         `;
         tbody.appendChild(tr);
       });
 
       if (priorityGreens.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-3 text-center text-slate-400 italic">No priority greens defined. Click "Add Priority Green" above to start.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-center text-slate-400 italic">No priority greens defined. Enter a Green ID to begin.</td></tr>`;
       }
 
       updatePrioritySummaryDisplay();
@@ -673,12 +683,6 @@
         const summaryText = !isRowDisabled 
           ? `${greenLabel} Rink ${item.startRink || 1}-${item.endRink || 8}`
           : 'Disabled (No Green ID)';
-        
-        const summaryTd = document.getElementById(`priority_summary_${index}`);
-        if (summaryTd) {
-          summaryTd.innerText = summaryText;
-          summaryTd.className = `p-2 border-r border-slate-200 font-semibold ${isRowDisabled ? 'text-slate-400 bg-slate-100/50 italic' : 'text-emerald-800 bg-emerald-50/40 uppercase'}`;
-        }
 
         if (!isRowDisabled) {
           const chip = document.createElement('span');
@@ -958,7 +962,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 86,
+        version: 90,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1139,6 +1143,7 @@
       }
 
       saveAppStateToLocalStorage();
+      updateUI();
     }
 
     function renderMasterRosterTable() {
@@ -1715,7 +1720,7 @@
       const safeLabel = teamLabel.replace(/\s+/g, '_');
 
       return `
-        <div class="bg-white p-1.5 sm:p-2.5 rounded-lg border border-slate-200/80 shadow-xs min-h-[175px] h-full flex flex-col justify-between">
+        <div class="bg-white p-1.5 sm:p-2.5 rounded-xl border-2 border-emerald-600/30 ring-1 ring-emerald-600/10 shadow-sm min-h-[175px] h-full flex flex-col justify-between">
           <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
             <thead>
               <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
@@ -1798,6 +1803,9 @@
                 ${team.label}
               </span>
               ${getTeamScheduleBadge(team.label)}
+              <span class="text-[11px] font-bold text-orange-600 ml-1">
+                Please write ${team.label} on your scorecards.
+              </span>
             </div>
             <span class="text-[11px] font-semibold text-slate-600">
               Schedule: <span class="font-bold text-slate-800">${opponents.join(' &bull; ')}</span>
@@ -1939,11 +1947,38 @@
         }
       }
 
+      // Check Skip count in Master Roster against Total Bowlers
+      let skipCount = 0;
+      for (let r = 0; r < 160; r++) {
+        if (masterRoster[r][0] && masterRoster[r][0].trim() !== '') {
+          skipCount++;
+        }
+      }
+
+      const warningIcon = document.getElementById('bowlersWarningIcon');
+      if (warningIcon) {
+        if (state.totalBowlers !== skipCount) {
+          warningIcon.classList.remove('hidden');
+        } else {
+          warningIcon.classList.add('hidden');
+        }
+      }
+
       if (state.viewMode === 'matrix') {
         renderScheduleMatrix();
       } else {
         renderMatchCards();
       }
+    }
+
+    function showSkipsMismatchModal() {
+      const modal = document.getElementById('skipsMismatchModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeSkipsMismatchModal() {
+      const modal = document.getElementById('skipsMismatchModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     window.onload = function() {
