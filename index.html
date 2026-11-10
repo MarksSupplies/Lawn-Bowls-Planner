@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v85
+              v86
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -177,7 +177,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Radio Option: Optimize Teams -->
-        <label id="labelOptimize" class="relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm">
+        <label id="labelOptimize" onclick="setBalancingMode('optimizeTeamNumbers')" class="relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm">
           <input type="radio" name="balancingMode" id="radioOptimize" value="optimizeTeamNumbers" checked onchange="setBalancingMode('optimizeTeamNumbers')" class="mt-0.5 text-blue-600 focus:ring-blue-500 h-4 w-4">
           <div class="ml-3">
             <span class="block text-sm font-bold text-slate-900">Optimize Team Numbers (No Byes)</span>
@@ -186,7 +186,7 @@
         </label>
 
         <!-- Radio Option: Standard Byes -->
-        <label id="labelByes" class="relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white">
+        <label id="labelByes" onclick="setBalancingMode('byes')" class="relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white">
           <input type="radio" name="balancingMode" id="radioByes" value="byes" onchange="setBalancingMode('byes')" class="mt-0.5 text-amber-600 focus:ring-amber-500 h-4 w-4">
           <div class="ml-3 flex-1">
             <div class="flex items-center justify-between">
@@ -433,14 +433,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 85 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 86 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v85';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v86';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -506,7 +506,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 84,
+          version: 86,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -862,10 +862,36 @@
 
     function setBalancingMode(mode) {
       state.balancingMode = mode;
+      
       const optRadio = document.getElementById('radioOptimize');
       const byesRadio = document.getElementById('radioByes');
+      const labelOpt = document.getElementById('labelOptimize');
+      const labelByes = document.getElementById('labelByes');
+      const activeBadge = document.getElementById('activeModeBadge');
+
       if (optRadio) optRadio.checked = (mode === 'optimizeTeamNumbers');
       if (byesRadio) byesRadio.checked = (mode === 'byes');
+
+      if (labelOpt && labelByes) {
+        if (mode === 'optimizeTeamNumbers') {
+          labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm';
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
+        } else {
+          labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
+        }
+      }
+
+      if (activeBadge) {
+        if (mode === 'optimizeTeamNumbers') {
+          activeBadge.innerText = 'Optimize Teams Active';
+          activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200';
+        } else {
+          activeBadge.innerText = 'Standard Byes Active';
+          activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200';
+        }
+      }
+
       updateUI();
       saveAppStateToLocalStorage();
     }
@@ -932,7 +958,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 85,
+        version: 86,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1831,9 +1857,88 @@
     }
 
     function updateUI() {
+      // Determine format target size to check even/odd natural team counts
+      const formatSpec = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
+      const targetSize = formatSpec.targetTeamSize;
+      const naturalTeamCount = Math.ceil(state.totalBowlers / targetSize);
+      const isNaturallyEven = (naturalTeamCount % 2 === 0);
+      const isCleanlyDivisible = (state.totalBowlers % targetSize === 0);
+
+      const radioByes = document.getElementById('radioByes');
+      const labelByes = document.getElementById('labelByes');
+      const byesTitle = document.getElementById('textByesTitle');
+      const byesSubtitle = document.getElementById('textByesSubtitle');
+      const byesDisabledReason = document.getElementById('textByesDisabledReason');
+      const reasonText = document.getElementById('reasonText');
+      const byesLockedChip = document.getElementById('byesLockedChip');
+
+      // Check if Standard Byes should be greyed out & disabled
+      // Disabled if naturally even team count OR not cleanly divisible by team size
+      const shouldDisableByes = isNaturallyEven || !isCleanlyDivisible;
+
+      if (shouldDisableByes) {
+        if (state.balancingMode === 'byes') {
+          state.balancingMode = 'optimizeTeamNumbers';
+        }
+        if (radioByes) {
+          radioByes.disabled = true;
+          radioByes.checked = false;
+        }
+        if (labelByes) {
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed';
+          labelByes.onclick = null;
+        }
+        if (byesTitle) byesTitle.className = 'block text-sm font-bold text-slate-400';
+        if (byesSubtitle) byesSubtitle.className = 'block text-xs text-slate-400 mt-1';
+        if (byesDisabledReason && reasonText) {
+          if (!isCleanlyDivisible) {
+            reasonText.innerText = `${state.totalBowlers} bowlers is not cleanly divisible by team size ${targetSize}. Standard Byes disabled.`;
+          } else {
+            reasonText.innerText = `${state.totalBowlers} bowlers naturally form ${naturalTeamCount} teams (even count). No byes required.`;
+          }
+          byesDisabledReason.classList.remove('hidden');
+        }
+        if (byesLockedChip) byesLockedChip.classList.remove('hidden');
+      } else {
+        if (radioByes) {
+          radioByes.disabled = false;
+        }
+        if (labelByes) {
+          labelByes.onclick = function() { setBalancingMode('byes'); };
+        }
+        if (byesTitle) byesTitle.className = 'block text-sm font-bold text-slate-900';
+        if (byesSubtitle) byesSubtitle.className = 'block text-xs text-slate-500 mt-1';
+        if (byesDisabledReason) byesDisabledReason.classList.add('hidden');
+        if (byesLockedChip) byesLockedChip.classList.add('hidden');
+      }
+
       state.schedule = generateSchedule();
       updateEstimatedMatchTime();
       renderMasterRosterTable();
+
+      const labelOpt = document.getElementById('labelOptimize');
+      const activeBadge = document.getElementById('activeModeBadge');
+
+      if (labelOpt && labelByes && !shouldDisableByes) {
+        if (state.balancingMode === 'optimizeTeamNumbers') {
+          labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm';
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
+        } else {
+          labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
+        }
+      }
+
+      if (activeBadge) {
+        if (state.balancingMode === 'optimizeTeamNumbers') {
+          activeBadge.innerText = 'Optimize Teams Active';
+          activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200';
+        } else {
+          activeBadge.innerText = 'Standard Byes Active';
+          activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200';
+        }
+      }
+
       if (state.viewMode === 'matrix') {
         renderScheduleMatrix();
       } else {
