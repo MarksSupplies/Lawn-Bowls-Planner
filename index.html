@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v94
+              v95
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -443,7 +443,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 94 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 95 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -472,7 +472,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v94';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v95';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -539,7 +539,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 94,
+          version: 95,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -855,6 +855,7 @@
       const btnMatrix = document.getElementById('viewMatrixBtn');
 
       if (mode === 'matrix') {
+        renderScheduleMatrix();
         if (matrix) matrix.classList.remove('hidden');
         if (cards) cards.classList.add('hidden');
         if (btnTabs) btnTabs.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
@@ -985,7 +986,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 94,
+        version: 95,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1989,11 +1990,9 @@
         }
       }
 
-      if (state.viewMode === 'matrix') {
-        renderScheduleMatrix();
-      } else {
-        renderMatchCards();
-      }
+      // Always render both matrix table and match cards so views are completely populated
+      renderScheduleMatrix();
+      renderMatchCards();
     }
 
     function showSkipsMismatchModal() {
