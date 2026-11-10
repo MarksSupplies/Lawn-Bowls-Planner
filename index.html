@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v82
+              v84
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -433,14 +433,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 82 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 84 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v82';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v84';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -506,7 +506,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 82,
+          version: 84,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -929,7 +929,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 82,
+        version: 84,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1043,6 +1043,53 @@
 
       saveAppStateToLocalStorage();
       updateUI();
+    }
+
+    // --- ESTIMATED MATCH TIME CALCULATOR ---
+    function formatDurationString(totalMinutes) {
+      const hours = Math.floor(totalMinutes / 60);
+      const mins = totalMinutes % 60;
+
+      if (hours > 0 && mins > 0) {
+        return `${hours} hr${hours > 1 ? 's' : ''} ${mins} mins`;
+      } else if (hours > 0) {
+        return `${hours} hr${hours > 1 ? 's' : ''}`;
+      } else {
+        return `${mins} mins`;
+      }
+    }
+
+    function updateEstimatedMatchTime() {
+      const standardWrapper = document.getElementById('standardDurationWrapper');
+      const singlesNote = document.getElementById('singlesDurationNote');
+
+      if (state.selectedFormat === 'singles') {
+        if (standardWrapper) standardWrapper.classList.add('hidden');
+        if (singlesNote) singlesNote.classList.remove('hidden');
+        return;
+      } else {
+        if (standardWrapper) standardWrapper.classList.remove('hidden');
+        if (singlesNote) singlesNote.classList.add('hidden');
+      }
+
+      const rounds = state.selectedRounds || 3;
+      const ends = state.selectedEnds || 8;
+      
+      const gameMinutes = ends * 10;
+      const totalMatchMinutes = rounds * gameMinutes;
+
+      const formattedMatchTime = formatDurationString(totalMatchMinutes);
+      const formattedGameTime = formatDurationString(gameMinutes);
+
+      const matchDisplayEl = document.getElementById('estimatedMatchTimeDisplay');
+      if (matchDisplayEl) {
+        matchDisplayEl.innerText = formattedMatchTime;
+      }
+
+      const gameDisplayEl = document.getElementById('estimatedGameTimeDisplay');
+      if (gameDisplayEl) {
+        gameDisplayEl.innerText = formattedGameTime;
+      }
     }
 
     function updateRosterCell(teamIdx, posIdx, val) {
@@ -1782,6 +1829,7 @@
 
     function updateUI() {
       state.schedule = generateSchedule();
+      updateEstimatedMatchTime();
       renderMasterRosterTable();
       if (state.viewMode === 'matrix') {
         renderScheduleMatrix();
@@ -1791,7 +1839,18 @@
     }
 
     window.onload = function() {
-      loadAppStateFromLocalStorage();
+      const loaded = loadAppStateFromLocalStorage();
+      
+      // Ensure tournament name defaults if not loaded or empty
+      if (!state.tournamentName || state.tournamentName.trim() === '') {
+        state.tournamentName = getDefaultTournamentName();
+      }
+
+      const titleInput = document.getElementById('tournamentNameInput');
+      if (titleInput) {
+        titleInput.value = state.tournamentName;
+      }
+
       renderPriorityGreensTable();
       updateUI();
     };
