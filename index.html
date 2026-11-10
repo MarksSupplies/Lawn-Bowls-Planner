@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v92
+              v93
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -130,10 +130,10 @@
             <select id="formatSelect" onchange="onFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
               <option value="bestFit">✨ Best Fit (Auto-Calculate Format)</option>
               <option value="singles">Singles (1v1)</option>
-              <option value="twoBowlPairs">2 Bowl Pairs (2v2)</option>
+              <option value="twoBowlPairs">4 Bowl Pairs (2v2)</option>
               <option value="twoBowlTriples">2 Bowl Triples (3v3)</option>
               <option value="threeBowlTriples" selected>3 Bowl Triples (3v3)</option>
-              <option value="fours">Fours (4v4)</option>
+              <option value="fours">2 Bowl Fours (4v4)</option>
             </select>
             <div id="bestFitBadge" class="hidden mt-2 p-2 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs font-medium text-emerald-900 flex items-center justify-between">
               <span class="flex items-center space-x-1.5">
@@ -433,7 +433,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 92 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 93 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -462,15 +462,15 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v92';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v93';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
       singles: { name: 'Singles (1v1)', targetTeamSize: 1, bowlsPerPlayer: 4 },
-      twoBowlPairs: { name: '2 Bowl Pairs (2v2)', targetTeamSize: 2, bowlsPerPlayer: 2 },
+      twoBowlPairs: { name: '4 Bowl Pairs (2v2)', targetTeamSize: 2, bowlsPerPlayer: 4 },
       twoBowlTriples: { name: '2 Bowl Triples (3v3)', targetTeamSize: 3, bowlsPerPlayer: 2 },
       threeBowlTriples: { name: '3 Bowl Triples (3v3)', targetTeamSize: 3, bowlsPerPlayer: 3 },
-      fours: { name: 'Fours (4v4)', targetTeamSize: 4, bowlsPerPlayer: 2 }
+      fours: { name: '2 Bowl Fours (4v4)', targetTeamSize: 4, bowlsPerPlayer: 2 }
     };
 
     // Default Application State
@@ -528,7 +528,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 92,
+          version: 93,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -962,7 +962,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 92,
+        version: 93,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
