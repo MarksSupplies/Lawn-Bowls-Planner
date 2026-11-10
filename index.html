@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v84
+              v85
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -433,14 +433,14 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 84 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 85 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v84';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v85';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -743,6 +743,7 @@
           saveAppStateToLocalStorage();
           const targetRow = Math.min(index, priorityGreens.length - 1);
           renderPriorityGreensTable({ row: targetRow, col: 0 });
+          updateUI();
           return;
         }
 
@@ -754,11 +755,13 @@
           const currentInput = document.getElementById(`priority_input_${index}_0`);
           if (currentInput) currentInput.focus();
         }
+        updateUI();
         return;
       }
 
       updatePrioritySummaryDisplay();
       saveAppStateToLocalStorage();
+      updateUI();
     }
 
     function attachPriorityKeyboardNav() {
@@ -929,7 +932,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 84,
+        version: 85,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
