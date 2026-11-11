@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v95
+              v98
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -121,7 +121,7 @@
           <h2 class="text-lg font-bold text-slate-900">Match Preferences</h2>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
           <!-- Match Format -->
           <div>
             <div class="flex items-center justify-between mb-1.5">
@@ -149,8 +149,40 @@
             <label for="tournamentFormatSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tournament Format</label>
             <select id="tournamentFormatSelect" onchange="onTournamentFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
               <option value="roundRobin" selected>Round Robin (Roll ups)</option>
-              <option value="sectionKnockout">Section Play + Knockout Bracket</option>
-              <option value="sectionTwoLife">Section Play + 2 Life Knockout Bracket</option>
+              <option value="section4Knockout">4 team Section Play + Knockout Bracket</option>
+              <option value="section6Knockout">6 team Section Play + Knockout Bracket</option>
+              <option value="section4TwoLife">4 team Section Play + 2 Life Knockout Bracket</option>
+              <option value="section6TwoLife">6 team Section Play + 2 Life Knockout Bracket</option>
+            </select>
+          </div>
+
+          <!-- Section Qualification -->
+          <div>
+            <label for="sectionQualifyingSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Section Qualification</label>
+            <select id="sectionQualifyingSelect" onchange="onSectionQualifyingChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="top1">Top 1</option>
+              <option value="top2" selected>Top 2</option>
+              <option value="top3">Top 3</option>
+              <option value="top4">Top 4</option>
+            </select>
+          </div>
+
+          <!-- Life System -->
+          <div>
+            <label for="lifeSystemSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Life System</label>
+            <select id="lifeSystemSelect" onchange="onLifeSystemChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="singleLife" selected>Single Life</option>
+              <option value="doubleLife">Double Life</option>
+            </select>
+          </div>
+
+          <!-- Match Points System -->
+          <div>
+            <label for="matchPointsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Match Points System</label>
+            <select id="matchPointsSelect" onchange="onMatchPointsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="3_1" selected>Win gets 3 and a draw gets 1</option>
+              <option value="4_2">Win Gets 4 and a Draw gets 2</option>
+              <option value="2_1">Win gets 2 and a draw gets 1</option>
             </select>
           </div>
 
@@ -443,7 +475,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 95 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 98 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -472,7 +504,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v95';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v98';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -490,7 +522,10 @@
       greensAvailable: 1,
       rinksPerGreen: 8,
       selectedTournamentFormat: 'roundRobin',
+      selectedSectionQualifying: 'top2',
+      selectedLifeSystem: 'singleLife',
       selectedFormat: 'threeBowlTriples',
+      selectedMatchPoints: '3_1',
       isBestFitActive: false,
       selectedRounds: 3,
       selectedEnds: 8,
@@ -539,7 +574,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 95,
+          version: 98,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -579,6 +614,18 @@
           const tFormatEl = document.getElementById('tournamentFormatSelect');
           if (tFormatEl) {
             tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
+          }
+          const sQualEl = document.getElementById('sectionQualifyingSelect');
+          if (sQualEl) {
+            sQualEl.value = state.selectedSectionQualifying || 'top2';
+          }
+          const lifeSysEl = document.getElementById('lifeSystemSelect');
+          if (lifeSysEl) {
+            lifeSysEl.value = state.selectedLifeSystem || 'singleLife';
+          }
+          const matchPointsEl = document.getElementById('matchPointsSelect');
+          if (matchPointsEl) {
+            matchPointsEl.value = state.selectedMatchPoints || '3_1';
           }
           const roundsEl = document.getElementById('roundsSelect');
           if (roundsEl) {
@@ -937,6 +984,31 @@
       }
     }
 
+    function onSectionQualifyingChange() {
+      const sQualEl = document.getElementById('sectionQualifyingSelect');
+      if (sQualEl) {
+        state.selectedSectionQualifying = sQualEl.value;
+        saveAppStateToLocalStorage();
+      }
+    }
+
+    function onLifeSystemChange() {
+      const lifeSysEl = document.getElementById('lifeSystemSelect');
+      if (lifeSysEl) {
+        state.selectedLifeSystem = lifeSysEl.value;
+        saveAppStateToLocalStorage();
+      }
+    }
+
+    function onMatchPointsChange() {
+      const matchPointsEl = document.getElementById('matchPointsSelect');
+      if (matchPointsEl) {
+        state.selectedMatchPoints = matchPointsEl.value;
+        saveAppStateToLocalStorage();
+        updateUI();
+      }
+    }
+
     function onRoundsChange() {
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
@@ -986,7 +1058,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 95,
+        version: 98,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1046,6 +1118,12 @@
             if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
             const tFormatEl = document.getElementById('tournamentFormatSelect');
             if (tFormatEl) tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
+            const sQualEl = document.getElementById('sectionQualifyingSelect');
+            if (sQualEl) sQualEl.value = state.selectedSectionQualifying || 'top2';
+            const lifeSysEl = document.getElementById('lifeSystemSelect');
+            if (lifeSysEl) lifeSysEl.value = state.selectedLifeSystem || 'singleLife';
+            const matchPointsEl = document.getElementById('matchPointsSelect');
+            if (matchPointsEl) matchPointsEl.value = state.selectedMatchPoints || '3_1';
             const roundsEl = document.getElementById('roundsSelect');
             if (roundsEl) roundsEl.value = state.selectedRounds;
             const endsEl = document.getElementById('endsSelect');
@@ -1656,6 +1734,16 @@
       let hasPtsAgst = false;
       let hasOutcomes = false;
 
+      let winPoints = 3;
+      let drawPoints = 1;
+      if (state.selectedMatchPoints === '4_2') {
+        winPoints = 4;
+        drawPoints = 2;
+      } else if (state.selectedMatchPoints === '2_1') {
+        winPoints = 2;
+        drawPoints = 1;
+      }
+
       for (let m = 1; m <= matchCount; m++) {
         let rinkDisplay = '--';
         const roundFixtures = (state.schedule || [])[m - 1] || [];
@@ -1669,8 +1757,8 @@
 
         if (currentVal) {
           hasOutcomes = true;
-          if (currentVal === 'W') sumMatchPts += 3;
-          else if (currentVal === 'D') sumMatchPts += 1;
+          if (currentVal === 'W') sumMatchPts += winPoints;
+          else if (currentVal === 'D') sumMatchPts += drawPoints;
         }
 
         if (matchData.ends !== '') {
