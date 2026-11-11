@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v101
+              v102
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -499,7 +499,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 101 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 102 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -528,7 +528,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v101';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v102';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -600,7 +600,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 101,
+          version: 102,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1015,6 +1015,7 @@
       if (tFormatEl) {
         state.selectedTournamentFormat = tFormatEl.value;
         saveAppStateToLocalStorage();
+        updateUI();
       }
     }
 
@@ -1108,7 +1109,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 101,
+        version: 102,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2039,6 +2040,29 @@
       const naturalTeamCount = Math.ceil(state.totalBowlers / targetSize);
       const isNaturallyEven = (naturalTeamCount % 2 === 0);
       const isCleanlyDivisible = (state.totalBowlers % targetSize === 0);
+
+      // Handle lock state for Section-specific controls when Knockout Bracket or Round Robin is selected
+      const isSectionDisabled = (state.selectedTournamentFormat === 'knockout' || state.selectedTournamentFormat === 'roundRobin');
+      const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-3 text-sm outline-none cursor-not-allowed opacity-60';
+      const enabledControlClass = 'w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
+
+      const sectionSizeEl = document.getElementById('sectionSizeSelect');
+      if (sectionSizeEl) {
+        sectionSizeEl.disabled = isSectionDisabled;
+        sectionSizeEl.className = isSectionDisabled ? disabledControlClass : enabledControlClass;
+      }
+
+      const sectionQualEl = document.getElementById('sectionQualifyingSelect');
+      if (sectionQualEl) {
+        sectionQualEl.disabled = isSectionDisabled;
+        sectionQualEl.className = isSectionDisabled ? disabledControlClass : enabledControlClass;
+      }
+
+      const sectionTransEl = document.getElementById('sectionBracketTransitionSelect');
+      if (sectionTransEl) {
+        sectionTransEl.disabled = isSectionDisabled;
+        sectionTransEl.className = isSectionDisabled ? disabledControlClass : enabledControlClass;
+      }
 
       const radioByes = document.getElementById('radioByes');
       const labelByes = document.getElementById('labelByes');
