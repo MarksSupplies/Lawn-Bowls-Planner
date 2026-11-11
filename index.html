@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v98
+              v99
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -148,11 +148,26 @@
           <div>
             <label for="tournamentFormatSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tournament Format</label>
             <select id="tournamentFormatSelect" onchange="onTournamentFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-              <option value="roundRobin" selected>Round Robin (Roll ups)</option>
-              <option value="section4Knockout">4 team Section Play + Knockout Bracket</option>
-              <option value="section6Knockout">6 team Section Play + Knockout Bracket</option>
-              <option value="section4TwoLife">4 team Section Play + 2 Life Knockout Bracket</option>
-              <option value="section6TwoLife">6 team Section Play + 2 Life Knockout Bracket</option>
+              <option value="roundRobin" selected>Round Robin (Most club matches)</option>
+              <option value="knockout">Knockout Bracket</option>
+              <option value="sectionKnockout">Section Play + Knockout Bracket</option>
+            </select>
+          </div>
+
+          <!-- Section Size -->
+          <div>
+            <label for="sectionSizeSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Section Size</label>
+            <select id="sectionSizeSelect" onchange="onSectionSizeChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4" selected>4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
             </select>
           </div>
 
@@ -180,9 +195,9 @@
           <div>
             <label for="matchPointsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Match Points System</label>
             <select id="matchPointsSelect" onchange="onMatchPointsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-              <option value="3_1" selected>Win gets 3 and a draw gets 1</option>
+              <option value="3_1" selected>Win Gets 3 and a Draw Gets 1</option>
               <option value="4_2">Win Gets 4 and a Draw gets 2</option>
-              <option value="2_1">Win gets 2 and a draw gets 1</option>
+              <option value="2_1">Win Gets 2 and a Draw gets 1</option>
             </select>
           </div>
 
@@ -475,7 +490,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 98 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 99 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -504,7 +519,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v98';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v99';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -522,6 +537,7 @@
       greensAvailable: 1,
       rinksPerGreen: 8,
       selectedTournamentFormat: 'roundRobin',
+      selectedSectionSize: '4',
       selectedSectionQualifying: 'top2',
       selectedLifeSystem: 'singleLife',
       selectedFormat: 'threeBowlTriples',
@@ -574,7 +590,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 98,
+          version: 99,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -614,6 +630,10 @@
           const tFormatEl = document.getElementById('tournamentFormatSelect');
           if (tFormatEl) {
             tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
+          }
+          const sSizeEl = document.getElementById('sectionSizeSelect');
+          if (sSizeEl) {
+            sSizeEl.value = state.selectedSectionSize || '4';
           }
           const sQualEl = document.getElementById('sectionQualifyingSelect');
           if (sQualEl) {
@@ -984,6 +1004,14 @@
       }
     }
 
+    function onSectionSizeChange() {
+      const sSizeEl = document.getElementById('sectionSizeSelect');
+      if (sSizeEl) {
+        state.selectedSectionSize = sSizeEl.value;
+        saveAppStateToLocalStorage();
+      }
+    }
+
     function onSectionQualifyingChange() {
       const sQualEl = document.getElementById('sectionQualifyingSelect');
       if (sQualEl) {
@@ -1058,7 +1086,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 98,
+        version: 99,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1118,6 +1146,8 @@
             if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
             const tFormatEl = document.getElementById('tournamentFormatSelect');
             if (tFormatEl) tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
+            const sSizeEl = document.getElementById('sectionSizeSelect');
+            if (sSizeEl) sSizeEl.value = state.selectedSectionSize || '4';
             const sQualEl = document.getElementById('sectionQualifyingSelect');
             if (sQualEl) sQualEl.value = state.selectedSectionQualifying || 'top2';
             const lifeSysEl = document.getElementById('lifeSystemSelect');
