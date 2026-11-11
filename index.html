@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v102
+              v104
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -69,9 +69,15 @@
     <section class="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-5">
       <!-- Club / Tournament Name Input Field -->
       <div class="space-y-1.5">
-        <label for="tournamentNameInput" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">
-          Club / Tournament Name
-        </label>
+        <div class="flex flex-wrap items-center justify-between gap-1">
+          <label for="tournamentNameInput" class="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+            Club / Tournament Name
+          </label>
+          <span class="text-[11px] font-medium text-slate-500 flex items-center space-x-1">
+            <i class="ph-bold ph-info text-bowls-700"></i>
+            <span>This is used as the filename when saving to your device.</span>
+          </span>
+        </div>
         <div class="relative rounded-xl shadow-2xs">
           <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <i class="ph-bold ph-flag-banner text-bowls-700 text-base"></i>
@@ -123,41 +129,48 @@
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <!-- 1. Match Format -->
-          <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider">Match Format</label>
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-users text-bowls-700 text-base"></i>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Match Format</label>
             </div>
-            <select id="formatSelect" onchange="onFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-              <option value="bestFit">✨ Best Fit (Auto-Calculate Format)</option>
+            <select id="formatSelect" onchange="onFormatChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="bestFit">✨ Best Fit (Auto-Calculate)</option>
               <option value="singles">Singles (1v1)</option>
               <option value="twoBowlPairs">4 Bowl Pairs (2v2)</option>
               <option value="twoBowlTriples">2 Bowl Triples (3v3)</option>
               <option value="threeBowlTriples" selected>3 Bowl Triples (3v3)</option>
               <option value="fours">2 Bowl Fours (4v4)</option>
             </select>
-            <div id="bestFitBadge" class="hidden mt-2 p-2 rounded-lg bg-emerald-50/80 border border-emerald-200 text-xs font-medium text-emerald-900 flex items-center justify-between">
-              <span class="flex items-center space-x-1.5">
+            <div id="bestFitBadge" class="hidden p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-900 flex items-center justify-between">
+              <span class="flex items-center space-x-1">
                 <i class="ph-bold ph-check-circle text-emerald-600"></i>
                 <span id="bestFitText">--</span>
               </span>
-              <span class="text-[10px] text-emerald-700 font-semibold bg-emerald-100 px-1.5 py-0.5 rounded">Override Available</span>
+              <span class="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-1.5 py-0.5 rounded">Override Available</span>
             </div>
           </div>
 
           <!-- 2. Tournament Format -->
-          <div>
-            <label for="tournamentFormatSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Tournament Format</label>
-            <select id="tournamentFormatSelect" onchange="onTournamentFormatChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-              <option value="roundRobin" selected>Round Robin (Most club matches)</option>
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-trophy text-bowls-700 text-base"></i>
+              <label for="tournamentFormatSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Tournament Format</label>
+            </div>
+            <select id="tournamentFormatSelect" onchange="onTournamentFormatChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="roundRobin" selected>Round Robin (Suits most club matches)</option>
               <option value="knockout">Knockout Bracket</option>
               <option value="sectionKnockout">Section Play + Knockout Bracket</option>
             </select>
           </div>
 
           <!-- 3. Number of Games / Rounds -->
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Games / Rounds</label>
-            <select id="roundsSelect" onchange="onRoundsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-hash text-bowls-700 text-base"></i>
+              <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Games / Rounds</label>
+            </div>
+            <select id="roundsSelect" onchange="onRoundsChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
               <option value="1">1 Game</option>
               <option value="2">2 Games</option>
               <option value="3" selected>3 Games</option>
@@ -167,9 +180,12 @@
           </div>
 
           <!-- 4. Number of Ends Required -->
-          <div>
-            <label for="endsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Number of Ends Required</label>
-            <select id="endsSelect" onchange="onEndsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-target text-bowls-700 text-base"></i>
+              <label for="endsSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Ends Required</label>
+            </div>
+            <select id="endsSelect" onchange="onEndsChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
               <option value="4">4 Ends</option>
               <option value="5">5 Ends</option>
               <option value="6">6 Ends</option>
@@ -184,9 +200,12 @@
           </div>
 
           <!-- 5. Match Points System -->
-          <div>
-            <label for="matchPointsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Match Points System</label>
-            <select id="matchPointsSelect" onchange="onMatchPointsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-medal text-bowls-700 text-base"></i>
+              <label for="matchPointsSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Points System</label>
+            </div>
+            <select id="matchPointsSelect" onchange="onMatchPointsChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
               <option value="3_1" selected>Win Gets 3 and a Draw Gets 1 (Default)</option>
               <option value="4_2">Win Gets 4 and a Draw gets 2</option>
               <option value="2_1">Win Gets 2 and a Draw gets 1</option>
@@ -194,18 +213,24 @@
           </div>
 
           <!-- 6. Life System -->
-          <div>
-            <label for="lifeSystemSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Life System</label>
-            <select id="lifeSystemSelect" onchange="onLifeSystemChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-heart-beat text-bowls-700 text-base"></i>
+              <label for="lifeSystemSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Life System</label>
+            </div>
+            <select id="lifeSystemSelect" onchange="onLifeSystemChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
               <option value="singleLife" selected>Single Life (Default)</option>
               <option value="doubleLife">Double Life</option>
             </select>
           </div>
 
           <!-- 7. Section Size -->
-          <div>
-            <label for="sectionSizeSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Section Size</label>
-            <select id="sectionSizeSelect" onchange="onSectionSizeChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-squares-four text-bowls-700 text-base"></i>
+              <label for="sectionSizeSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Section Size</label>
+            </div>
+            <select id="sectionSizeSelect" onchange="onSectionSizeChange()" class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60">
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
@@ -220,9 +245,12 @@
           </div>
 
           <!-- 8. Section Qualification -->
-          <div>
-            <label for="sectionQualifyingSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Section Qualification</label>
-            <select id="sectionQualifyingSelect" onchange="onSectionQualifyingChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-funnel text-bowls-700 text-base"></i>
+              <label for="sectionQualifyingSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Qualification</label>
+            </div>
+            <select id="sectionQualifyingSelect" onchange="onSectionQualifyingChange()" class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60">
               <option value="top1">Top 1</option>
               <option value="top2" selected>Top 2</option>
               <option value="top3">Top 3</option>
@@ -231,33 +259,36 @@
           </div>
 
           <!-- 9. Section to Bracket Transition -->
-          <div>
-            <label for="sectionBracketTransitionSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Section to Bracket Transition</label>
-            <select id="sectionBracketTransitionSelect" onchange="onSectionBracketTransitionChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-arrows-merge text-bowls-700 text-base"></i>
+              <label for="sectionBracketTransitionSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Bracket Transition</label>
+            </div>
+            <select id="sectionBracketTransitionSelect" onchange="onSectionBracketTransitionChange()" class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60">
               <option value="random" selected>Random Draw (Default)</option>
               <option value="seeded">Seeded Draw</option>
             </select>
           </div>
 
           <!-- 10. Estimated Duration Card -->
-          <div>
-            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Est. Total Duration</label>
-            <div class="bg-emerald-50/80 border border-emerald-200/90 rounded-xl px-3 py-2 flex flex-col justify-center min-h-[46px] shadow-2xs space-y-0.5">
-              <div id="standardDurationWrapper" class="space-y-0.5">
+          <div class="bg-emerald-50/90 rounded-2xl p-3.5 border border-emerald-200/90 space-y-2 hover:border-emerald-300 transition shadow-2xs">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-clock text-emerald-700 text-base"></i>
+              <label class="block text-xs font-extrabold text-emerald-950 uppercase tracking-wider">Est. Duration</label>
+            </div>
+            <div class="flex flex-col justify-center min-h-[42px] space-y-1">
+              <div id="standardDurationWrapper" class="space-y-1">
                 <div class="flex items-center justify-between text-xs font-bold text-emerald-950">
-                  <span class="flex items-center space-x-1">
-                    <i class="ph-bold ph-clock text-bowls-700 text-xs"></i>
-                    <span>Estimated Total Match Time -</span>
-                  </span>
+                  <span>Total Match:</span>
                   <span id="estimatedMatchTimeDisplay" class="font-extrabold text-emerald-900 ml-1">--</span>
                 </div>
-                <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-0.5">
-                  <span>Estimated Game Time -</span>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-1">
+                  <span>Per Game:</span>
                   <span id="estimatedGameTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
                 </div>
               </div>
-              <div id="singlesDurationNote" class="hidden text-xs font-medium text-emerald-900 leading-snug">
-                Singles can be difficult to estimate but if playing the first to 21 points they normally last between <span class="font-bold">1.5 to 2.5 hours</span>. Alternatively you may want to use a timer to limit the singles to 2 hours.
+              <div id="singlesDurationNote" class="hidden text-[11px] font-medium text-emerald-900 leading-snug">
+                Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (or use a 2 hr timer).
               </div>
             </div>
           </div>
@@ -499,7 +530,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 102 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 104 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -528,7 +559,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v102';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v104';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -600,7 +631,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 102,
+          version: 104,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1109,7 +1140,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 102,
+        version: 104,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2043,8 +2074,8 @@
 
       // Handle lock state for Section-specific controls when Knockout Bracket or Round Robin is selected
       const isSectionDisabled = (state.selectedTournamentFormat === 'knockout' || state.selectedTournamentFormat === 'roundRobin');
-      const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-3 text-sm outline-none cursor-not-allowed opacity-60';
-      const enabledControlClass = 'w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
+      const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
+      const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
 
       const sectionSizeEl = document.getElementById('sectionSizeSelect');
       if (sectionSizeEl) {
