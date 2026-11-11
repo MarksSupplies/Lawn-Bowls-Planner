@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v99
+              v100
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -186,8 +186,17 @@
           <div>
             <label for="lifeSystemSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Life System</label>
             <select id="lifeSystemSelect" onchange="onLifeSystemChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-              <option value="singleLife" selected>Single Life</option>
+              <option value="singleLife" selected>Single Life (Default)</option>
               <option value="doubleLife">Double Life</option>
+            </select>
+          </div>
+
+          <!-- Section to Bracket Transition -->
+          <div>
+            <label for="sectionBracketTransitionSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Section to Bracket Transition</label>
+            <select id="sectionBracketTransitionSelect" onchange="onSectionBracketTransitionChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="random" selected>Random Draw (Default)</option>
+              <option value="seeded">Seeded Draw</option>
             </select>
           </div>
 
@@ -195,7 +204,7 @@
           <div>
             <label for="matchPointsSelect" class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">Match Points System</label>
             <select id="matchPointsSelect" onchange="onMatchPointsChange()" class="w-full bg-slate-50/80 border border-slate-300 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
-              <option value="3_1" selected>Win Gets 3 and a Draw Gets 1</option>
+              <option value="3_1" selected>Win Gets 3 and a Draw Gets 1 (Default)</option>
               <option value="4_2">Win Gets 4 and a Draw gets 2</option>
               <option value="2_1">Win Gets 2 and a Draw gets 1</option>
             </select>
@@ -490,7 +499,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 99 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 100 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -519,7 +528,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v99';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v100';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -540,6 +549,7 @@
       selectedSectionSize: '4',
       selectedSectionQualifying: 'top2',
       selectedLifeSystem: 'singleLife',
+      selectedSectionBracketTransition: 'random',
       selectedFormat: 'threeBowlTriples',
       selectedMatchPoints: '3_1',
       isBestFitActive: false,
@@ -590,7 +600,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 99,
+          version: 100,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -642,6 +652,10 @@
           const lifeSysEl = document.getElementById('lifeSystemSelect');
           if (lifeSysEl) {
             lifeSysEl.value = state.selectedLifeSystem || 'singleLife';
+          }
+          const transEl = document.getElementById('sectionBracketTransitionSelect');
+          if (transEl) {
+            transEl.value = state.selectedSectionBracketTransition || 'random';
           }
           const matchPointsEl = document.getElementById('matchPointsSelect');
           if (matchPointsEl) {
@@ -1028,6 +1042,14 @@
       }
     }
 
+    function onSectionBracketTransitionChange() {
+      const transEl = document.getElementById('sectionBracketTransitionSelect');
+      if (transEl) {
+        state.selectedSectionBracketTransition = transEl.value;
+        saveAppStateToLocalStorage();
+      }
+    }
+
     function onMatchPointsChange() {
       const matchPointsEl = document.getElementById('matchPointsSelect');
       if (matchPointsEl) {
@@ -1086,7 +1108,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 99,
+        version: 100,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1152,6 +1174,8 @@
             if (sQualEl) sQualEl.value = state.selectedSectionQualifying || 'top2';
             const lifeSysEl = document.getElementById('lifeSystemSelect');
             if (lifeSysEl) lifeSysEl.value = state.selectedLifeSystem || 'singleLife';
+            const transEl = document.getElementById('sectionBracketTransitionSelect');
+            if (transEl) transEl.value = state.selectedSectionBracketTransition || 'random';
             const matchPointsEl = document.getElementById('matchPointsSelect');
             if (matchPointsEl) matchPointsEl.value = state.selectedMatchPoints || '3_1';
             const roundsEl = document.getElementById('roundsSelect');
