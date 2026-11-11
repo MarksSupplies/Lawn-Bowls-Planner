@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v108
+              v109
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -561,7 +561,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 108 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 109 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -590,7 +590,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v108';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v109';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -663,7 +663,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 108,
+          version: 109,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1197,7 +1197,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 108,
+        version: 109,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2315,6 +2315,20 @@
 
           const winnerLabel = match.winner && match.winner !== 'BYE' ? match.winner : null;
 
+          // Helper to format team name with Skip name from Master Roster if available
+          const formatTeamWithSkip = (teamStr) => {
+            if (!teamStr || !teamStr.startsWith('Team ')) return teamStr;
+            const teamIdx = parseTeamIndexFromLabel(teamStr);
+            const skipName = masterRoster[teamIdx] && masterRoster[teamIdx][0] ? masterRoster[teamIdx][0].trim() : '';
+            if (skipName) {
+              return `${teamStr} <span class="text-purple-700 font-extrabold">(${skipName.toUpperCase()})</span>`;
+            }
+            return teamStr;
+          };
+
+          const displayTeamA = formatTeamWithSkip(match.teamA);
+          const displayTeamB = formatTeamWithSkip(match.teamB);
+
           treeHTML += `
             <div class="bg-white border-2 ${isAutoAdv ? 'border-emerald-300/80' : 'border-slate-200'} rounded-xl shadow-2xs overflow-hidden">
               <div class="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-1 border-b border-slate-200 flex justify-between items-center">
@@ -2326,14 +2340,14 @@
               <div class="p-2 space-y-1.5">
                 <!-- Team A Slot -->
                 <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.teamA ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isABye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
-                  <span class="text-xs truncate max-w-[140px]">${match.teamA}</span>
+                  <span class="text-xs truncate max-w-[155px]" title="${match.teamA}">${displayTeamA}</span>
                   <span class="text-[10px] px-1.5 py-0.5 rounded ${winnerLabel === match.teamA ? 'bg-emerald-600 text-white font-extrabold' : isABye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-emerald-100 text-emerald-800 font-bold'}">
                     ${winnerLabel === match.teamA ? 'ADVANCES' : isABye ? 'BYE' : 'Slot'}
                   </span>
                 </div>
                 <!-- Team B Slot -->
                 <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.teamB ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isBBye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
-                  <span class="text-xs truncate max-w-[140px]">${match.teamB}</span>
+                  <span class="text-xs truncate max-w-[155px]" title="${match.teamB}">${displayTeamB}</span>
                   <span class="text-[10px] px-1.5 py-0.5 rounded ${winnerLabel === match.teamB ? 'bg-emerald-600 text-white font-extrabold' : isBBye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-emerald-100 text-emerald-800 font-bold'}">
                     ${winnerLabel === match.teamB ? 'ADVANCES' : isBBye ? 'BYE' : 'Slot'}
                   </span>
