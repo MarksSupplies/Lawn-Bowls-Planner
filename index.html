@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v104
+              v106
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -209,6 +209,18 @@
               <option value="3_1" selected>Win Gets 3 and a Draw Gets 1 (Default)</option>
               <option value="4_2">Win Gets 4 and a Draw gets 2</option>
               <option value="2_1">Win Gets 2 and a Draw gets 1</option>
+            </select>
+          </div>
+
+          <!-- 5b. Tie Break Priority -->
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-scales text-bowls-700 text-base"></i>
+              <label for="tieBreakPrioritySelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Tie Break Priority</label>
+            </div>
+            <select id="tieBreakPrioritySelect" onchange="onTieBreakPriorityChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+              <option value="winsPointsEnds" selected>Wins-Points-Ends</option>
+              <option value="winsEndsPoints">Wins-Ends-Points</option>
             </select>
           </div>
 
@@ -388,13 +400,16 @@
       <div class="flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-xl font-extrabold text-slate-900">Match Draw Schedule</h2>
         <div class="flex items-center space-x-2">
-          <!-- View Toggle Mode (Cards vs All Matches Matrix) -->
+          <!-- View Toggle Mode (Cards vs All Matches Matrix vs Knockout Bracket) -->
           <div class="inline-flex rounded-xl bg-slate-200/70 p-1 border border-slate-300">
             <button id="viewTabsBtn" onclick="setScheduleView('tabs')" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs">
               <i class="ph-bold ph-cards"></i> Round Cards
             </button>
             <button id="viewMatrixBtn" onclick="setScheduleView('matrix')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-table"></i> All Games Table
+            </button>
+            <button id="viewBracketBtn" onclick="setScheduleView('bracket')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="ph-bold ph-tree-structure"></i> Knockout Brackets
             </button>
           </div>
           <span id="activeModeBadge" class="text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200">
@@ -430,6 +445,22 @@
               <!-- Matrix rows rendered dynamically -->
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- Knockout Bracket View Container -->
+      <div id="knockoutBracketContainer" class="hidden bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="flex items-center space-x-2">
+            <i class="ph-bold ph-tree-structure text-bowls-700 text-xl"></i>
+            <h3 id="bracketTitleHeading" class="text-base font-extrabold text-slate-900">Knockout Tournament Bracket</h3>
+          </div>
+          <span id="bracketSystemBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+            Single Life Elimination
+          </span>
+        </div>
+        <div id="bracketTreeContent" class="overflow-x-auto pb-4">
+          <!-- Dynamic Bracket Trees Rendered Here -->
         </div>
       </div>
 
@@ -530,7 +561,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 104 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 106 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -559,7 +590,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v104';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v106';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -583,6 +614,7 @@
       selectedSectionBracketTransition: 'random',
       selectedFormat: 'threeBowlTriples',
       selectedMatchPoints: '3_1',
+      selectedTieBreakPriority: 'winsPointsEnds',
       isBestFitActive: false,
       selectedRounds: 3,
       selectedEnds: 8,
@@ -631,7 +663,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 104,
+          version: 105,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -691,6 +723,10 @@
           const matchPointsEl = document.getElementById('matchPointsSelect');
           if (matchPointsEl) {
             matchPointsEl.value = state.selectedMatchPoints || '3_1';
+          }
+          const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
+          if (tieBreakEl) {
+            tieBreakEl.value = state.selectedTieBreakPriority || 'winsPointsEnds';
           }
           const roundsEl = document.getElementById('roundsSelect');
           if (roundsEl) {
@@ -963,20 +999,33 @@
       state.viewMode = mode;
       const matrix = document.getElementById('fullScheduleMatrix');
       const cards = document.getElementById('matchCardsContainer');
+      const bracket = document.getElementById('knockoutBracketContainer');
+      
       const btnTabs = document.getElementById('viewTabsBtn');
       const btnMatrix = document.getElementById('viewMatrixBtn');
+      const btnBracket = document.getElementById('viewBracketBtn');
+
+      const inactiveBtnClass = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      const activeBtnClass = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs';
+
+      if (btnTabs) btnTabs.className = (mode === 'tabs') ? activeBtnClass : inactiveBtnClass;
+      if (btnMatrix) btnMatrix.className = (mode === 'matrix') ? activeBtnClass : inactiveBtnClass;
+      if (btnBracket) btnBracket.className = (mode === 'bracket') ? activeBtnClass : inactiveBtnClass;
 
       if (mode === 'matrix') {
         renderScheduleMatrix();
         if (matrix) matrix.classList.remove('hidden');
         if (cards) cards.classList.add('hidden');
-        if (btnTabs) btnTabs.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
-        if (btnMatrix) btnMatrix.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs';
+        if (bracket) bracket.classList.add('hidden');
+      } else if (mode === 'bracket') {
+        renderKnockoutBracketView();
+        if (matrix) matrix.classList.add('hidden');
+        if (cards) cards.classList.add('hidden');
+        if (bracket) bracket.classList.remove('hidden');
       } else {
         if (matrix) matrix.classList.add('hidden');
         if (cards) cards.classList.remove('hidden');
-        if (btnTabs) btnTabs.className = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs';
-        if (btnMatrix) btnMatrix.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+        if (bracket) bracket.classList.add('hidden');
       }
       saveAppStateToLocalStorage();
     }
@@ -1091,6 +1140,14 @@
       }
     }
 
+    function onTieBreakPriorityChange() {
+      const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
+      if (tieBreakEl) {
+        state.selectedTieBreakPriority = tieBreakEl.value;
+        saveAppStateToLocalStorage();
+      }
+    }
+
     function onRoundsChange() {
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
@@ -1140,7 +1197,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 104,
+        version: 106,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1210,6 +1267,8 @@
             if (transEl) transEl.value = state.selectedSectionBracketTransition || 'random';
             const matchPointsEl = document.getElementById('matchPointsSelect');
             if (matchPointsEl) matchPointsEl.value = state.selectedMatchPoints || '3_1';
+            const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
+            if (tieBreakEl) tieBreakEl.value = state.selectedTieBreakPriority || 'winsPointsEnds';
             const roundsEl = document.getElementById('roundsSelect');
             if (roundsEl) roundsEl.value = state.selectedRounds;
             const endsEl = document.getElementById('endsSelect');
@@ -2064,6 +2123,205 @@
       });
     }
 
+    // --- KNOCKOUT BRACKET RENDER ENGINE ---
+    function renderKnockoutBracketView() {
+      const container = document.getElementById('bracketTreeContent');
+      const badge = document.getElementById('bracketSystemBadge');
+      const heading = document.getElementById('bracketTitleHeading');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      // Extract unique active teams from current schedule
+      const activeTeamsMap = new Map();
+      (state.schedule || []).forEach(roundFixtures => {
+        roundFixtures.forEach(f => {
+          if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
+          if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
+        });
+      });
+
+      const teams = Array.from(activeTeamsMap.keys()).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+      const totalTeams = teams.length;
+
+      if (totalTeams === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 italic">No teams registered to generate knockout bracket.</div>`;
+        return;
+      }
+
+      const isDoubleLife = (state.selectedLifeSystem === 'doubleLife');
+
+      if (badge) {
+        badge.innerText = isDoubleLife ? 'Double Life (Double Elimination)' : 'Single Life Elimination';
+        badge.className = isDoubleLife 
+          ? 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300'
+          : 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+      }
+
+      if (heading) {
+        heading.innerText = `${totalTeams}-Team Knockout Bracket (${isDoubleLife ? 'Double Life' : 'Single Life'})`;
+      }
+
+      // Calculate nearest power of 2 for tree structure
+      let bracketSize = 2;
+      while (bracketSize < totalTeams) {
+        bracketSize *= 2;
+      }
+
+      const totalRounds = Math.ceil(Math.log2(bracketSize));
+
+      // Build Single Life (Main / Winners) Tree
+      const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', teams, bracketSize, totalRounds);
+
+      if (!isDoubleLife) {
+        container.innerHTML = winnersBracketHTML;
+      } else {
+        // Build Losers (Double Life Elimination) Tree
+        const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', totalTeams, totalRounds);
+        container.innerHTML = `
+          <div class="space-y-8">
+            <div class="bg-slate-50/60 border border-slate-200 rounded-xl p-4">
+              <h4 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4 flex items-center space-x-2">
+                <i class="ph-bold ph-trophy text-amber-500"></i>
+                <span>Winners Bracket (Life #1)</span>
+              </h4>
+              ${winnersBracketHTML}
+            </div>
+
+            <div class="bg-purple-50/40 border border-purple-200/80 rounded-xl p-4">
+              <h4 class="text-sm font-extrabold text-purple-900 uppercase tracking-wider mb-4 flex items-center space-x-2">
+                <i class="ph-bold ph-arrows-counter-clockwise text-purple-600"></i>
+                <span>Elimination Bracket (Life #2 - Losers of Winner Matches)</span>
+              </h4>
+              ${losersBracketHTML}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function generateSingleBracketTree(title, teams, bracketSize, totalRounds) {
+      const roundNames = [];
+      for (let r = 1; r <= totalRounds; r++) {
+        if (r === totalRounds) roundNames.push('Finals');
+        else if (r === totalRounds - 1) roundNames.push('Semi-Finals');
+        else if (r === totalRounds - 2) roundNames.push('Quarter-Finals');
+        else roundNames.push(`Round ${r}`);
+      }
+
+      // Populate initial round slots with seeds or BYEs
+      const roundMatches = [];
+      let currentMatchCount = bracketSize / 2;
+
+      for (let r = 0; r < totalRounds; r++) {
+        const matchesInRound = [];
+        for (let m = 0; m < currentMatchCount; m++) {
+          if (r === 0) {
+            const teamA = teams[m * 2] || 'BYE';
+            const teamB = teams[m * 2 + 1] || 'BYE';
+            matchesInRound.push({ id: `R1-M${m + 1}`, teamA, teamB, scoreA: '', scoreB: '' });
+          } else {
+            matchesInRound.push({ id: `R${r + 1}-M${m + 1}`, teamA: `Winner R${r}-M${m * 2 + 1}`, teamB: `Winner R${r}-M${m * 2 + 2}`, scoreA: '', scoreB: '' });
+          }
+        }
+        roundMatches.push(matchesInRound);
+        currentMatchCount /= 2;
+      }
+
+      let treeHTML = `<div class="flex items-start space-x-6 min-w-max">`;
+
+      roundMatches.forEach((round, rIdx) => {
+        treeHTML += `
+          <div class="flex flex-col space-y-4 w-60 flex-shrink-0">
+            <div class="text-center font-extrabold text-xs uppercase tracking-wider text-slate-700 bg-slate-200/80 py-1.5 px-3 rounded-lg border border-slate-300/80">
+              ${roundNames[rIdx]}
+            </div>
+            <div class="flex flex-col justify-around flex-1 space-y-6">
+        `;
+
+        round.forEach((match) => {
+          const isABye = match.teamA === 'BYE';
+          const isBBye = match.teamB === 'BYE';
+
+          treeHTML += `
+            <div class="bg-white border-2 border-slate-200 rounded-xl shadow-2xs overflow-hidden">
+              <div class="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-0.5 border-b border-slate-200 flex justify-between items-center">
+                <span>Match ${match.id}</span>
+                <span class="text-emerald-700 font-extrabold">Knockout</span>
+              </div>
+              <div class="p-2 space-y-1.5">
+                <div class="flex items-center justify-between p-1.5 rounded-lg ${isABye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
+                  <span class="text-xs truncate max-w-[140px]">${match.teamA}</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded ${isABye ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-800 font-bold'}">
+                    ${isABye ? 'BYE' : 'Slot'}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between p-1.5 rounded-lg ${isBBye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
+                  <span class="text-xs truncate max-w-[140px]">${match.teamB}</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded ${isBBye ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-800 font-bold'}">
+                    ${isBBye ? 'BYE' : 'Slot'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          `;
+        });
+
+        treeHTML += `
+            </div>
+          </div>
+        `;
+      });
+
+      treeHTML += `</div>`;
+      return treeHTML;
+    }
+
+    function generateDoubleLifeLosersTree(title, totalTeams, totalRounds) {
+      let treeHTML = `<div class="flex items-start space-x-6 min-w-max">`;
+
+      for (let r = 1; r <= totalRounds; r++) {
+        const matchesInRound = Math.max(1, Math.floor((totalTeams / 2) / Math.pow(2, r - 1)));
+
+        treeHTML += `
+          <div class="flex flex-col space-y-4 w-60 flex-shrink-0">
+            <div class="text-center font-extrabold text-xs uppercase tracking-wider text-purple-900 bg-purple-100/80 py-1.5 px-3 rounded-lg border border-purple-200">
+              ${r === totalRounds ? 'Life #2 Final' : `Elimination R${r}`}
+            </div>
+            <div class="flex flex-col justify-around flex-1 space-y-6">
+        `;
+
+        for (let m = 1; m <= matchesInRound; m++) {
+          treeHTML += `
+            <div class="bg-white border-2 border-purple-200 rounded-xl shadow-2xs overflow-hidden">
+              <div class="bg-purple-100/60 text-[10px] font-bold text-purple-800 px-2 py-0.5 border-b border-purple-200 flex justify-between items-center">
+                <span>Loss Match L${r}-M${m}</span>
+                <span class="text-purple-700 font-extrabold">2nd Life</span>
+              </div>
+              <div class="p-2 space-y-1.5">
+                <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/50 text-slate-800 font-semibold">
+                  <span class="text-xs truncate max-w-[140px]">Loser R${r}-M${m * 2 - 1}</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-900 font-bold">L1</span>
+                </div>
+                <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/50 text-slate-800 font-semibold">
+                  <span class="text-xs truncate max-w-[140px]">Loser R${r}-M${m * 2}</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-900 font-bold">L1</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        treeHTML += `
+            </div>
+          </div>
+        `;
+      }
+
+      treeHTML += `</div>`;
+      return treeHTML;
+    }
+
     function updateUI() {
       // Determine format target size to check even/odd natural team counts
       const formatSpec = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
@@ -2187,9 +2445,10 @@
         }
       }
 
-      // Always render both matrix table and match cards so views are completely populated
+      // Always render matrix table, match cards, and knockout bracket view so views are completely populated
       renderScheduleMatrix();
       renderMatchCards();
+      renderKnockoutBracketView();
     }
 
     function showSkipsMismatchModal() {
@@ -2202,19 +2461,14 @@
       if (modal) modal.classList.add('hidden');
     }
 
+    // --- INITIALIZATION ON WINDOW LOAD ---
     window.onload = function() {
       const loaded = loadAppStateFromLocalStorage();
-      
-      // Ensure tournament name defaults if not loaded or empty
-      if (!state.tournamentName || state.tournamentName.trim() === '') {
+      if (!loaded) {
         state.tournamentName = getDefaultTournamentName();
+        const titleInput = document.getElementById('tournamentNameInput');
+        if (titleInput) titleInput.value = state.tournamentName;
       }
-
-      const titleInput = document.getElementById('tournamentNameInput');
-      if (titleInput) {
-        titleInput.value = state.tournamentName;
-      }
-
       renderPriorityGreensTable();
       updateUI();
     };
