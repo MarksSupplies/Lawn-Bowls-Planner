@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v110
+              v112
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -561,7 +561,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 110 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 112 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -590,7 +590,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v110';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v112';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -663,7 +663,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 110,
+          version: 112,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -776,8 +776,6 @@
       priorityGreens.forEach((item, index) => {
         const tr = document.createElement('tr');
         tr.className = 'hover:bg-slate-50 transition-colors';
-
-        const rawNameUpper = item.name ? item.name.toUpperCase() : '';
 
         const isRowDisabled = !item.name || item.name.trim() === '';
         const disabledInputStyle = isRowDisabled 
@@ -1197,7 +1195,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 110,
+        version: 112,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1637,11 +1635,6 @@
       const activeMatchesPerRound = Math.floor(totalTeams / 2);
       let minGreensRequired = Math.ceil(activeMatchesPerRound / (state.rinksPerGreen || 8));
       if (minGreensRequired < 1) minGreensRequired = 1;
-
-      const usedGreens = Math.min(
-        state.greensAvailable || 1,
-        Math.max(minGreensRequired, totalRounds > 1 && (state.greensAvailable || 1) >= 2 ? 2 : 1)
-      );
 
       const teamsList = [...teamRosters];
       if (hasByeTeam) {
@@ -2132,7 +2125,6 @@
 
       container.innerHTML = '';
 
-      // Extract unique active teams from current schedule
       const activeTeamsMap = new Map();
       (state.schedule || []).forEach(roundFixtures => {
         roundFixtures.forEach(f => {
@@ -2162,21 +2154,17 @@
         heading.innerText = `${totalTeams}-Team Knockout Bracket (${isDoubleLife ? 'Double Life' : 'Single Life'})`;
       }
 
-      // Calculate nearest power of 2 for tree structure
       let bracketSize = 2;
       while (bracketSize < totalTeams) {
         bracketSize *= 2;
       }
 
       const totalRounds = Math.ceil(Math.log2(bracketSize));
-
-      // Build Single Life (Main / Winners) Tree
       const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', teams, bracketSize, totalRounds);
 
       if (!isDoubleLife) {
         container.innerHTML = winnersBracketHTML;
       } else {
-        // Build Losers (Double Life Elimination) Tree
         const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', totalTeams, totalRounds);
         container.innerHTML = `
           <div class="space-y-8">
@@ -2209,8 +2197,6 @@
         else roundNames.push(`Round ${r}`);
       }
 
-      // 1. Calculate Standard Bracket Seeding Order to ensure BYEs never face BYEs
-      // Standard seeding pairs high seeds with low seeds / BYEs (e.g., 1 vs 8, 4 vs 5, 2 vs 7, 3 vs 6)
       function getBracketSeedingOrder(size) {
         let rounds = Math.log2(size) - 1;
         let seeds = [1, 2];
@@ -2227,13 +2213,11 @@
 
       const seedOrder = getBracketSeedingOrder(bracketSize);
       
-      // Map seed positions to actual team names or BYE
       const seededSlots = seedOrder.map(seedNum => {
         const teamIdx = seedNum - 1;
         return teamIdx < teams.length ? teams[teamIdx] : 'BYE';
       });
 
-      // 2. Build Round-by-Round Matches and Track Winner Progressions
       const roundMatches = [];
       let currentMatchCount = bracketSize / 2;
 
@@ -2244,7 +2228,6 @@
             const teamA = seededSlots[m * 2];
             const teamB = seededSlots[m * 2 + 1];
 
-            // Determine if there is an automatic BYE advancement
             let winner = null;
             let autoAdvance = false;
             if (teamA !== 'BYE' && teamB === 'BYE') {
@@ -2269,7 +2252,6 @@
             const prevMatchA = roundMatches[r - 1][m * 2];
             const prevMatchB = roundMatches[r - 1][m * 2 + 1];
 
-            // Inherit winner automatically if previous match was an auto-advancement BYE
             const teamA = prevMatchA.winner ? prevMatchA.winner : `Winner ${prevMatchA.id}`;
             const teamB = prevMatchB.winner ? prevMatchB.winner : `Winner ${prevMatchB.id}`;
 
@@ -2296,7 +2278,6 @@
         currentMatchCount /= 2;
       }
 
-      // 3. Render Bracket Tree Structure
       let treeHTML = `<div class="flex items-start space-x-6 min-w-max">`;
 
       roundMatches.forEach((round, rIdx) => {
@@ -2315,7 +2296,6 @@
 
           const winnerLabel = match.winner && match.winner !== 'BYE' ? match.winner : null;
 
-          // Helper to format team name with Skip name from Master Roster if available
           const formatTeamWithSkip = (teamStr) => {
             if (!teamStr || !teamStr.startsWith('Team ')) return teamStr;
             const teamIdx = parseTeamIndexFromLabel(teamStr);
@@ -2413,14 +2393,12 @@
     }
 
     function updateUI() {
-      // Determine format target size to check even/odd natural team counts
       const formatSpec = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
       const targetSize = formatSpec.targetTeamSize;
       const naturalTeamCount = Math.ceil(state.totalBowlers / targetSize);
       const isNaturallyEven = (naturalTeamCount % 2 === 0);
       const isCleanlyDivisible = (state.totalBowlers % targetSize === 0);
 
-      // Handle lock state for Section-specific controls when Knockout Bracket or Round Robin is selected
       const isSectionDisabled = (state.selectedTournamentFormat === 'knockout' || state.selectedTournamentFormat === 'roundRobin');
       const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
       const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
@@ -2451,8 +2429,6 @@
       const reasonText = document.getElementById('reasonText');
       const byesLockedChip = document.getElementById('byesLockedChip');
 
-      // Check if Standard Byes should be greyed out & disabled
-      // Disabled if naturally even team count OR not cleanly divisible by team size
       const shouldDisableByes = isNaturallyEven || !isCleanlyDivisible;
 
       if (shouldDisableByes) {
@@ -2518,7 +2494,6 @@
         }
       }
 
-      // Check Skip count in Master Roster against Total Bowlers
       let skipCount = 0;
       for (let r = 0; r < 160; r++) {
         if (masterRoster[r][0] && masterRoster[r][0].trim() !== '') {
@@ -2535,7 +2510,6 @@
         }
       }
 
-      // Always render matrix table, match cards, and knockout bracket view so views are completely populated
       renderScheduleMatrix();
       renderMatchCards();
       renderKnockoutBracketView();
