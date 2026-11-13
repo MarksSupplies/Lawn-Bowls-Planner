@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v113
+              v115
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -230,7 +230,7 @@
               <i class="ph-bold ph-heart-beat text-bowls-700 text-base"></i>
               <label for="lifeSystemSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Life System</label>
             </div>
-            <select id="lifeSystemSelect" onchange="onLifeSystemChange()" class="w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition">
+            <select id="lifeSystemSelect" onchange="onLifeSystemChange()" disabled class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60">
               <option value="singleLife" selected>Single Life (Default)</option>
               <option value="doubleLife">Double Life</option>
             </select>
@@ -569,7 +569,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 113 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 115 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -598,7 +598,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v113';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v115';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -671,7 +671,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 113,
+          version: 115,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1126,6 +1126,7 @@
     }
 
     function onLifeSystemChange() {
+      if (state.selectedTournamentFormat === 'roundRobin' || state.selectedTournamentFormat === 'sectionKnockout') return;
       const lifeSysEl = document.getElementById('lifeSystemSelect');
       if (lifeSysEl) {
         state.selectedLifeSystem = lifeSysEl.value;
@@ -1135,10 +1136,12 @@
     }
 
     function onSectionBracketTransitionChange() {
-      const transEl = document.getElementById('sectionBracketTransitionSelect');
-      if (transEl) {
-        state.selectedSectionBracketTransition = transEl.value;
-        saveAppStateToLocalStorage();
+      if (state.selectedTournamentFormat === 'sectionKnockout') {
+        const transEl = document.getElementById('sectionBracketTransitionSelect');
+        if (transEl) {
+          state.selectedSectionBracketTransition = transEl.value;
+          saveAppStateToLocalStorage();
+        }
       }
     }
 
@@ -1160,7 +1163,7 @@
     }
 
     function onRoundsChange() {
-      if (state.selectedTournamentFormat === 'knockout') return;
+      if (state.selectedTournamentFormat === 'knockout' || state.selectedTournamentFormat === 'sectionKnockout') return;
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
         state.selectedRounds = parseInt(roundsEl.value, 10) || 3;
@@ -1236,7 +1239,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 113,
+        version: 115,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2446,16 +2449,24 @@
       const isNaturallyEven = (naturalTeamCount % 2 === 0);
       const isCleanlyDivisible = (state.totalBowlers % targetSize === 0);
 
-      // Handle lock state for Section-specific controls and Games/Rounds when Knockout Bracket is selected
+      // Handle lock state for format-specific controls across Tournament Format selections
+      const isRoundRobin = (state.selectedTournamentFormat === 'roundRobin');
       const isKnockout = (state.selectedTournamentFormat === 'knockout');
-      const isSectionDisabled = (isKnockout || state.selectedTournamentFormat === 'roundRobin');
+      const isSectionKnockout = (state.selectedTournamentFormat === 'sectionKnockout');
+      const isSectionDisabled = (isKnockout || isRoundRobin);
       const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
       const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
 
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
-        roundsEl.disabled = isKnockout;
-        roundsEl.className = isKnockout ? disabledControlClass : enabledControlClass;
+        roundsEl.disabled = (isKnockout || isSectionKnockout);
+        roundsEl.className = (isKnockout || isSectionKnockout) ? disabledControlClass : enabledControlClass;
+      }
+
+      const lifeSysEl = document.getElementById('lifeSystemSelect');
+      if (lifeSysEl) {
+        lifeSysEl.disabled = (isRoundRobin || isSectionKnockout);
+        lifeSysEl.className = (isRoundRobin || isSectionKnockout) ? disabledControlClass : enabledControlClass;
       }
 
       const sectionSizeEl = document.getElementById('sectionSizeSelect');
