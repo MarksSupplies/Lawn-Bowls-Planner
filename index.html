@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v117
+              v118
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -411,11 +411,20 @@
             <button id="viewBracketBtn" onclick="setScheduleView('bracket')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-tree-structure"></i> Knockout Brackets
             </button>
+            <button id="viewBracketScorecardBtn" onclick="setScheduleView('bracketScorecard')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="ph-bold ph-clipboard-text"></i> Knockout Brackets Scorecard
+            </button>
             <button id="viewDoubleLifeBracketBtn" onclick="setScheduleView('doubleLifeBracket')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-arrows-counter-clockwise"></i> Knockout Brackets Double Life
             </button>
+            <button id="viewDoubleLifeScorecardBtn" onclick="setScheduleView('doubleLifeScorecard')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="ph-bold ph-clipboard-text"></i> Knockout Brackets Double Life Scorecard
+            </button>
             <button id="viewSectionPlayBtn" onclick="setScheduleView('sectionPlay')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-squares-four"></i> Section Play
+            </button>
+            <button id="viewSectionPlayScorecardBtn" onclick="setScheduleView('sectionPlayScorecard')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="ph-bold ph-clipboard-text"></i> Section Play Scorecard
             </button>
             <button id="viewPostSectionBracketBtn" onclick="setScheduleView('postSectionBracket')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-trophy"></i> Post Section Play Knockout Brackets
@@ -486,6 +495,22 @@
         </div>
         <div id="sectionPlayContent" class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <!-- Dynamic Section Groups Rendered Here -->
+        </div>
+      </div>
+
+      <!-- Mode Scorecards Container (Knockout, Double Life Knockout, Section Play Scorecards) -->
+      <div id="modeScorecardsContainer" class="hidden bg-white border border-slate-200/80 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="flex items-center space-x-2">
+            <i class="ph-bold ph-clipboard-text text-bowls-700 text-xl"></i>
+            <h3 id="modeScorecardsHeading" class="text-base font-extrabold text-slate-900">Tournament Scorecards</h3>
+          </div>
+          <span id="modeScorecardsBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+            Scorecard Entry Active
+          </span>
+        </div>
+        <div id="modeScorecardsContent" class="space-y-4">
+          <!-- Dynamic Mode Scorecards Rendered Here -->
         </div>
       </div>
 
@@ -594,7 +619,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 117 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 118 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -623,7 +648,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v117';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v118';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -676,6 +701,8 @@
 
     // Store scorecard results
     let matchResultStore = {};
+    // Store knockout, double life, and section play scorecard entries
+    let modeScorecardStore = {};
 
     function getDefaultTournamentName() {
       const today = new Date();
@@ -696,7 +723,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 117,
+          version: 118,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -724,6 +751,7 @@
           masterRoster = parsed.masterRoster;
           minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
           matchResultStore = parsed.matchResultStore || {};
+          modeScorecardStore = parsed.modeScorecardStore || {};
           
           const titleInput = document.getElementById('tournamentNameInput');
           if (titleInput) {
@@ -784,7 +812,7 @@
     function updateTournamentName(val) {
       const cleanVal = val.slice(0, 15).replace(/[/\\?%*:|"<>]/g, '');
       state.tournamentName = cleanVal;
-      
+
       const titleInput = document.getElementById('tournamentNameInput');
       if (titleInput && titleInput.value !== cleanVal) {
         titleInput.value = cleanVal;
@@ -1039,12 +1067,16 @@
       const cards = document.getElementById('matchCardsContainer');
       const bracket = document.getElementById('knockoutBracketContainer');
       const sectionPlay = document.getElementById('sectionPlayContainer');
+      const modeScorecards = document.getElementById('modeScorecardsContainer');
       
       const btnTabs = document.getElementById('viewTabsBtn');
       const btnMatrix = document.getElementById('viewMatrixBtn');
       const btnBracket = document.getElementById('viewBracketBtn');
+      const btnBracketScorecard = document.getElementById('viewBracketScorecardBtn');
       const btnDoubleLifeBracket = document.getElementById('viewDoubleLifeBracketBtn');
+      const btnDoubleLifeScorecard = document.getElementById('viewDoubleLifeScorecardBtn');
       const btnSectionPlay = document.getElementById('viewSectionPlayBtn');
+      const btnSectionPlayScorecard = document.getElementById('viewSectionPlayScorecardBtn');
       const btnPostSectionBracket = document.getElementById('viewPostSectionBracketBtn');
 
       const isRoundRobin = (state.selectedTournamentFormat === 'roundRobin');
@@ -1058,14 +1090,18 @@
       }
       if (btnMatrix) btnMatrix.className = (mode === 'matrix') ? activeBtnClass : inactiveBtnClass;
       if (btnBracket) btnBracket.className = (mode === 'bracket') ? activeBtnClass : inactiveBtnClass;
+      if (btnBracketScorecard) btnBracketScorecard.className = (mode === 'bracketScorecard') ? activeBtnClass : inactiveBtnClass;
       if (btnDoubleLifeBracket) btnDoubleLifeBracket.className = (mode === 'doubleLifeBracket') ? activeBtnClass : inactiveBtnClass;
+      if (btnDoubleLifeScorecard) btnDoubleLifeScorecard.className = (mode === 'doubleLifeScorecard') ? activeBtnClass : inactiveBtnClass;
       if (btnSectionPlay) btnSectionPlay.className = (mode === 'sectionPlay') ? activeBtnClass : inactiveBtnClass;
+      if (btnSectionPlayScorecard) btnSectionPlayScorecard.className = (mode === 'sectionPlayScorecard') ? activeBtnClass : inactiveBtnClass;
       if (btnPostSectionBracket) btnPostSectionBracket.className = (mode === 'postSectionBracket') ? activeBtnClass : inactiveBtnClass;
 
       if (matrix) matrix.classList.add('hidden');
       if (cards) cards.classList.add('hidden');
       if (bracket) bracket.classList.add('hidden');
       if (sectionPlay) sectionPlay.classList.add('hidden');
+      if (modeScorecards) modeScorecards.classList.add('hidden');
 
       if (mode === 'matrix') {
         renderScheduleMatrix();
@@ -1073,6 +1109,9 @@
       } else if (mode === 'bracket' || mode === 'doubleLifeBracket' || mode === 'postSectionBracket') {
         renderKnockoutBracketView(mode);
         if (bracket) bracket.classList.remove('hidden');
+      } else if (mode === 'bracketScorecard' || mode === 'doubleLifeScorecard' || mode === 'sectionPlayScorecard') {
+        renderModeScorecardsView(mode);
+        if (modeScorecards) modeScorecards.classList.remove('hidden');
       } else if (mode === 'sectionPlay') {
         renderSectionPlayView();
         if (sectionPlay) sectionPlay.classList.remove('hidden');
@@ -1236,6 +1275,7 @@
       masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
       minVisibleRosterRows = 10;
       matchResultStore = {};
+      modeScorecardStore = {};
       
       const titleInput = document.getElementById('tournamentNameInput');
       if (titleInput) titleInput.value = state.tournamentName;
@@ -1284,13 +1324,14 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 117,
+        version: 118,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
         masterRoster: masterRoster,
         minVisibleRosterRows: minVisibleRosterRows,
-        matchResultStore: matchResultStore
+        matchResultStore: matchResultStore,
+        modeScorecardStore: modeScorecardStore
       };
 
       const jsonStr = JSON.stringify(payload, null, 2);
@@ -1337,6 +1378,7 @@
             masterRoster = parsed.masterRoster;
             minVisibleRosterRows = parsed.minVisibleRosterRows || 10;
             matchResultStore = parsed.matchResultStore || {};
+            modeScorecardStore = parsed.modeScorecardStore || {};
 
             const titleInput = document.getElementById('tournamentNameInput');
             if (titleInput) titleInput.value = state.tournamentName || '';
@@ -2356,6 +2398,224 @@
       }
     }
 
+    // --- MODE SCORECARDS ENGINE (Knockout, Double Life, Section Play Scorecards) ---
+    function setModeScorecardValue(storeKey, field, val) {
+      if (!modeScorecardStore[storeKey]) {
+        modeScorecardStore[storeKey] = { winner: '', endsA: '', ptsA: '', endsB: '', ptsB: '' };
+      }
+      if (field === 'winner') {
+        modeScorecardStore[storeKey].winner = (modeScorecardStore[storeKey].winner === val) ? '' : val;
+      } else {
+        modeScorecardStore[storeKey][field] = val.replace(/[^0-9]/g, '');
+      }
+      saveAppStateToLocalStorage();
+      renderModeScorecardsView(state.viewMode);
+    }
+
+    function renderModeScorecardsView(mode) {
+      const container = document.getElementById('modeScorecardsContent');
+      const heading = document.getElementById('modeScorecardsHeading');
+      const badge = document.getElementById('modeScorecardsBadge');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      const activeTeamsMap = new Map();
+      (state.schedule || []).forEach(roundFixtures => {
+        roundFixtures.forEach(f => {
+          if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
+          if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
+        });
+      });
+
+      const teams = Array.from(activeTeamsMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+
+      if (teams.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 italic">No teams registered to generate scorecards.</div>`;
+        return;
+      }
+
+      if (mode === 'sectionPlayScorecard') {
+        const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
+        const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
+        if (heading) heading.innerText = 'Section Play Scorecards';
+        if (badge) {
+          badge.innerText = `Section Play • ${numSections} Section${numSections > 1 ? 's' : ''}`;
+          badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300';
+        }
+
+        const gridDiv = document.createElement('div');
+        gridDiv.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+
+        for (let s = 0; s < numSections; s++) {
+          const sectionLetter = String.fromCharCode(65 + s);
+          const sectionTeams = teams.slice(s * sectionSize, (s + 1) * sectionSize);
+          let matchRows = '';
+          let matchCounter = 1;
+
+          for (let i = 0; i < sectionTeams.length; i++) {
+            for (let j = i + 1; j < sectionTeams.length; j++) {
+              const tA = sectionTeams[i].label;
+              const tB = sectionTeams[j].label;
+              const key = `sec_${sectionLetter}_M${matchCounter}`;
+              const data = modeScorecardStore[key] || { winner: '', endsA: '', ptsA: '', endsB: '', ptsB: '' };
+
+              matchRows += buildKnockoutMatchScorecardRow(`Game ${matchCounter}`, key, tA, tB, data);
+              matchCounter++;
+            }
+          }
+
+          if (!matchRows) {
+            matchRows = `<tr><td colspan="5" class="p-3 text-center text-slate-400 italic">Not enough teams in section for fixtures.</td></tr>`;
+          }
+
+          const card = document.createElement('div');
+          card.className = 'border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs';
+          card.innerHTML = `
+            <div class="bg-slate-900 text-white px-3.5 py-2 flex items-center justify-between">
+              <span class="font-extrabold text-xs uppercase tracking-wider">Section ${sectionLetter} Scorecard</span>
+              <span class="text-[11px] text-emerald-300 font-bold">${sectionTeams.length} Teams</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs border-collapse text-left">
+                <thead>
+                  <tr class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 text-[10px] uppercase">
+                    <th class="p-2">Game</th>
+                    <th class="p-2">Team A vs Team B</th>
+                    <th class="p-2 text-center">Ends (A / B)</th>
+                    <th class="p-2 text-center">Pts (A / B)</th>
+                    <th class="p-2 text-center">Winner</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                  ${matchRows}
+                </tbody>
+              </table>
+            </div>
+          `;
+          gridDiv.appendChild(card);
+        }
+        container.appendChild(gridDiv);
+        return;
+      }
+
+      // Knockout Brackets Scorecard or Double Life Knockout Scorecard
+      const isDoubleLife = (mode === 'doubleLifeScorecard');
+      if (heading) {
+        heading.innerText = isDoubleLife ? 'Knockout Brackets Double Life Scorecard' : 'Knockout Brackets Scorecard';
+      }
+      if (badge) {
+        badge.innerText = isDoubleLife ? 'Double Life Elimination Scorecard' : 'Single Life Elimination Scorecard';
+        badge.className = isDoubleLife
+          ? 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300'
+          : 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+      }
+
+      let bracketSize = 2;
+      while (bracketSize < teams.length) bracketSize *= 2;
+      const totalRounds = Math.ceil(Math.log2(bracketSize));
+
+      const sectionsToRender = [
+        { prefix: 'ko_win', title: isDoubleLife ? 'Winners Bracket (Life #1) Scorecard' : 'Main Knockout Bracket Scorecard', headerBg: 'bg-slate-900' }
+      ];
+      if (isDoubleLife) {
+        sectionsToRender.push({ prefix: 'ko_elim', title: 'Elimination Bracket (Life #2) Scorecard', headerBg: 'bg-purple-950' });
+      }
+
+      sectionsToRender.forEach(sec => {
+        let rowsHTML = '';
+        for (let r = 1; r <= totalRounds; r++) {
+          const roundLabel = r === totalRounds ? 'Grand Final' : (r === totalRounds - 1 ? 'Semi-Final' : (r === totalRounds - 2 ? 'Quarter-Final' : `Round ${r}`));
+          const matchesInRound = Math.max(1, (bracketSize / 2) / Math.pow(2, r - 1));
+
+          for (let m = 1; m <= matchesInRound; m++) {
+            const key = `${sec.prefix}_R${r}_M${m}`;
+            const data = modeScorecardStore[key] || { winner: '', endsA: '', ptsA: '', endsB: '', ptsB: '' };
+            const tA = r === 1 && sec.prefix === 'ko_win' ? (teams[(m - 1) * 2]?.label || 'BYE') : `Slot R${r}-M${m} A`;
+            const tB = r === 1 && sec.prefix === 'ko_win' ? (teams[(m - 1) * 2 + 1]?.label || 'BYE') : `Slot R${r}-M${m} B`;
+
+            rowsHTML += buildKnockoutMatchScorecardRow(`${roundLabel} #${m}`, key, tA, tB, data);
+          }
+        }
+
+        const card = document.createElement('div');
+        card.className = 'border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs';
+        card.innerHTML = `
+          <div class="${sec.headerBg} text-white px-3.5 py-2.5 flex items-center justify-between">
+            <span class="font-extrabold text-xs uppercase tracking-wider">${sec.title}</span>
+            <span class="text-[11px] text-emerald-300 font-bold">${totalRounds} Round${totalRounds > 1 ? 's' : ''}</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs border-collapse text-left">
+              <thead>
+                <tr class="bg-slate-100 text-slate-600 font-bold border-b border-slate-200 text-[10px] uppercase">
+                  <th class="p-2.5">Match</th>
+                  <th class="p-2.5">Team A vs Team B</th>
+                  <th class="p-2.5 text-center">Ends Won (A / B)</th>
+                  <th class="p-2.5 text-center">Points (A / B)</th>
+                  <th class="p-2.5 text-center">Advancing Winner</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${rowsHTML}
+              </tbody>
+            </table>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function buildKnockoutMatchScorecardRow(matchLabel, storeKey, teamA, teamB, data) {
+      const winA = data.winner === 'A';
+      const winB = data.winner === 'B';
+
+      return `
+        <tr class="hover:bg-slate-50 transition-colors">
+          <td class="p-2 font-extrabold text-slate-700 whitespace-nowrap">${matchLabel}</td>
+          <td class="p-2 font-bold text-slate-900">
+            <span class="${winA ? 'text-emerald-700 underline' : ''}">${teamA}</span>
+            <span class="text-slate-400 font-normal mx-1">vs</span>
+            <span class="${winB ? 'text-emerald-700 underline' : ''}">${teamB}</span>
+          </td>
+          <td class="p-2 text-center whitespace-nowrap">
+            <div class="inline-flex items-center space-x-1">
+              <input type="text" inputmode="numeric" value="${data.endsA || ''}" placeholder="0"
+                oninput="setModeScorecardValue('${storeKey}', 'endsA', this.value)"
+                class="w-9 text-center bg-slate-50 border border-slate-300 rounded py-0.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-bowls-700 outline-none" />
+              <span class="text-slate-400">/</span>
+              <input type="text" inputmode="numeric" value="${data.endsB || ''}" placeholder="0"
+                oninput="setModeScorecardValue('${storeKey}', 'endsB', this.value)"
+                class="w-9 text-center bg-slate-50 border border-slate-300 rounded py-0.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-bowls-700 outline-none" />
+            </div>
+          </td>
+          <td class="p-2 text-center whitespace-nowrap">
+            <div class="inline-flex items-center space-x-1">
+              <input type="text" inputmode="numeric" value="${data.ptsA || ''}" placeholder="0"
+                oninput="setModeScorecardValue('${storeKey}', 'ptsA', this.value)"
+                class="w-10 text-center bg-slate-50 border border-slate-300 rounded py-0.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-bowls-700 outline-none" />
+              <span class="text-slate-400">/</span>
+              <input type="text" inputmode="numeric" value="${data.ptsB || ''}" placeholder="0"
+                oninput="setModeScorecardValue('${storeKey}', 'ptsB', this.value)"
+                class="w-10 text-center bg-slate-50 border border-slate-300 rounded py-0.5 text-xs font-bold text-slate-800 focus:bg-white focus:border-bowls-700 outline-none" />
+            </div>
+          </td>
+          <td class="p-2 text-center whitespace-nowrap">
+            <div class="inline-flex items-center space-x-1">
+              <button type="button" onclick="setModeScorecardValue('${storeKey}', 'winner', 'A')"
+                class="px-2 py-0.5 rounded text-[11px] font-bold transition ${winA ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100'}">
+                ${teamA}
+              </button>
+              <button type="button" onclick="setModeScorecardValue('${storeKey}', 'winner', 'B')"
+                class="px-2 py-0.5 rounded text-[11px] font-bold transition ${winB ? 'bg-emerald-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100'}">
+                ${teamB}
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
     // --- KNOCKOUT BRACKET RENDER ENGINE ---
     function renderKnockoutBracketView(viewOverride = null) {
       const container = document.getElementById('bracketTreeContent');
@@ -2829,6 +3089,9 @@
       renderMatchCards();
       renderSectionPlayView();
       renderKnockoutBracketView(state.viewMode);
+      if (state.viewMode === 'bracketScorecard' || state.viewMode === 'doubleLifeScorecard' || state.viewMode === 'sectionPlayScorecard') {
+        renderModeScorecardsView(state.viewMode);
+      }
     }
 
     function showSkipsMismatchModal() {
