@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v115
+              v116
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -403,7 +403,7 @@
           <!-- View Toggle Mode (Cards vs All Matches Matrix vs Knockout Bracket) -->
           <div class="inline-flex rounded-xl bg-slate-200/70 p-1 border border-slate-300">
             <button id="viewTabsBtn" onclick="setScheduleView('tabs')" class="px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs">
-              <i class="ph-bold ph-cards"></i> Score Cards
+              <i class="ph-bold ph-cards"></i> Round Robin Score Cards
             </button>
             <button id="viewMatrixBtn" onclick="setScheduleView('matrix')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-table"></i> All Games Table
@@ -569,7 +569,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 115 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 116 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -598,7 +598,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v115';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v116';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -671,7 +671,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 115,
+          version: 116,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1239,7 +1239,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 115,
+        version: 116,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
