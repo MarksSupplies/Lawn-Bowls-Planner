@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v112
+              v113
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -498,6 +498,14 @@
         </div>
       </div>
 
+      <!-- Inline Status Banner for File Import Feedback -->
+      <div id="importStatusBanner" class="hidden p-2.5 rounded-xl text-xs font-bold flex items-center justify-between">
+        <span id="importStatusText"></span>
+        <button type="button" onclick="document.getElementById('importStatusBanner').classList.add('hidden')" class="ml-2 text-current opacity-70 hover:opacity-100">
+          <i class="ph-bold ph-x"></i>
+        </button>
+      </div>
+
       <div class="w-full rounded-xl border border-slate-200">
         <table class="w-full text-left text-[11px] sm:text-xs border-collapse table-fixed">
           <thead>
@@ -561,7 +569,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 112 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 113 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -590,7 +598,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v112';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v113';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -663,7 +671,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 112,
+          version: 113,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -695,6 +703,10 @@
           const titleInput = document.getElementById('tournamentNameInput');
           if (titleInput) {
             titleInput.value = state.tournamentName;
+          }
+          const bowlersVal = document.getElementById('bowlersValue');
+          if (bowlersVal) {
+            bowlersVal.innerText = state.totalBowlers;
           }
           const selectEl = document.getElementById('formatSelect');
           if (selectEl) {
@@ -1118,6 +1130,7 @@
       if (lifeSysEl) {
         state.selectedLifeSystem = lifeSysEl.value;
         saveAppStateToLocalStorage();
+        renderKnockoutBracketView();
       }
     }
 
@@ -1147,6 +1160,7 @@
     }
 
     function onRoundsChange() {
+      if (state.selectedTournamentFormat === 'knockout') return;
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
         state.selectedRounds = parseInt(roundsEl.value, 10) || 3;
@@ -1179,6 +1193,20 @@
       if (titleInput) titleInput.value = state.tournamentName;
       const bowlersVal = document.getElementById('bowlersValue');
       if (bowlersVal) bowlersVal.innerText = state.totalBowlers;
+      const selectEl = document.getElementById('formatSelect');
+      if (selectEl) selectEl.value = state.selectedFormat;
+      const tFormatEl = document.getElementById('tournamentFormatSelect');
+      if (tFormatEl) tFormatEl.value = state.selectedTournamentFormat;
+      const roundsEl = document.getElementById('roundsSelect');
+      if (roundsEl) roundsEl.value = state.selectedRounds;
+      const endsEl = document.getElementById('endsSelect');
+      if (endsEl) endsEl.value = state.selectedEnds;
+      const matchPointsEl = document.getElementById('matchPointsSelect');
+      if (matchPointsEl) matchPointsEl.value = state.selectedMatchPoints;
+      const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
+      if (tieBreakEl) tieBreakEl.value = state.selectedTieBreakPriority;
+      const lifeSysEl = document.getElementById('lifeSystemSelect');
+      if (lifeSysEl) lifeSysEl.value = state.selectedLifeSystem;
 
       renderPriorityGreensTable();
       updateUI();
@@ -1189,13 +1217,26 @@
       masterRoster = Array.from({ length: 160 }, () => ['', '', '', '']);
       renderMasterRosterTable();
       saveAppStateToLocalStorage();
+      updateUI();
+    }
+
+    function showImportStatus(message, isError = false) {
+      const banner = document.getElementById('importStatusBanner');
+      const textEl = document.getElementById('importStatusText');
+      if (!banner || !textEl) return;
+
+      textEl.innerText = message;
+      banner.className = isError
+        ? 'p-2.5 rounded-xl text-xs font-bold flex items-center justify-between bg-rose-50 text-rose-800 border border-rose-200'
+        : 'p-2.5 rounded-xl text-xs font-bold flex items-center justify-between bg-emerald-50 text-emerald-800 border border-emerald-200';
+      banner.classList.remove('hidden');
     }
 
     // Export full state to a JSON file download
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 112,
+        version: 113,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1251,6 +1292,8 @@
 
             const titleInput = document.getElementById('tournamentNameInput');
             if (titleInput) titleInput.value = state.tournamentName || '';
+            const bowlersVal = document.getElementById('bowlersValue');
+            if (bowlersVal) bowlersVal.innerText = state.totalBowlers;
             const selectEl = document.getElementById('formatSelect');
             if (selectEl) selectEl.value = state.isBestFitActive ? 'bestFit' : state.selectedFormat;
             const tFormatEl = document.getElementById('tournamentFormatSelect');
@@ -1273,12 +1316,14 @@
             if (endsEl) endsEl.value = state.selectedEnds || 8;
 
             saveAppStateToLocalStorage();
+            renderPriorityGreensTable();
             updateUI();
+            showImportStatus('Tournament file imported successfully.', false);
           } else {
-            alert('Invalid tournament preset file format.');
+            showImportStatus('Invalid tournament preset file format.', true);
           }
         } catch (err) {
-          alert('Could not parse the selected file. Please ensure it is a valid JSON tournament backup file.');
+          showImportStatus('Could not parse the selected file. Please ensure it is a valid JSON tournament backup file.', true);
         }
       };
       reader.readAsText(file);
@@ -1631,10 +1676,6 @@
 
       const hasByeTeam = (mode === 'byes' && totalTeams % 2 !== 0);
       const effectiveTeams = hasByeTeam ? totalTeams + 1 : totalTeams;
-
-      const activeMatchesPerRound = Math.floor(totalTeams / 2);
-      let minGreensRequired = Math.ceil(activeMatchesPerRound / (state.rinksPerGreen || 8));
-      if (minGreensRequired < 1) minGreensRequired = 1;
 
       const teamsList = [...teamRosters];
       if (hasByeTeam) {
@@ -2125,6 +2166,7 @@
 
       container.innerHTML = '';
 
+      // Extract unique active teams from current schedule
       const activeTeamsMap = new Map();
       (state.schedule || []).forEach(roundFixtures => {
         roundFixtures.forEach(f => {
@@ -2154,17 +2196,21 @@
         heading.innerText = `${totalTeams}-Team Knockout Bracket (${isDoubleLife ? 'Double Life' : 'Single Life'})`;
       }
 
+      // Calculate nearest power of 2 for tree structure
       let bracketSize = 2;
       while (bracketSize < totalTeams) {
         bracketSize *= 2;
       }
 
       const totalRounds = Math.ceil(Math.log2(bracketSize));
+
+      // Build Single Life (Main / Winners) Tree
       const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', teams, bracketSize, totalRounds);
 
       if (!isDoubleLife) {
         container.innerHTML = winnersBracketHTML;
       } else {
+        // Build Losers (Double Life Elimination) Tree
         const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', totalTeams, totalRounds);
         container.innerHTML = `
           <div class="space-y-8">
@@ -2393,15 +2439,24 @@
     }
 
     function updateUI() {
+      // Determine format target size to check even/odd natural team counts
       const formatSpec = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
       const targetSize = formatSpec.targetTeamSize;
       const naturalTeamCount = Math.ceil(state.totalBowlers / targetSize);
       const isNaturallyEven = (naturalTeamCount % 2 === 0);
       const isCleanlyDivisible = (state.totalBowlers % targetSize === 0);
 
-      const isSectionDisabled = (state.selectedTournamentFormat === 'knockout' || state.selectedTournamentFormat === 'roundRobin');
+      // Handle lock state for Section-specific controls and Games/Rounds when Knockout Bracket is selected
+      const isKnockout = (state.selectedTournamentFormat === 'knockout');
+      const isSectionDisabled = (isKnockout || state.selectedTournamentFormat === 'roundRobin');
       const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
       const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
+
+      const roundsEl = document.getElementById('roundsSelect');
+      if (roundsEl) {
+        roundsEl.disabled = isKnockout;
+        roundsEl.className = isKnockout ? disabledControlClass : enabledControlClass;
+      }
 
       const sectionSizeEl = document.getElementById('sectionSizeSelect');
       if (sectionSizeEl) {
@@ -2429,6 +2484,7 @@
       const reasonText = document.getElementById('reasonText');
       const byesLockedChip = document.getElementById('byesLockedChip');
 
+      // Check if Standard Byes should be greyed out & disabled
       const shouldDisableByes = isNaturallyEven || !isCleanlyDivisible;
 
       if (shouldDisableByes) {
@@ -2494,6 +2550,7 @@
         }
       }
 
+      // Check Skip count in Master Roster against Total Bowlers
       let skipCount = 0;
       for (let r = 0; r < 160; r++) {
         if (masterRoster[r][0] && masterRoster[r][0].trim() !== '') {
@@ -2510,6 +2567,7 @@
         }
       }
 
+      // Always render matrix table, match cards, and knockout bracket view so views are completely populated
       renderScheduleMatrix();
       renderMatchCards();
       renderKnockoutBracketView();
