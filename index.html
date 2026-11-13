@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v118
+              v119
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -619,7 +619,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 118 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 119 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -648,7 +648,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v118';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v119';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -723,7 +723,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 118,
+          version: 119,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1324,7 +1324,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 118,
+        version: 119,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2226,8 +2226,8 @@
             <span class="text-xs font-semibold text-slate-500">${team.playerCount} Bowler${team.playerCount === 1 ? '' : 's'}</span>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 sm:gap-3 items-stretch">
-            <div class="md:col-span-5 bg-blue-50/40 rounded-xl p-2 sm:p-2.5 border border-blue-200/60 flex flex-col min-w-0">
+          <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-2.5 items-stretch">
+            <div class="md:col-span-5 bg-blue-50/40 rounded-xl p-2 border border-blue-200/60 flex flex-col min-w-0">
               <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
                 <div class="flex items-center flex-wrap gap-1">
                   <span class="text-sm font-extrabold text-slate-900">${team.label}</span>
@@ -2242,7 +2242,7 @@
               </div>
             </div>
 
-            <div class="md:col-span-7 bg-slate-50/70 rounded-xl p-2 sm:p-2.5 border border-slate-200/80 flex flex-col min-w-0">
+            <div class="md:col-span-7 bg-slate-50/70 rounded-xl p-2 border border-slate-200/80 flex flex-col min-w-0">
               <div class="flex items-center justify-between mb-1">
                 <span class="text-sm font-extrabold text-slate-900">Scorecard</span>
                 <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
