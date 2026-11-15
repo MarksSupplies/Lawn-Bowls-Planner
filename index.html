@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v120
+              v122
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -619,7 +619,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 120 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 122 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -648,7 +648,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v120';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v122';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -723,7 +723,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 120,
+          version: 122,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1325,7 +1325,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 120,
+        version: 122,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2618,6 +2618,104 @@
     }
 
     // --- KNOCKOUT BRACKET RENDER ENGINE ---
+    function calculateKnockoutTeamDistribution() {
+      const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
+      const targetSize = format.targetTeamSize;
+      const bowlsPerPlayer = format.bowlsPerPlayer;
+      const totalTeamBowls = targetSize * bowlsPerPlayer; // Singles: 4, Pairs: 4, 2B Triples: 6, 3B Triples: 9, Fours: 8
+      const totalBowlers = state.totalBowlers;
+      const mode = state.balancingMode; // 'byes' or 'optimizeTeamNumbers'
+
+      // Helper to distribute remainder bowlers across Q teams obeying Rule 1C (equal team bowls, max 4 bowls/player)
+      function buildTeamsWithRule1C(teamCount) {
+        const q = Math.max(2, teamCount);
+        const basePlayers = Math.floor(totalBowlers / q);
+        const remainder = totalBowlers % q;
+
+        // Check Rule 1C max 4 bowls/player cap: ceil(totalTeamBowls / playerCount) <= 4
+        if (basePlayers <= 0 || Math.ceil(totalTeamBowls / basePlayers) > 4) {
+          return null;
+        }
+
+        const teams = [];
+        let adjustedTeamsCount = 0;
+
+        for (let i = 0; i < q; i++) {
+          const playerCount = basePlayers + (i < remainder ? 1 : 0);
+          if (playerCount !== targetSize) {
+            adjustedTeamsCount++;
+          }
+          const bowlDist = calculateEqualTeamBowlDistribution(targetSize, bowlsPerPlayer, playerCount);
+          const diff = playerCount - targetSize;
+          const deltaTag = diff === 0 ? '' : (diff > 0 ? `+${diff}` : `${diff}`);
+
+          teams.push({
+            label: getTeamLabel(i),
+            playerCount,
+            deltaTag,
+            bowlDist
+          });
+        }
+
+        return { teams, adjustedTeamsCount };
+      }
+
+      // Rule 1D: Closest whole number divisor of Total Bowlers / Match Format, then distribute remainder via Rule 1C
+      function applyRule1D() {
+        const rawRatio = totalBowlers / targetSize;
+        let candidate = Math.max(2, Math.round(rawRatio));
+
+        // Search outward from closest whole number for a valid team count obeying Rule 1C
+        for (let offset = 0; offset <= 160; offset++) {
+          const candidates = offset === 0 ? [candidate] : [candidate + offset, candidate - offset];
+          for (const c of candidates) {
+            if (c >= 2) {
+              const res = buildTeamsWithRule1C(c);
+              if (res) {
+                return { ...res, ruleUsed: 'Rule 1D' };
+              }
+            }
+          }
+        }
+        return { teams: buildTeamsWithRule1C(2)?.teams || [], adjustedTeamsCount: 0, ruleUsed: 'Rule 1D' };
+      }
+
+      if (mode === 'byes') {
+        // Rule 1: Total Bowlers / Match Format; if whole number -> Quantity of Knockout Teams, else Rule 1D
+        if (totalBowlers % targetSize === 0 && (totalBowlers / targetSize) >= 2) {
+          const exactQ = totalBowlers / targetSize;
+          const res = buildTeamsWithRule1C(exactQ);
+          if (res) {
+            return { ...res, ruleUsed: 'Rule 1' };
+          }
+        }
+        return applyRule1D();
+      } else {
+        // Optimize Team Numbers -> Rule 1B
+        const powersOfTwo = [2, 4, 8, 16, 32, 64, 128, 256, 512];
+        const rawRatio = totalBowlers / targetSize;
+
+        // Find closest power of 2 in [2, 4, 8, 16, 32, 64, 128, 256, 512]
+        let closestPow2 = powersOfTwo[0];
+        let minDiff = Math.abs(rawRatio - closestPow2);
+        for (let i = 1; i < powersOfTwo.length; i++) {
+          const diff = Math.abs(rawRatio - powersOfTwo[i]);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestPow2 = powersOfTwo[i];
+          }
+        }
+
+        const res1B = buildTeamsWithRule1C(closestPow2);
+        // Rule 1B check: If less than half of Quantity of Knockout Teams adjusted their bowler count -> proceed;
+        // If more than half (or >= half when exceeding threshold) had to adjust -> fallback to Rule 1D
+        if (res1B && res1B.adjustedTeamsCount < (closestPow2 / 2)) {
+          return { ...res1B, ruleUsed: 'Rule 1B' };
+        }
+        return applyRule1D();
+      }
+    }
+
     function renderKnockoutBracketView(viewOverride = null) {
       const container = document.getElementById('bracketTreeContent');
       const badge = document.getElementById('bracketSystemBadge');
@@ -2627,44 +2725,46 @@
       container.innerHTML = '';
 
       const activeView = viewOverride || state.viewMode;
-
-      // Extract unique active teams from current schedule
-      const activeTeamsMap = new Map();
-      (state.schedule || []).forEach(roundFixtures => {
-        roundFixtures.forEach(f => {
-          if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
-          if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
-        });
-      });
-
-      const allTeams = Array.from(activeTeamsMap.keys()).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-
-      if (allTeams.length === 0) {
-        container.innerHTML = `<div class="p-6 text-center text-slate-400 italic">No teams registered to generate knockout bracket.</div>`;
-        return;
-      }
-
-      let teams = [...allTeams];
       const isPostSection = (activeView === 'postSectionBracket');
-      const isDoubleLife = (activeView === 'doubleLifeBracket') || (activeView === 'bracket' && state.selectedLifeSystem === 'doubleLife');
+
+      // Use Life System from Match Preferences (or explicit doubleLife view)
+      const isDoubleLife = (activeView === 'doubleLifeBracket') || (state.selectedLifeSystem === 'doubleLife');
+
+      let knockoutTeams = [];
+      let ruleAppliedText = '';
 
       if (isPostSection) {
+        const activeTeamsMap = new Map();
+        (state.schedule || []).forEach(roundFixtures => {
+          roundFixtures.forEach(f => {
+            if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
+            if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
+          });
+        });
+        const allTeamsCount = activeTeamsMap.size;
         const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
         const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
         const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
-        const numSections = Math.max(1, Math.ceil(allTeams.length / sectionSize));
-        const qualifiers = [];
+        const numSections = Math.max(1, Math.ceil(allTeamsCount / sectionSize));
 
         for (let s = 0; s < numSections; s++) {
           const sectionLetter = String.fromCharCode(65 + s);
           for (let q = 1; q <= qualCount; q++) {
-            qualifiers.push(`Sec ${sectionLetter} #${q}`);
+            knockoutTeams.push({ label: `Sec ${sectionLetter} #${q}`, playerCount: null, deltaTag: '', bowlDist: null });
           }
         }
-        teams = qualifiers;
+      } else {
+        const distResult = calculateKnockoutTeamDistribution();
+        knockoutTeams = distResult.teams;
+        ruleAppliedText = distResult.ruleUsed;
       }
 
-      const totalTeams = teams.length;
+      const totalTeams = knockoutTeams.length;
+
+      if (totalTeams < 2) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 italic">At least 2 knockout teams are required to build a bracket.</div>`;
+        return;
+      }
 
       if (badge) {
         if (isPostSection) {
@@ -2672,10 +2772,10 @@
           badge.innerText = `Post Section Qualifiers • ${transitionLabel}`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
         } else if (isDoubleLife) {
-          badge.innerText = 'Double Life (Double Elimination)';
+          badge.innerText = `Double Life • ${ruleAppliedText} (${totalTeams} Teams)`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300';
         } else {
-          badge.innerText = 'Single Life Elimination';
+          badge.innerText = `Single Life • ${ruleAppliedText} (${totalTeams} Teams)`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
         }
       }
@@ -2688,7 +2788,7 @@
         }
       }
 
-      // Calculate nearest power of 2 for tree structure
+      // Calculate nearest power of 2 >= totalTeams (Standard Byes added only if necessary, never Bye vs Bye)
       let bracketSize = 2;
       while (bracketSize < totalTeams) {
         bracketSize *= 2;
@@ -2697,7 +2797,7 @@
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
       // Build Single Life (Main / Winners) Tree
-      const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', teams, bracketSize, totalRounds);
+      const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', knockoutTeams, bracketSize, totalRounds);
 
       if (!isDoubleLife) {
         container.innerHTML = winnersBracketHTML;
@@ -2735,6 +2835,7 @@
         else roundNames.push(`Round ${r}`);
       }
 
+      // Standard tournament seeding ensures top seeds receive any necessary byes and a Bye NEVER plays another Bye
       function getBracketSeedingOrder(size) {
         let rounds = Math.log2(size) - 1;
         let seeds = [1, 2];
@@ -2750,10 +2851,10 @@
       }
 
       const seedOrder = getBracketSeedingOrder(bracketSize);
-      
+
       const seededSlots = seedOrder.map(seedNum => {
         const teamIdx = seedNum - 1;
-        return teamIdx < teams.length ? teams[teamIdx] : 'BYE';
+        return teamIdx < teams.length ? teams[teamIdx] : { label: 'BYE', isBye: true };
       });
 
       const roundMatches = [];
@@ -2763,52 +2864,39 @@
         const matchesInRound = [];
         for (let m = 0; m < currentMatchCount; m++) {
           if (r === 0) {
-            const teamA = seededSlots[m * 2];
-            const teamB = seededSlots[m * 2 + 1];
+            const slotA = seededSlots[m * 2];
+            const slotB = seededSlots[m * 2 + 1];
 
-            let winner = null;
+            let winnerObj = null;
             let autoAdvance = false;
-            if (teamA !== 'BYE' && teamB === 'BYE') {
-              winner = teamA;
+            if (!slotA.isBye && slotB.isBye) {
+              winnerObj = slotA;
               autoAdvance = true;
-            } else if (teamA === 'BYE' && teamB !== 'BYE') {
-              winner = teamB;
-              autoAdvance = true;
-            } else if (teamA === 'BYE' && teamB === 'BYE') {
-              winner = 'BYE';
+            } else if (slotA.isBye && !slotB.isBye) {
+              winnerObj = slotB;
               autoAdvance = true;
             }
 
             matchesInRound.push({
               id: `R1-M${m + 1}`,
-              teamA,
-              teamB,
-              winner,
+              slotA,
+              slotB,
+              winnerObj,
               autoAdvance
             });
           } else {
             const prevMatchA = roundMatches[r - 1][m * 2];
             const prevMatchB = roundMatches[r - 1][m * 2 + 1];
 
-            const teamA = prevMatchA.winner ? prevMatchA.winner : `Winner ${prevMatchA.id}`;
-            const teamB = prevMatchB.winner ? prevMatchB.winner : `Winner ${prevMatchB.id}`;
-
-            let winner = null;
-            let autoAdvance = false;
-            if (teamA !== 'BYE' && teamB === 'BYE' && !teamA.startsWith('Winner')) {
-              winner = teamA;
-              autoAdvance = true;
-            } else if (teamA === 'BYE' && teamB !== 'BYE' && !teamB.startsWith('Winner')) {
-              winner = teamB;
-              autoAdvance = true;
-            }
+            const slotA = prevMatchA.winnerObj ? prevMatchA.winnerObj : { label: `Winner ${prevMatchA.id}`, isPlaceholder: true };
+            const slotB = prevMatchB.winnerObj ? prevMatchB.winnerObj : { label: `Winner ${prevMatchB.id}`, isPlaceholder: true };
 
             matchesInRound.push({
               id: `R${r + 1}-M${m + 1}`,
-              teamA,
-              teamB,
-              winner,
-              autoAdvance
+              slotA,
+              slotB,
+              winnerObj: null,
+              autoAdvance: false
             });
           }
         }
@@ -2820,7 +2908,7 @@
 
       roundMatches.forEach((round, rIdx) => {
         treeHTML += `
-          <div class="flex flex-col space-y-4 w-64 flex-shrink-0">
+          <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
             <div class="text-center font-extrabold text-xs uppercase tracking-wider text-slate-700 bg-slate-200/80 py-1.5 px-3 rounded-lg border border-slate-300/80">
               ${roundNames[rIdx]}
             </div>
@@ -2828,28 +2916,37 @@
         `;
 
         round.forEach((match) => {
-          const isABye = match.teamA === 'BYE';
-          const isBBye = match.teamB === 'BYE';
+          const isABye = !!match.slotA.isBye;
+          const isBBye = !!match.slotB.isBye;
           const isAutoAdv = match.autoAdvance;
 
-          const winnerLabel = match.winner && match.winner !== 'BYE' ? match.winner : null;
+          const winnerLabel = match.winnerObj ? match.winnerObj.label : null;
 
-          const formatTeamWithSkip = (teamStr) => {
-            if (!teamStr || !teamStr.startsWith('Team ')) return teamStr;
-            const teamIdx = parseTeamIndexFromLabel(teamStr);
-            const skipName = masterRoster[teamIdx] && masterRoster[teamIdx][0] ? masterRoster[teamIdx][0].trim() : '';
-            if (skipName) {
-              return `${teamStr} <span class="text-purple-700 font-extrabold">(${skipName.toUpperCase()})</span>`;
+          const formatSlotDetails = (slot) => {
+            if (!slot || slot.isBye) return { title: 'BYE', subtitle: '' };
+            if (slot.isPlaceholder || !slot.label.startsWith('Team ')) {
+              return { title: slot.label, subtitle: '' };
             }
-            return teamStr;
+            const teamIdx = parseTeamIndexFromLabel(slot.label);
+            const skipName = masterRoster[teamIdx] && masterRoster[teamIdx][0] ? masterRoster[teamIdx][0].trim() : '';
+            const titleHTML = skipName
+              ? `${slot.label} <span class="text-purple-700 font-extrabold">(${skipName.toUpperCase()})</span>`
+              : slot.label;
+
+            let subtitleHTML = '';
+            if (slot.playerCount && slot.bowlDist) {
+              const bowlsList = slot.bowlDist.perPlayerBowls.join('/');
+              subtitleHTML = `${slot.playerCount} Bowler${slot.playerCount > 1 ? 's' : ''} &bull; ${slot.bowlDist.totalTeamBowls} Bowls (${bowlsList})`;
+            }
+            return { title: titleHTML, subtitle: subtitleHTML };
           };
 
-          const displayTeamA = formatTeamWithSkip(match.teamA);
-          const displayTeamB = formatTeamWithSkip(match.teamB);
+          const detailsA = formatSlotDetails(match.slotA);
+          const detailsB = formatSlotDetails(match.slotB);
 
           treeHTML += `
             <div class="bg-white border-2 ${isAutoAdv ? 'border-emerald-300/80' : 'border-slate-200'} rounded-xl shadow-2xs overflow-hidden">
-              <div class="bg-slate-100 text-[10px] font-bold text-slate-500 px-2 py-1 border-b border-slate-200 flex justify-between items-center">
+              <div class="bg-slate-100 text-[10px] font-bold text-slate-500 px-2.5 py-1 border-b border-slate-200 flex justify-between items-center">
                 <span>Match ${match.id}</span>
                 ${isAutoAdv 
                   ? `<span class="text-emerald-700 font-extrabold flex items-center gap-1"><i class="ph-bold ph-fast-forward"></i> Auto-Advance</span>` 
@@ -2857,17 +2954,23 @@
               </div>
               <div class="p-2 space-y-1.5">
                 <!-- Team A Slot -->
-                <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.teamA ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isABye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
-                  <span class="text-xs truncate max-w-[155px]" title="${match.teamA}">${displayTeamA}</span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded ${winnerLabel === match.teamA ? 'bg-emerald-600 text-white font-extrabold' : isABye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-emerald-100 text-emerald-800 font-bold'}">
-                    ${winnerLabel === match.teamA ? 'ADVANCES' : isABye ? 'BYE' : 'Slot'}
+                <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.slotA.label ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isABye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
+                  <div class="min-w-0 pr-1.5">
+                    <div class="text-xs truncate" title="${match.slotA.label}">${detailsA.title}</div>
+                    ${detailsA.subtitle ? `<div class="text-[10px] font-medium text-slate-500 truncate">${detailsA.subtitle}</div>` : ''}
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${winnerLabel === match.slotA.label ? 'bg-emerald-600 text-white font-extrabold' : isABye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-emerald-100 text-emerald-800 font-bold'}">
+                    ${winnerLabel === match.slotA.label ? 'ADVANCES' : isABye ? 'BYE' : 'Slot'}
                   </span>
                 </div>
                 <!-- Team B Slot -->
-                <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.teamB ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isBBye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
-                  <span class="text-xs truncate max-w-[155px]" title="${match.teamB}">${displayTeamB}</span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded ${winnerLabel === match.teamB ? 'bg-emerald-600 text-white font-extrabold' : isBBye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-emerald-100 text-emerald-800 font-bold'}">
-                    ${winnerLabel === match.teamB ? 'ADVANCES' : isBBye ? 'BYE' : 'Slot'}
+                <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.slotB.label ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isBBye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
+                  <div class="min-w-0 pr-1.5">
+                    <div class="text-xs truncate" title="${match.slotB.label}">${detailsB.title}</div>
+                    ${detailsB.subtitle ? `<div class="text-[10px] font-medium text-slate-500 truncate">${detailsB.subtitle}</div>` : ''}
+                  </div>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${winnerLabel === match.slotB.label ? 'bg-emerald-600 text-white font-extrabold' : isBBye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-emerald-100 text-emerald-800 font-bold'}">
+                    ${winnerLabel === match.slotB.label ? 'ADVANCES' : isBBye ? 'BYE' : 'Slot'}
                   </span>
                 </div>
               </div>
@@ -3003,8 +3106,8 @@
       const reasonText = document.getElementById('reasonText');
       const byesLockedChip = document.getElementById('byesLockedChip');
 
-      // Check if Standard Byes should be greyed out & disabled
-      const shouldDisableByes = isNaturallyEven || !isCleanlyDivisible;
+      // Check if Standard Byes should be greyed out & disabled (always unlocked when Knockout Bracket is selected)
+      const shouldDisableByes = !isKnockout && (isNaturallyEven || !isCleanlyDivisible);
 
       if (shouldDisableByes) {
         if (state.balancingMode === 'byes') {
