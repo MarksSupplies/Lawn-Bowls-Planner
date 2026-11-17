@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v123
+              v124
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -222,6 +222,25 @@
               <option value="winsPointsEnds" selected>Wins-Points-Ends</option>
               <option value="winsEndsPoints">Wins-Ends-Points</option>
             </select>
+          </div>
+
+          <!-- 5c. In SINGLES a Race To How Many Points -->
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-flag-checkered text-bowls-700 text-base"></i>
+              <label for="singlesRaceToInput" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">In SINGLES a Race To How Many Points</label>
+            </div>
+            <input
+              type="number"
+              id="singlesRaceToInput"
+              min="1"
+              max="50"
+              value="21"
+              disabled
+              oninput="onSinglesRaceToChange(this.value)"
+              onchange="onSinglesRaceToBlur(this)"
+              class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60"
+            />
           </div>
 
           <!-- 6. Life System -->
@@ -623,7 +642,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 123 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 124 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -652,7 +671,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v123';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v124';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -677,6 +696,7 @@
       selectedFormat: 'threeBowlTriples',
       selectedMatchPoints: '3_1',
       selectedTieBreakPriority: 'winsPointsEnds',
+      singlesRaceTo: 21,
       isBestFitActive: false,
       selectedRounds: 3,
       selectedEnds: 8,
@@ -727,7 +747,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 123,
+          version: 124,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -797,6 +817,10 @@
           const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
           if (tieBreakEl) {
             tieBreakEl.value = state.selectedTieBreakPriority || 'winsPointsEnds';
+          }
+          const singlesRaceToEl = document.getElementById('singlesRaceToInput');
+          if (singlesRaceToEl) {
+            singlesRaceToEl.value = state.singlesRaceTo || 21;
           }
           const roundsEl = document.getElementById('roundsSelect');
           if (roundsEl) {
@@ -1251,6 +1275,25 @@
       }
     }
 
+    function onSinglesRaceToChange(val) {
+      if (state.selectedFormat !== 'singles') return;
+      const parsed = parseInt(val, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 50) {
+        state.singlesRaceTo = parsed;
+        saveAppStateToLocalStorage();
+      }
+    }
+
+    function onSinglesRaceToBlur(inputEl) {
+      if (state.selectedFormat !== 'singles') return;
+      let parsed = parseInt(inputEl.value, 10);
+      if (isNaN(parsed) || parsed < 1) parsed = 21;
+      if (parsed > 50) parsed = 50;
+      inputEl.value = parsed;
+      state.singlesRaceTo = parsed;
+      saveAppStateToLocalStorage();
+    }
+
     function onRoundsChange() {
       if (state.selectedTournamentFormat === 'knockout' || state.selectedTournamentFormat === 'sectionKnockout') return;
       const roundsEl = document.getElementById('roundsSelect');
@@ -1298,6 +1341,8 @@
       if (matchPointsEl) matchPointsEl.value = state.selectedMatchPoints;
       const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
       if (tieBreakEl) tieBreakEl.value = state.selectedTieBreakPriority;
+      const singlesRaceToEl = document.getElementById('singlesRaceToInput');
+      if (singlesRaceToEl) singlesRaceToEl.value = state.singlesRaceTo;
       const lifeSysEl = document.getElementById('lifeSystemSelect');
       if (lifeSysEl) lifeSysEl.value = state.selectedLifeSystem;
 
@@ -1329,7 +1374,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 123,
+        version: 124,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1405,6 +1450,8 @@
             if (matchPointsEl) matchPointsEl.value = state.selectedMatchPoints || '3_1';
             const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
             if (tieBreakEl) tieBreakEl.value = state.selectedTieBreakPriority || 'winsPointsEnds';
+            const singlesRaceToEl = document.getElementById('singlesRaceToInput');
+            if (singlesRaceToEl) singlesRaceToEl.value = state.singlesRaceTo || 21;
             const roundsEl = document.getElementById('roundsSelect');
             if (roundsEl) roundsEl.value = state.selectedRounds;
             const endsEl = document.getElementById('endsSelect');
@@ -3108,6 +3155,19 @@
 
       const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
       const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
+
+      const isSingles = (state.selectedFormat === 'singles');
+      const singlesRaceToEl = document.getElementById('singlesRaceToInput');
+      if (singlesRaceToEl) {
+        singlesRaceToEl.disabled = !isSingles;
+        singlesRaceToEl.className = !isSingles ? disabledControlClass : enabledControlClass;
+      }
+
+      const endsEl = document.getElementById('endsSelect');
+      if (endsEl) {
+        endsEl.disabled = isSingles;
+        endsEl.className = isSingles ? disabledControlClass : enabledControlClass;
+      }
 
       const roundsEl = document.getElementById('roundsSelect');
       if (roundsEl) {
