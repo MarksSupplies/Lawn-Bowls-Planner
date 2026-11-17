@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v124
+              v125
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -642,7 +642,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 124 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 125 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -671,7 +671,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v124';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v125';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -747,7 +747,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 124,
+          version: 125,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1374,7 +1374,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 124,
+        version: 125,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2853,8 +2853,8 @@
       if (!isDoubleLife) {
         container.innerHTML = winnersBracketHTML;
       } else {
-        // Build Losers (Double Life Elimination) Tree
-        const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', totalTeams, totalRounds);
+        // Build Losers (Double Life Elimination) Tree using the exact same bracketSize as Winners Bracket (Life #1)
+        const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', bracketSize, totalRounds);
         container.innerHTML = `
           <div class="space-y-8">
             <div class="bg-slate-50/60 border border-slate-200 rounded-xl p-4">
@@ -3040,16 +3040,18 @@
       return treeHTML;
     }
 
-    function generateDoubleLifeLosersTree(title, totalTeams, totalRounds) {
+    function generateDoubleLifeLosersTree(title, bracketSize, totalRounds) {
       let treeHTML = `<div class="flex items-start space-x-6 min-w-max">`;
+      const losersRounds = Math.max(1, totalRounds - 1);
+      const initialLoserTeams = bracketSize / 2;
 
-      for (let r = 1; r <= totalRounds; r++) {
-        const matchesInRound = Math.max(1, Math.floor((totalTeams / 2) / Math.pow(2, r - 1)));
+      for (let r = 1; r <= losersRounds; r++) {
+        const matchesInRound = Math.max(1, (initialLoserTeams / 2) / Math.pow(2, r - 1));
 
         treeHTML += `
           <div class="flex flex-col space-y-4 w-60 flex-shrink-0">
             <div class="text-center font-extrabold text-xs uppercase tracking-wider text-purple-900 bg-purple-100/80 py-1.5 px-3 rounded-lg border border-purple-200">
-              ${r === totalRounds ? 'Life #2 Final' : `Elimination R${r}`}
+              ${r === losersRounds ? 'Life #2 Final' : `Elimination R${r}`}
             </div>
             <div class="flex flex-col justify-around flex-1 space-y-6">
         `;
