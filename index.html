@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v122
+              v123
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -374,7 +374,7 @@
           <input type="radio" name="balancingMode" id="radioOptimize" value="optimizeTeamNumbers" checked onchange="setBalancingMode('optimizeTeamNumbers')" class="mt-0.5 text-blue-600 focus:ring-blue-500 h-4 w-4">
           <div class="ml-3">
             <span class="block text-sm font-bold text-slate-900">Optimize Team Numbers (No Byes)</span>
-            <span class="block text-xs text-slate-500 mt-1">Finds nearest valid even team count &amp; locks team rosters without sit-out bye cards.</span>
+            <span class="block text-xs text-slate-500 mt-1">Eliminates byes if possible by altering team numbers and their size. Only use if the teams are drawn and not fixed.</span>
           </div>
         </label>
 
@@ -385,7 +385,7 @@
             <div class="flex items-center justify-between">
               <span id="textByesTitle" class="block text-sm font-bold text-slate-900">Standard Byes</span>
             </div>
-            <span id="textByesSubtitle" class="block text-xs text-slate-500 mt-1">Retains standard team sizes and displays explicit sit-out bye cards.</span>
+            <span id="textByesSubtitle" class="block text-xs text-slate-500 mt-1">This will add byes, best used for fixed teams. Apart from a small adjustment to team sizes if the number of bowlers does not fit the teams exactly.</span>
             <span id="textByesDisabledReason" class="hidden text-xs font-medium mt-2 text-slate-500 flex items-center space-x-1">
               <i class="ph-bold ph-info text-amber-600"></i>
               <span id="reasonText">--</span>
@@ -471,13 +471,17 @@
         <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
           <div class="flex items-center space-x-2">
             <i class="ph-bold ph-tree-structure text-bowls-700 text-xl"></i>
-            <h3 id="bracketTitleHeading" class="text-base font-extrabold text-slate-900">Knockout Tournament Bracket</h3>
+            <h3 id="bracketTitleHeading" class="text-base font-extrabold text-slate-900">Knockout Bracket Tree</h3>
           </div>
           <span id="bracketSystemBadge" class="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
             Single Life Elimination
           </span>
         </div>
-        <div id="bracketTreeContent" class="overflow-x-auto pb-4">
+        <!-- Top Native Horizontal Scrollbar Above Round Headers -->
+        <div id="bracketTopScrollbar" class="overflow-x-auto" onscroll="syncBracketScroll('top')">
+          <div id="bracketTopScrollbarInner" class="h-4"></div>
+        </div>
+        <div id="bracketTreeContent" class="overflow-x-auto pb-4" onscroll="syncBracketScroll('bottom')">
           <!-- Dynamic Bracket Trees Rendered Here -->
         </div>
       </div>
@@ -619,7 +623,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 122 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 123 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -648,7 +652,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v122';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v123';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -723,7 +727,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 122,
+          version: 123,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1325,7 +1329,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 122,
+        version: 123,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2824,6 +2828,7 @@
           </div>
         `;
       }
+      requestAnimationFrame(updateBracketTopScrollbarWidth);
     }
 
     function generateSingleBracketTree(title, teams, bracketSize, totalRounds) {
@@ -3029,9 +3034,45 @@
         `;
       }
 
+      // Sync top native scrollbar width with rendered bracket width
+      setTimeout(updateBracketTopScrollbarWidth, 0);
+
       treeHTML += `</div>`;
       return treeHTML;
     }
+
+    let isSyncingBracketScroll = false;
+
+    function syncBracketScroll(source) {
+      if (isSyncingBracketScroll) return;
+      const topEl = document.getElementById('bracketTopScrollbar');
+      const bottomEl = document.getElementById('bracketTreeContent');
+      if (!topEl || !bottomEl) return;
+
+      isSyncingBracketScroll = true;
+      if (source === 'top') {
+        bottomEl.scrollLeft = topEl.scrollLeft;
+      } else {
+        topEl.scrollLeft = bottomEl.scrollLeft;
+      }
+      requestAnimationFrame(() => {
+        isSyncingBracketScroll = false;
+      });
+    }
+
+    function updateBracketTopScrollbarWidth() {
+      const topEl = document.getElementById('bracketTopScrollbar');
+      const topInner = document.getElementById('bracketTopScrollbarInner');
+      const bottomEl = document.getElementById('bracketTreeContent');
+      if (!topEl || !topInner || !bottomEl) return;
+
+      const fullWidth = bottomEl.scrollWidth;
+      topInner.style.width = fullWidth + 'px';
+      topEl.style.display = fullWidth > bottomEl.clientWidth ? 'block' : 'none';
+      syncBracketScroll('bottom');
+    }
+
+    window.addEventListener('resize', updateBracketTopScrollbarWidth);
 
     function updateUI() {
       // Determine format target size to check even/odd natural team counts
