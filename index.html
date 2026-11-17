@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v126
+              v127
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -392,8 +392,8 @@
         <label id="labelOptimize" onclick="setBalancingMode('optimizeTeamNumbers')" class="relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm">
           <input type="radio" name="balancingMode" id="radioOptimize" value="optimizeTeamNumbers" checked onchange="setBalancingMode('optimizeTeamNumbers')" class="mt-0.5 text-blue-600 focus:ring-blue-500 h-4 w-4">
           <div class="ml-3">
-            <span class="block text-sm font-bold text-slate-900">Optimize Team Numbers (No Byes)</span>
-            <span class="block text-xs text-slate-500 mt-1">Eliminates byes if possible by altering team numbers and their size. Only use if the teams are drawn and not fixed.</span>
+            <span id="textOptimizeTitle" class="block text-sm font-bold text-slate-900">Optimize Team Numbers (No Byes)</span>
+            <span id="textOptimizeSubtitle" class="block text-xs text-slate-500 mt-1">Eliminates byes if possible by altering team numbers and their size. Only use if the teams are drawn and not fixed.</span>
           </div>
         </label>
 
@@ -642,7 +642,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 126 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 127 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -671,7 +671,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v126';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v127';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -747,7 +747,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 126,
+          version: 127,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1162,6 +1162,9 @@
     }
 
     function setBalancingMode(mode) {
+      if (state.selectedTournamentFormat === 'sectionKnockout' && mode === 'optimizeTeamNumbers') {
+        return;
+      }
       state.balancingMode = mode;
       
       const optRadio = document.getElementById('radioOptimize');
@@ -1374,7 +1377,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 126,
+        version: 127,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2365,6 +2368,57 @@
     }
 
     // --- SECTION PLAY RENDER ENGINE ---
+    function calculateSectionPlayTeams() {
+      const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
+      const targetSize = format.targetTeamSize;
+      const bowlsPerPlayer = format.bowlsPerPlayer;
+      const totalTeamBowls = targetSize * bowlsPerPlayer; // Singles: 4, Pairs: 4, 2B Triples: 6, 3B Triples: 9, Fours: 8
+      const totalBowlers = state.totalBowlers;
+
+      function buildValidTeams(teamCount) {
+        const q = Math.max(2, teamCount);
+        const basePlayers = Math.floor(totalBowlers / q);
+        const remainder = totalBowlers % q;
+
+        // Enforce maximum 4 bowls per bowler cap: ceil(totalTeamBowls / playerCount) <= 4
+        if (basePlayers <= 0 || Math.ceil(totalTeamBowls / basePlayers) > 4) {
+          return null;
+        }
+
+        const teams = [];
+        for (let i = 0; i < q; i++) {
+          const playerCount = basePlayers + (i < remainder ? 1 : 0);
+          const bowlDist = calculateEqualTeamBowlDistribution(targetSize, bowlsPerPlayer, playerCount);
+          const diff = playerCount - targetSize;
+          const deltaTag = diff === 0 ? '' : (diff > 0 ? `+${diff}` : `${diff}`);
+          teams.push({
+            label: getTeamLabel(i),
+            playerCount,
+            deltaTag,
+            bowlDist
+          });
+        }
+        return teams;
+      }
+
+      const rawRatio = totalBowlers / targetSize;
+      const candidate = Math.max(2, Math.round(rawRatio));
+
+      for (let offset = 0; offset <= 160; offset++) {
+        const candidates = offset === 0 ? [candidate] : [candidate + offset, candidate - offset];
+        for (const c of candidates) {
+          if (c >= 2) {
+            const validTeams = buildValidTeams(c);
+            if (validTeams) {
+              return validTeams;
+            }
+          }
+        }
+      }
+
+      return buildValidTeams(2) || [];
+    }
+
     function renderSectionPlayView() {
       const container = document.getElementById('sectionPlayContent');
       const badge = document.getElementById('sectionPlayBadge');
@@ -2373,21 +2427,15 @@
 
       container.innerHTML = '';
 
-      const activeTeamsMap = new Map();
-      (state.schedule || []).forEach(roundFixtures => {
-        roundFixtures.forEach(f => {
-          if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
-          if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
-        });
-      });
-
-      const teams = Array.from(activeTeamsMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+      const teams = calculateSectionPlayTeams();
+      const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
+      const totalTeamBowls = format.targetTeamSize * format.bowlsPerPlayer;
       const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
       const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
       const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
 
       if (badge) {
-        badge.innerText = `Section Size: ${sectionSize} • Top ${qualCount} Qualify`;
+        badge.innerText = `Section Size: ${sectionSize} • Top ${qualCount} Qualify • ${totalTeamBowls} Bowls/Team`;
       }
 
       if (teams.length === 0) {
@@ -2400,9 +2448,15 @@
         heading.innerText = `Section Play (${numSections} Section${numSections > 1 ? 's' : ''})`;
       }
 
+      const baseSectionSize = Math.floor(teams.length / numSections);
+      const extraTeams = teams.length % numSections;
+      let teamCursor = 0;
+
       for (let s = 0; s < numSections; s++) {
         const sectionLetter = String.fromCharCode(65 + s);
-        const sectionTeams = teams.slice(s * sectionSize, (s + 1) * sectionSize);
+        const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
+        const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
+        teamCursor += countForThisSection;
 
         let teamRowsHTML = '';
         sectionTeams.forEach((team, idx) => {
@@ -2410,12 +2464,14 @@
           const skipName = masterRoster[teamIdx] && masterRoster[teamIdx][0] ? masterRoster[teamIdx][0].trim() : '';
           const skipBadge = skipName ? `<span class="text-purple-700 font-extrabold ml-1">(${skipName.toUpperCase()})</span>` : '';
           const isQualSlot = idx < qualCount;
+          const bowlsBreakdown = team.bowlDist ? `${team.bowlDist.totalTeamBowls} (${team.bowlDist.perPlayerBowls.join('/')})` : `${totalTeamBowls}`;
 
           teamRowsHTML += `
             <tr class="${isQualSlot ? 'bg-emerald-50/50' : 'bg-white'} border-b border-slate-100 last:border-b-0">
               <td class="p-2 font-bold text-slate-700 text-center w-10">${idx + 1}</td>
               <td class="p-2 font-extrabold text-slate-900">${team.label}${skipBadge}</td>
               <td class="p-2 text-center text-slate-600 font-semibold">${team.playerCount}</td>
+              <td class="p-2 text-center text-emerald-800 font-bold text-[11px]">${bowlsBreakdown}</td>
               <td class="p-2 text-right">
                 ${isQualSlot 
                   ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">Qualifying Spot</span>`
@@ -2430,7 +2486,7 @@
         sectionCard.innerHTML = `
           <div class="bg-slate-900 text-white px-3.5 py-2 flex items-center justify-between">
             <span class="font-extrabold text-xs uppercase tracking-wider">Section ${sectionLetter}</span>
-            <span class="text-[11px] text-emerald-300 font-bold">${sectionTeams.length} Teams</span>
+            <span class="text-[11px] text-emerald-300 font-bold">${sectionTeams.length} Teams &bull; ${totalTeamBowls} Bowls/Team</span>
           </div>
           <table class="w-full text-left text-xs border-collapse">
             <thead>
@@ -2438,6 +2494,7 @@
                 <th class="p-2 text-center w-10">#</th>
                 <th class="p-2">Team / Skip</th>
                 <th class="p-2 text-center">Bowlers</th>
+                <th class="p-2 text-center">Team Bowls</th>
                 <th class="p-2 text-right">Status</th>
               </tr>
             </thead>
@@ -2472,15 +2529,9 @@
 
       container.innerHTML = '';
 
-      const activeTeamsMap = new Map();
-      (state.schedule || []).forEach(roundFixtures => {
-        roundFixtures.forEach(f => {
-          if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
-          if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
-        });
-      });
-
-      const teams = Array.from(activeTeamsMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+      const teams = mode === 'sectionPlayScorecard'
+        ? calculateSectionPlayTeams()
+        : calculateKnockoutTeamDistribution().teams;
 
       if (teams.length === 0) {
         container.innerHTML = `<div class="p-6 text-center text-slate-400 italic">No teams registered to generate scorecards.</div>`;
@@ -2488,33 +2539,69 @@
       }
 
       if (mode === 'sectionPlayScorecard') {
+        const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
+        const totalTeamBowls = format.targetTeamSize * format.bowlsPerPlayer;
         const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
         const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
         if (heading) heading.innerText = 'Section Play Scorecards';
         if (badge) {
-          badge.innerText = `Section Play • ${numSections} Section${numSections > 1 ? 's' : ''}`;
+          badge.innerText = `Section Play • ${numSections} Section${numSections > 1 ? 's' : ''} • ${totalTeamBowls} Bowls/Team`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300';
         }
 
         const gridDiv = document.createElement('div');
         gridDiv.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
 
+        const baseSectionSize = Math.floor(teams.length / numSections);
+        const extraTeams = teams.length % numSections;
+        let teamCursor = 0;
+
         for (let s = 0; s < numSections; s++) {
           const sectionLetter = String.fromCharCode(65 + s);
-          const sectionTeams = teams.slice(s * sectionSize, (s + 1) * sectionSize);
+          const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
+          const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
+          teamCursor += countForThisSection;
           let matchRows = '';
           let matchCounter = 1;
 
-          for (let i = 0; i < sectionTeams.length; i++) {
-            for (let j = i + 1; j < sectionTeams.length; j++) {
-              const tA = sectionTeams[i].label;
-              const tB = sectionTeams[j].label;
-              const key = `sec_${sectionLetter}_M${matchCounter}`;
-              const data = modeScorecardStore[key] || { winner: '', endsA: '', ptsA: '', endsB: '', ptsB: '' };
+          // Build round-robin section schedule ensuring a Bye never plays another Bye (at most 1 BYE if section has odd teams)
+          const schedTeams = [...sectionTeams];
+          if (schedTeams.length % 2 !== 0) {
+            schedTeams.push({ label: 'BYE', isBye: true });
+          }
+          const n = schedTeams.length;
+          const totalSecRounds = n - 1;
+          const rot = schedTeams.slice(1);
 
-              matchRows += buildKnockoutMatchScorecardRow(`Game ${matchCounter}`, key, tA, tB, data);
-              matchCounter++;
+          for (let r = 0; r < totalSecRounds; r++) {
+            const roundList = [schedTeams[0], ...rot];
+            for (let m = 0; m < n / 2; m++) {
+              const teamObjA = roundList[m];
+              const teamObjB = roundList[n - 1 - m];
+
+              // Ensure a Bye never plays another Bye
+              if (teamObjA.isBye && teamObjB.isBye) continue;
+
+              if (teamObjA.isBye || teamObjB.isBye) {
+                const activeTeam = teamObjA.isBye ? teamObjB : teamObjA;
+                matchRows += `
+                  <tr class="bg-amber-50/70">
+                    <td class="p-2 font-extrabold text-amber-900 whitespace-nowrap">Round ${r + 1}</td>
+                    <td class="p-2 font-bold text-amber-900">${activeTeam.label} <span class="text-[10px] uppercase bg-amber-200 px-1.5 py-0.5 rounded ml-1">BYE</span></td>
+                    <td colspan="3" class="p-2 text-center text-[11px] font-semibold text-amber-800 italic">Scheduled Sit-Out Bye (No Bye vs Bye)</td>
+                  </tr>
+                `;
+              } else {
+                const tA = teamObjA.label;
+                const tB = teamObjB.label;
+                const key = `sec_${sectionLetter}_M${matchCounter}`;
+                const data = modeScorecardStore[key] || { winner: '', endsA: '', ptsA: '', endsB: '', ptsB: '' };
+
+                matchRows += buildKnockoutMatchScorecardRow(`Game ${matchCounter}`, key, tA, tB, data);
+                matchCounter++;
+              }
             }
+            rot.unshift(rot.pop());
           }
 
           if (!matchRows) {
@@ -2526,7 +2613,7 @@
           card.innerHTML = `
             <div class="bg-slate-900 text-white px-3.5 py-2 flex items-center justify-between">
               <span class="font-extrabold text-xs uppercase tracking-wider">Section ${sectionLetter} Scorecard</span>
-              <span class="text-[11px] text-emerald-300 font-bold">${sectionTeams.length} Teams</span>
+              <span class="text-[11px] text-emerald-300 font-bold">${sectionTeams.length} Teams &bull; ${totalTeamBowls} Bowls/Team</span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-xs border-collapse text-left">
@@ -2785,14 +2872,8 @@
       let ruleAppliedText = '';
 
       if (isPostSection) {
-        const activeTeamsMap = new Map();
-        (state.schedule || []).forEach(roundFixtures => {
-          roundFixtures.forEach(f => {
-            if (f.teamA && f.teamA.label !== 'BYE_DUMMY') activeTeamsMap.set(f.teamA.label, f.teamA);
-            if (f.teamB && f.teamB.label !== 'BYE_DUMMY' && f.teamB.label !== 'SIT-OUT BYE') activeTeamsMap.set(f.teamB.label, f.teamB);
-          });
-        });
-        const allTeamsCount = activeTeamsMap.size;
+        const sectionTeamsList = calculateSectionPlayTeams();
+        const allTeamsCount = sectionTeamsList.length;
         const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
         const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
         const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
@@ -3240,8 +3321,37 @@
       const reasonText = document.getElementById('reasonText');
       const byesLockedChip = document.getElementById('byesLockedChip');
 
-      // Check if Standard Byes should be greyed out & disabled (always unlocked when Knockout Bracket is selected)
-      const shouldDisableByes = !isKnockout && (isNaturallyEven || !isCleanlyDivisible);
+      const radioOptimize = document.getElementById('radioOptimize');
+      const labelOptimize = document.getElementById('labelOptimize');
+      const optimizeTitle = document.getElementById('textOptimizeTitle');
+      const optimizeSubtitle = document.getElementById('textOptimizeSubtitle');
+
+      if (isSectionKnockout) {
+        state.balancingMode = 'byes';
+        if (radioOptimize) {
+          radioOptimize.disabled = true;
+          radioOptimize.checked = false;
+        }
+        if (labelOptimize) {
+          labelOptimize.className = 'relative flex p-4 rounded-xl border-2 border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed';
+          labelOptimize.onclick = null;
+        }
+        if (optimizeTitle) optimizeTitle.className = 'block text-sm font-bold text-slate-400';
+        if (optimizeSubtitle) optimizeSubtitle.className = 'block text-xs text-slate-400 mt-1';
+      } else {
+        if (radioOptimize) {
+          radioOptimize.disabled = false;
+          radioOptimize.checked = (state.balancingMode === 'optimizeTeamNumbers');
+        }
+        if (labelOptimize) {
+          labelOptimize.onclick = function() { setBalancingMode('optimizeTeamNumbers'); };
+        }
+        if (optimizeTitle) optimizeTitle.className = 'block text-sm font-bold text-slate-900';
+        if (optimizeSubtitle) optimizeSubtitle.className = 'block text-xs text-slate-500 mt-1';
+      }
+
+      // Check if Standard Byes should be greyed out & disabled (always unlocked when Knockout Bracket or Section Play + Knockout Bracket is selected)
+      const shouldDisableByes = !isKnockout && !isSectionKnockout && (isNaturallyEven || !isCleanlyDivisible);
 
       if (shouldDisableByes) {
         if (state.balancingMode === 'byes') {
@@ -3269,6 +3379,7 @@
       } else {
         if (radioByes) {
           radioByes.disabled = false;
+          radioByes.checked = (state.balancingMode === 'byes');
         }
         if (labelByes) {
           labelByes.onclick = function() { setBalancingMode('byes'); };
@@ -3287,7 +3398,9 @@
       const activeBadge = document.getElementById('activeModeBadge');
 
       if (labelOpt && labelByes && !shouldDisableByes) {
-        if (state.balancingMode === 'optimizeTeamNumbers') {
+        if (isSectionKnockout) {
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
+        } else if (state.balancingMode === 'optimizeTeamNumbers') {
           labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm';
           labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
         } else {
