@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v128
+              v129
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -262,10 +262,11 @@
               <label for="sectionSizeSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">Section Size</label>
             </div>
             <select id="sectionSizeSelect" onchange="onSectionSizeChange()" class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60">
+              <option value="bestMatch" selected>Best Match (creates a fairer number of qualifiers)</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
-              <option value="4" selected>4</option>
+              <option value="4">4</option>
               <option value="5">5</option>
               <option value="6">6</option>
               <option value="7">7</option>
@@ -642,7 +643,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 128 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 129 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -671,7 +672,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v128';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v129';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -689,7 +690,7 @@
       greensAvailable: 1,
       rinksPerGreen: 8,
       selectedTournamentFormat: 'roundRobin',
-      selectedSectionSize: '4',
+      selectedSectionSize: 'bestMatch',
       selectedSectionQualifying: 'top2',
       selectedLifeSystem: 'singleLife',
       selectedSectionBracketTransition: 'random',
@@ -747,7 +748,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 128,
+          version: 129,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -796,7 +797,7 @@
           }
           const sSizeEl = document.getElementById('sectionSizeSelect');
           if (sSizeEl) {
-            sSizeEl.value = state.selectedSectionSize || '4';
+            sSizeEl.value = state.selectedSectionSize || 'bestMatch';
           }
           const sQualEl = document.getElementById('sectionQualifyingSelect');
           if (sQualEl) {
@@ -1377,7 +1378,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 128,
+        version: 129,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1442,7 +1443,7 @@
             const tFormatEl = document.getElementById('tournamentFormatSelect');
             if (tFormatEl) tFormatEl.value = state.selectedTournamentFormat || 'roundRobin';
             const sSizeEl = document.getElementById('sectionSizeSelect');
-            if (sSizeEl) sSizeEl.value = state.selectedSectionSize || '4';
+            if (sSizeEl) sSizeEl.value = state.selectedSectionSize || 'bestMatch';
             const sQualEl = document.getElementById('sectionQualifyingSelect');
             if (sQualEl) sQualEl.value = state.selectedSectionQualifying || 'top2';
             const lifeSysEl = document.getElementById('lifeSystemSelect');
@@ -2440,6 +2441,46 @@
       return { targetTotalSpots, perSectionSpots };
     }
 
+    function resolveEffectiveSectionSize(totalTeamsCount) {
+      const rawSetting = state.selectedSectionSize || 'bestMatch';
+      if (rawSetting !== 'bestMatch') {
+        return Math.max(2, parseInt(rawSetting, 10) || 4);
+      }
+      if (totalTeamsCount <= 4) return Math.max(2, totalTeamsCount);
+
+      const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
+      const qualCount = qualMap[state.selectedSectionQualifying] || 2;
+
+      let bestSize = 4;
+      let bestScore = Infinity;
+
+      for (let size = 2; size <= 5; size++) {
+        const numSec = Math.max(1, Math.ceil(totalTeamsCount / size));
+        const maxTeamsInAnySection = Math.ceil(totalTeamsCount / numSec);
+
+        // Enforce rule: max number of teams in any section must always be strictly less than 6
+        if (maxTeamsInAnySection >= 6) continue;
+
+        const minTeamsInAnySection = Math.floor(totalTeamsCount / numSec);
+        const rem = totalTeamsCount % numSec;
+        const { targetTotalSpots } = calculateAdjustedSectionQualifyingSpots(totalTeamsCount, numSec, qualCount);
+        const qualRem = targetTotalSpots % numSec;
+        const desiredTotalQual = numSec * qualCount;
+        const qualDiff = Math.abs(targetTotalSpots - desiredTotalQual);
+
+        // Prefer sections with 3 or 4 teams
+        const isPreferred3or4 = (maxTeamsInAnySection === 3 || maxTeamsInAnySection === 4) && (minTeamsInAnySection === 3 || minTeamsInAnySection === 4);
+        const prefPenalty = isPreferred3or4 ? 0 : (size === 3 || size === 4 ? 15 : 40);
+        const score = (qualRem * 100) + (qualDiff * 15) + (rem * 10) + prefPenalty;
+
+        if (score < bestScore) {
+          bestScore = score;
+          bestSize = size;
+        }
+      }
+      return bestSize;
+    }
+
     function renderSectionPlayView() {
       const container = document.getElementById('sectionPlayContent');
       const badge = document.getElementById('sectionPlayBadge');
@@ -2451,13 +2492,15 @@
       const teams = calculateSectionPlayTeams();
       const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
       const totalTeamBowls = format.targetTeamSize * format.bowlsPerPlayer;
-      const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
+      const isBestMatch = (state.selectedSectionSize === 'bestMatch' || !state.selectedSectionSize);
+      const sectionSize = resolveEffectiveSectionSize(teams.length);
       const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
       const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
+      const sizeLabel = isBestMatch ? `Best Match (${sectionSize})` : `${sectionSize}`;
 
       if (teams.length === 0) {
         if (badge) {
-          badge.innerText = `Section Size: ${sectionSize} • Top ${qualCount} Qualify • ${totalTeamBowls} Bowls/Team`;
+          badge.innerText = `Section Size: ${sizeLabel} • Top ${qualCount} Qualify • ${totalTeamBowls} Bowls/Team`;
         }
         container.innerHTML = `<div class="col-span-full p-6 text-center text-slate-400 italic">No teams registered to generate sections.</div>`;
         return;
@@ -2467,7 +2510,7 @@
       const { targetTotalSpots, perSectionSpots } = calculateAdjustedSectionQualifyingSpots(teams.length, numSections, qualCount);
 
       if (badge) {
-        badge.innerText = `Section Size: ${sectionSize} • ${targetTotalSpots} Total Qualifying Spots • ${totalTeamBowls} Bowls/Team`;
+        badge.innerText = `Section Size: ${sizeLabel} • ${targetTotalSpots} Total Qualifying Spots • ${totalTeamBowls} Bowls/Team`;
       }
 
       if (heading) {
@@ -2568,7 +2611,7 @@
       if (mode === 'sectionPlayScorecard') {
         const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
         const totalTeamBowls = format.targetTeamSize * format.bowlsPerPlayer;
-        const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
+        const sectionSize = resolveEffectiveSectionSize(teams.length);
         const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
         if (heading) heading.innerText = 'Section Play Scorecards';
         if (badge) {
@@ -2901,7 +2944,7 @@
       if (isPostSection) {
         const sectionTeamsList = calculateSectionPlayTeams();
         const allTeamsCount = sectionTeamsList.length;
-        const sectionSize = Math.max(2, parseInt(state.selectedSectionSize || '4', 10));
+        const sectionSize = resolveEffectiveSectionSize(allTeamsCount);
         const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
         const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
         const numSections = Math.max(1, Math.ceil(allTeamsCount / sectionSize));
