@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v127
+              v128
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -642,7 +642,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 127 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 128 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -671,7 +671,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v127';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v128';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -747,7 +747,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 127,
+          version: 128,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1377,7 +1377,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 127,
+        version: 128,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2419,6 +2419,27 @@
       return buildValidTeams(2) || [];
     }
 
+    function calculateAdjustedSectionQualifyingSpots(totalTeamsCount, numSections, baseQualPerSection) {
+      const validTargets = [2, 4, 8, 16, 32, 64, 128, 256];
+      const minRequiredSpots = Math.max(2, numSections);
+
+      let targetTotalSpots = validTargets.find(t => t >= minRequiredSpots && t <= totalTeamsCount);
+      if (targetTotalSpots === undefined) {
+        const belowTargets = validTargets.filter(t => t <= totalTeamsCount);
+        targetTotalSpots = belowTargets.length > 0 ? belowTargets[belowTargets.length - 1] : Math.min(2, totalTeamsCount);
+      }
+
+      const basePerSection = Math.floor(targetTotalSpots / numSections);
+      const extraSpots = targetTotalSpots % numSections;
+      const perSectionSpots = [];
+
+      for (let s = 0; s < numSections; s++) {
+        perSectionSpots.push(basePerSection + (s < extraSpots ? 1 : 0));
+      }
+
+      return { targetTotalSpots, perSectionSpots };
+    }
+
     function renderSectionPlayView() {
       const container = document.getElementById('sectionPlayContent');
       const badge = document.getElementById('sectionPlayBadge');
@@ -2434,16 +2455,21 @@
       const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
       const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
 
-      if (badge) {
-        badge.innerText = `Section Size: ${sectionSize} • Top ${qualCount} Qualify • ${totalTeamBowls} Bowls/Team`;
-      }
-
       if (teams.length === 0) {
+        if (badge) {
+          badge.innerText = `Section Size: ${sectionSize} • Top ${qualCount} Qualify • ${totalTeamBowls} Bowls/Team`;
+        }
         container.innerHTML = `<div class="col-span-full p-6 text-center text-slate-400 italic">No teams registered to generate sections.</div>`;
         return;
       }
 
       const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
+      const { targetTotalSpots, perSectionSpots } = calculateAdjustedSectionQualifyingSpots(teams.length, numSections, qualCount);
+
+      if (badge) {
+        badge.innerText = `Section Size: ${sectionSize} • ${targetTotalSpots} Total Qualifying Spots • ${totalTeamBowls} Bowls/Team`;
+      }
+
       if (heading) {
         heading.innerText = `Section Play (${numSections} Section${numSections > 1 ? 's' : ''})`;
       }
@@ -2457,13 +2483,14 @@
         const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
         const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
         teamCursor += countForThisSection;
+        const spotsInThisSection = perSectionSpots[s] || 0;
 
         let teamRowsHTML = '';
         sectionTeams.forEach((team, idx) => {
           const teamIdx = parseTeamIndexFromLabel(team.label);
           const skipName = masterRoster[teamIdx] && masterRoster[teamIdx][0] ? masterRoster[teamIdx][0].trim() : '';
           const skipBadge = skipName ? `<span class="text-purple-700 font-extrabold ml-1">(${skipName.toUpperCase()})</span>` : '';
-          const isQualSlot = idx < qualCount;
+          const isQualSlot = idx < spotsInThisSection;
           const bowlsBreakdown = team.bowlDist ? `${team.bowlDist.totalTeamBowls} (${team.bowlDist.perPlayerBowls.join('/')})` : `${totalTeamBowls}`;
 
           teamRowsHTML += `
@@ -2878,10 +2905,12 @@
         const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
         const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
         const numSections = Math.max(1, Math.ceil(allTeamsCount / sectionSize));
+        const { perSectionSpots } = calculateAdjustedSectionQualifyingSpots(allTeamsCount, numSections, qualCount);
 
         for (let s = 0; s < numSections; s++) {
           const sectionLetter = String.fromCharCode(65 + s);
-          for (let q = 1; q <= qualCount; q++) {
+          const spotsForSection = perSectionSpots[s] || 0;
+          for (let q = 1; q <= spotsForSection; q++) {
             knockoutTeams.push({ label: `Sec ${sectionLetter} #${q}`, playerCount: null, deltaTag: '', bowlDist: null });
           }
         }
