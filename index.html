@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v130
+              v131
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -438,6 +438,9 @@
             <button id="viewDoubleLifeBracketBtn" onclick="setScheduleView('doubleLifeBracket')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-arrows-counter-clockwise"></i> Knockout Brackets Double Life
             </button>
+            <button id="viewDoubleLifeWinningLoserBtn" onclick="setScheduleView('doubleLifeWinningLoser')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              <i class="ph-bold ph-arrows-counter-clockwise"></i> Knockout Brackets Double Life (winning loser returns to final)
+            </button>
             <button id="viewDoubleLifeScorecardBtn" onclick="setScheduleView('doubleLifeScorecard')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-clipboard-text"></i> Knockout Brackets Double Life Scorecard
             </button>
@@ -644,7 +647,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 130 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 131 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -673,7 +676,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v130';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v131';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -749,7 +752,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 130,
+          version: 131,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1105,6 +1108,7 @@
       const btnBracket = document.getElementById('viewBracketBtn');
       const btnBracketScorecard = document.getElementById('viewBracketScorecardBtn');
       const btnDoubleLifeBracket = document.getElementById('viewDoubleLifeBracketBtn');
+      const btnDoubleLifeWinningLoser = document.getElementById('viewDoubleLifeWinningLoserBtn');
       const btnDoubleLifeScorecard = document.getElementById('viewDoubleLifeScorecardBtn');
       const btnSectionPlay = document.getElementById('viewSectionPlayBtn');
       const btnSectionPlayScorecard = document.getElementById('viewSectionPlayScorecardBtn');
@@ -1123,6 +1127,7 @@
       if (btnBracket) btnBracket.className = (mode === 'bracket') ? activeBtnClass : inactiveBtnClass;
       if (btnBracketScorecard) btnBracketScorecard.className = (mode === 'bracketScorecard') ? activeBtnClass : inactiveBtnClass;
       if (btnDoubleLifeBracket) btnDoubleLifeBracket.className = (mode === 'doubleLifeBracket') ? activeBtnClass : inactiveBtnClass;
+      if (btnDoubleLifeWinningLoser) btnDoubleLifeWinningLoser.className = (mode === 'doubleLifeWinningLoser') ? activeBtnClass : inactiveBtnClass;
       if (btnDoubleLifeScorecard) btnDoubleLifeScorecard.className = (mode === 'doubleLifeScorecard') ? activeBtnClass : inactiveBtnClass;
       if (btnSectionPlay) btnSectionPlay.className = (mode === 'sectionPlay') ? activeBtnClass : inactiveBtnClass;
       if (btnSectionPlayScorecard) btnSectionPlayScorecard.className = (mode === 'sectionPlayScorecard') ? activeBtnClass : inactiveBtnClass;
@@ -1137,7 +1142,7 @@
       if (mode === 'matrix') {
         renderScheduleMatrix();
         if (matrix) matrix.classList.remove('hidden');
-      } else if (mode === 'bracket' || mode === 'doubleLifeBracket' || mode === 'postSectionBracket') {
+      } else if (mode === 'bracket' || mode === 'doubleLifeBracket' || mode === 'doubleLifeWinningLoser' || mode === 'postSectionBracket') {
         renderKnockoutBracketView(mode);
         if (bracket) bracket.classList.remove('hidden');
       } else if (mode === 'bracketScorecard' || mode === 'doubleLifeScorecard' || mode === 'sectionPlayScorecard') {
@@ -1379,7 +1384,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 130,
+        version: 131,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2935,9 +2940,10 @@
 
       const activeView = viewOverride || state.viewMode;
       const isPostSection = (activeView === 'postSectionBracket');
+      const isWinningLoserFinal = (activeView === 'doubleLifeWinningLoser');
 
       // Use Life System from Match Preferences (or explicit doubleLife view)
-      const isDoubleLife = (activeView === 'doubleLifeBracket') || (state.selectedLifeSystem === 'doubleLife');
+      const isDoubleLife = (activeView === 'doubleLifeBracket') || isWinningLoserFinal || (state.selectedLifeSystem === 'doubleLife');
 
       let knockoutTeams = [];
       let ruleAppliedText = '';
@@ -3002,13 +3008,15 @@
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
       // Build Single Life (Main / Winners) Tree
-      const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', knockoutTeams, bracketSize, totalRounds);
+      const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', knockoutTeams, bracketSize, totalRounds, {
+        isWinningLoserFinal
+      });
 
       if (!isDoubleLife) {
         container.innerHTML = winnersBracketHTML;
       } else {
         // Build Losers (Double Life Elimination) Tree using the exact same bracketSize as Winners Bracket (Life #1)
-        const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', bracketSize, totalRounds);
+        const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', bracketSize, totalRounds, isWinningLoserFinal);
         container.innerHTML = `
           <div class="space-y-8">
             <div class="bg-slate-50/60 border border-slate-200 rounded-xl p-4">
@@ -3022,7 +3030,7 @@
             <div class="bg-purple-50/40 border border-purple-200/80 rounded-xl p-4">
               <h4 class="text-sm font-extrabold text-purple-900 uppercase tracking-wider mb-4 flex items-center space-x-2">
                 <i class="ph-bold ph-arrows-counter-clockwise text-purple-600"></i>
-                <span>Elimination Bracket (Life #2 - Losers of Winner Matches)</span>
+                <span>${isWinningLoserFinal ? 'Elimination Bracket (Life #2 - Winning Loser Returns to Grand Final)' : 'Elimination Bracket (Life #2 - Losers of Winner Matches)'}</span>
               </h4>
               ${losersBracketHTML}
             </div>
@@ -3032,10 +3040,11 @@
       requestAnimationFrame(updateBracketTopScrollbarWidth);
     }
 
-    function generateSingleBracketTree(title, teams, bracketSize, totalRounds) {
+    function generateSingleBracketTree(title, teams, bracketSize, totalRounds, options = {}) {
+      const isWinningLoserFinal = !!options.isWinningLoserFinal;
       const roundNames = [];
       for (let r = 1; r <= totalRounds; r++) {
-        if (r === totalRounds) roundNames.push('Grand Final');
+        if (r === totalRounds) roundNames.push(isWinningLoserFinal ? 'Winners Final' : 'Grand Final');
         else if (r === totalRounds - 1) roundNames.push('Semi-Finals');
         else if (r === totalRounds - 2) roundNames.push('Quarter-Finals');
         else roundNames.push(`Round ${r}`);
@@ -3193,6 +3202,42 @@
       const grandFinalMatch = roundMatches[roundMatches.length - 1]?.[0];
       const grandFinalId = grandFinalMatch ? grandFinalMatch.id : `R${totalRounds}-M1`;
 
+      if (isWinningLoserFinal) {
+        const losersRoundsCount = Math.max(1, totalRounds - 1);
+        treeHTML += `
+          <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
+            <div class="text-center font-extrabold text-xs uppercase tracking-wider text-amber-900 bg-amber-100/90 py-1.5 px-3 rounded-lg border border-amber-300 flex items-center justify-center space-x-1.5">
+              <i class="ph-bold ph-trophy text-amber-600"></i>
+              <span>Grand Final</span>
+            </div>
+            <div class="flex flex-col justify-around flex-1">
+              <div class="bg-white border-2 border-amber-300 rounded-xl shadow-2xs overflow-hidden">
+                <div class="bg-amber-50 text-[10px] font-bold text-amber-800 px-2.5 py-1 border-b border-amber-200 flex justify-between items-center">
+                  <span>Championship Final</span>
+                  <span class="text-amber-700 font-extrabold">1 Overall Winner</span>
+                </div>
+                <div class="p-2 space-y-1.5">
+                  <div class="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-200 text-slate-900 font-bold">
+                    <div class="min-w-0 pr-1.5">
+                      <div class="text-xs truncate">Winner ${grandFinalId}</div>
+                      <div class="text-[10px] font-medium text-slate-500 truncate">Winners Bracket Champion</div>
+                    </div>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-emerald-100 text-emerald-800 font-bold">Life #1</span>
+                  </div>
+                  <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/70 border border-purple-200 text-slate-900 font-bold">
+                    <div class="min-w-0 pr-1.5">
+                      <div class="text-xs truncate">Winner L${losersRoundsCount}-M1</div>
+                      <div class="text-[10px] font-medium text-purple-700 truncate">Elimination Bracket Winner</div>
+                    </div>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-200 text-purple-900 font-bold">Life #2</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
       treeHTML += `
         <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
           <div class="text-center font-extrabold text-xs uppercase tracking-wider text-amber-900 bg-amber-100/90 py-1.5 px-3 rounded-lg border border-amber-300 flex items-center justify-center space-x-1.5">
@@ -3208,7 +3253,7 @@
               <div class="p-2">
                 <div class="flex items-center justify-between p-2 rounded-lg bg-amber-50/70 border border-amber-200 text-amber-950 font-extrabold">
                   <div class="min-w-0 pr-1.5">
-                    <div class="text-xs truncate">Winner ${grandFinalId}</div>
+                    <div class="text-xs truncate">${isWinningLoserFinal ? 'Winner Grand Final' : `Winner ${grandFinalId}`}</div>
                     <div class="text-[10px] font-medium text-amber-700 truncate">Actual Winner</div>
                   </div>
                   <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-amber-500 text-white font-extrabold">
@@ -3225,7 +3270,7 @@
       return treeHTML;
     }
 
-    function generateDoubleLifeLosersTree(title, bracketSize, totalRounds) {
+    function generateDoubleLifeLosersTree(title, bracketSize, totalRounds, isWinningLoserFinal = false) {
       let treeHTML = `<div class="flex items-start space-x-6 min-w-max">`;
       const losersRounds = Math.max(1, totalRounds - 1);
       const initialLoserTeams = bracketSize / 2;
@@ -3263,6 +3308,36 @@
         }
 
         treeHTML += `
+            </div>
+          </div>
+        `;
+      }
+
+      if (isWinningLoserFinal) {
+        treeHTML += `
+          <div class="flex flex-col space-y-4 w-64 flex-shrink-0">
+            <div class="text-center font-extrabold text-xs uppercase tracking-wider text-amber-900 bg-amber-100/90 py-1.5 px-3 rounded-lg border border-amber-300 flex items-center justify-center space-x-1.5">
+              <i class="ph-bold ph-arrow-up-right text-amber-700"></i>
+              <span>Advances to Grand Final</span>
+            </div>
+            <div class="flex flex-col justify-around flex-1">
+              <div class="bg-white border-2 border-amber-300 rounded-xl shadow-2xs overflow-hidden">
+                <div class="bg-amber-50 text-[10px] font-bold text-amber-800 px-2.5 py-1 border-b border-amber-200 flex justify-between items-center">
+                  <span>Elimination Champion</span>
+                  <span class="text-purple-800 font-extrabold">Returns to Final</span>
+                </div>
+                <div class="p-2">
+                  <div class="flex items-center justify-between p-2 rounded-lg bg-purple-50/70 border border-purple-200 text-purple-950 font-extrabold">
+                    <div class="min-w-0 pr-1.5">
+                      <div class="text-xs truncate">Winner L${losersRounds}-M1</div>
+                      <div class="text-[10px] font-medium text-purple-700 truncate">Enters Grand Final (Above)</div>
+                    </div>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-600 text-white font-extrabold">
+                      FINALIST
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         `;
