@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v131
+              v133
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -436,7 +436,7 @@
               <i class="ph-bold ph-clipboard-text"></i> Knockout Brackets Scorecard
             </button>
             <button id="viewDoubleLifeBracketBtn" onclick="setScheduleView('doubleLifeBracket')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
-              <i class="ph-bold ph-arrows-counter-clockwise"></i> Knockout Brackets Double Life
+              <i class="ph-bold ph-arrows-counter-clockwise"></i> Knockout Brackets Double Life (losers go to a plate round)
             </button>
             <button id="viewDoubleLifeWinningLoserBtn" onclick="setScheduleView('doubleLifeWinningLoser')" class="px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
               <i class="ph-bold ph-arrows-counter-clockwise"></i> Knockout Brackets Double Life (winning loser returns to final)
@@ -647,7 +647,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 131 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 133 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -676,7 +676,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v131';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v133';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -752,7 +752,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 131,
+          version: 133,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1384,7 +1384,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 131,
+        version: 133,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -3018,17 +3018,22 @@
         // Build Losers (Double Life Elimination) Tree using the exact same bracketSize as Winners Bracket (Life #1)
         const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', bracketSize, totalRounds, isWinningLoserFinal);
         container.innerHTML = `
-          <div class="space-y-8">
+          <div class="space-y-8 w-max min-w-full">
             <div class="bg-slate-50/60 border border-slate-200 rounded-xl p-4">
-              <h4 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4 flex items-center space-x-2">
+              <h4 class="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4 flex items-center space-x-2 sticky left-4 w-fit">
                 <i class="ph-bold ph-trophy text-amber-500"></i>
                 <span>Winners Bracket (Life #1)</span>
               </h4>
               ${winnersBracketHTML}
             </div>
 
+            <!-- Middle Native Horizontal Scrollbar Between Winners & Losers Brackets (Same Length as Top & Bottom Scrollbars) -->
+            <div id="bracketMiddleScrollbar" class="overflow-x-auto sticky left-0" onscroll="syncBracketScroll('middle')">
+              <div id="bracketMiddleScrollbarInner" class="h-4"></div>
+            </div>
+
             <div class="bg-purple-50/40 border border-purple-200/80 rounded-xl p-4">
-              <h4 class="text-sm font-extrabold text-purple-900 uppercase tracking-wider mb-4 flex items-center space-x-2">
+              <h4 class="text-sm font-extrabold text-purple-900 uppercase tracking-wider mb-4 flex items-center space-x-2 sticky left-4 w-fit">
                 <i class="ph-bold ph-arrows-counter-clockwise text-purple-600"></i>
                 <span>${isWinningLoserFinal ? 'Elimination Bracket (Life #2 - Winning Loser Returns to Grand Final)' : 'Elimination Bracket (Life #2 - Losers of Winner Matches)'}</span>
               </h4>
@@ -3355,29 +3360,46 @@
     function syncBracketScroll(source) {
       if (isSyncingBracketScroll) return;
       const topEl = document.getElementById('bracketTopScrollbar');
+      const middleEl = document.getElementById('bracketMiddleScrollbar');
       const bottomEl = document.getElementById('bracketTreeContent');
       if (!topEl || !bottomEl) return;
 
       isSyncingBracketScroll = true;
+      let scrollPos = bottomEl.scrollLeft;
       if (source === 'top') {
-        bottomEl.scrollLeft = topEl.scrollLeft;
-      } else {
-        topEl.scrollLeft = bottomEl.scrollLeft;
+        scrollPos = topEl.scrollLeft;
+      } else if (source === 'middle' && middleEl) {
+        scrollPos = middleEl.scrollLeft;
       }
-      requestAnimationFrame(() => {
-        isSyncingBracketScroll = false;
-      });
+
+      if (source !== 'top') topEl.scrollLeft = scrollPos;
+      if (middleEl && source !== 'middle') middleEl.scrollLeft = scrollPos;
+      if (source !== 'bottom') bottomEl.scrollLeft = scrollPos;
+
+      isSyncingBracketScroll = false;
     }
 
     function updateBracketTopScrollbarWidth() {
       const topEl = document.getElementById('bracketTopScrollbar');
       const topInner = document.getElementById('bracketTopScrollbarInner');
+      const middleEl = document.getElementById('bracketMiddleScrollbar');
+      const middleInner = document.getElementById('bracketMiddleScrollbarInner');
       const bottomEl = document.getElementById('bracketTreeContent');
       if (!topEl || !topInner || !bottomEl) return;
 
       const fullWidth = bottomEl.scrollWidth;
+      const visibleWidth = bottomEl.clientWidth;
+      const isOverflowing = fullWidth > visibleWidth;
+
       topInner.style.width = fullWidth + 'px';
-      topEl.style.display = fullWidth > bottomEl.clientWidth ? 'block' : 'none';
+      topEl.style.display = isOverflowing ? 'block' : 'none';
+
+      if (middleEl && middleInner) {
+        middleEl.style.width = visibleWidth + 'px';
+        middleInner.style.width = fullWidth + 'px';
+        middleEl.style.display = isOverflowing ? 'block' : 'none';
+      }
+
       syncBracketScroll('bottom');
     }
 
