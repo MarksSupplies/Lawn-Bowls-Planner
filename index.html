@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v137
+              v138
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -342,8 +342,8 @@
                   <span id="estimatedGameTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
                 </div>
               </div>
-              <div id="singlesDurationNote" class="hidden text-[11px] font-medium text-emerald-900 leading-snug">
-                Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (or use a 2 hr timer).
+              <div id="singlesDurationNote" class="hidden text-[11px] font-medium text-emerald-900 leading-snug border-t border-emerald-200/60 pt-1">
+                Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, the following timings are based on 2 hour games)
               </div>
             </div>
           </div>
@@ -693,7 +693,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 137 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 138 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -722,7 +722,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v137';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v138';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -798,7 +798,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 137,
+          version: 138,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1434,7 +1434,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 137,
+        version: 138,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1590,19 +1590,30 @@
       const standardWrapper = document.getElementById('standardDurationWrapper');
       const singlesNote = document.getElementById('singlesDurationNote');
 
-      if (state.selectedFormat === 'singles') {
-        if (standardWrapper) standardWrapper.classList.add('hidden');
-        if (singlesNote) singlesNote.classList.remove('hidden');
-        return;
-      } else {
-        if (standardWrapper) standardWrapper.classList.remove('hidden');
-        if (singlesNote) singlesNote.classList.add('hidden');
-      }
+      if (standardWrapper) standardWrapper.classList.remove('hidden');
 
       const rounds = state.selectedRounds || 3;
       const ends = state.selectedEnds || 8;
-      
-      const gameMinutes = ends * 10;
+      let gameMinutes = 0;
+
+      if (state.selectedFormat === 'singles') {
+        if (singlesNote) singlesNote.classList.remove('hidden');
+        gameMinutes = 120; // Each singles game lasts 2 hours
+      } else {
+        if (singlesNote) singlesNote.classList.add('hidden');
+        let minutesPerEnd = 10;
+        if (state.selectedFormat === 'twoBowlPairs') {
+          minutesPerEnd = 8;
+        } else if (state.selectedFormat === 'twoBowlTriples') {
+          minutesPerEnd = 7;
+        } else if (state.selectedFormat === 'threeBowlTriples') {
+          minutesPerEnd = 10;
+        } else if (state.selectedFormat === 'fours') {
+          minutesPerEnd = 10;
+        }
+        gameMinutes = ends * minutesPerEnd;
+      }
+
       const totalMatchMinutes = rounds * gameMinutes;
 
       const formattedMatchTime = formatDurationString(totalMatchMinutes);
