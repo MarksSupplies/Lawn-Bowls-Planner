@@ -43,7 +43,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v133
+              v134
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -647,7 +647,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 133 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 134 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -676,7 +676,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v133';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v134';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -752,7 +752,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 133,
+          version: 134,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1248,7 +1248,7 @@
     }
 
     function onLifeSystemChange() {
-      if (state.selectedTournamentFormat === 'roundRobin' || state.selectedTournamentFormat === 'sectionKnockout') return;
+      if (state.selectedTournamentFormat === 'roundRobin') return;
       const lifeSysEl = document.getElementById('lifeSystemSelect');
       if (lifeSysEl) {
         state.selectedLifeSystem = lifeSysEl.value;
@@ -1384,7 +1384,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 133,
+        version: 134,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2940,10 +2940,18 @@
 
       const activeView = viewOverride || state.viewMode;
       const isPostSection = (activeView === 'postSectionBracket');
-      const isWinningLoserFinal = (activeView === 'doubleLifeWinningLoser');
+      const lifeSys = state.selectedLifeSystem || 'singleLife';
 
-      // Use Life System from Match Preferences (or explicit doubleLife view)
-      const isDoubleLife = (activeView === 'doubleLifeBracket') || isWinningLoserFinal || (state.selectedLifeSystem === 'doubleLife');
+      // Determine Double Life & Winning-Loser-Final modes:
+      // For Post Section Play Knockout Brackets, adapt strictly to the selected Life System.
+      // For all other views, preserve existing behavior unchanged.
+      const isWinningLoserFinal = isPostSection
+        ? (lifeSys === 'doubleLife')
+        : (activeView === 'doubleLifeWinningLoser');
+
+      const isDoubleLife = isPostSection
+        ? (lifeSys === 'doubleLife' || lifeSys === 'doubleLifePlate')
+        : ((activeView === 'doubleLifeBracket') || isWinningLoserFinal || (lifeSys === 'doubleLife'));
 
       let knockoutTeams = [];
       let ruleAppliedText = '';
@@ -2980,8 +2988,13 @@
       if (badge) {
         if (isPostSection) {
           const transitionLabel = state.selectedSectionBracketTransition === 'seeded' ? 'Seeded Draw' : 'Random Draw';
-          badge.innerText = `Post Section Qualifiers • ${transitionLabel}`;
-          badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
+          const lifeBadgeLabel = lifeSys === 'doubleLife'
+            ? 'Double Life (Final Return)'
+            : (lifeSys === 'doubleLifePlate' ? 'Double Life (Plate)' : 'Single Life');
+          badge.innerText = `Post Section Qualifiers • ${transitionLabel} • ${lifeBadgeLabel}`;
+          badge.className = isDoubleLife
+            ? 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300'
+            : 'text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
         } else if (isDoubleLife) {
           badge.innerText = `Double Life • ${ruleAppliedText} (${totalTeams} Teams)`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300';
@@ -2993,7 +3006,8 @@
 
       if (heading) {
         if (isPostSection) {
-          heading.innerText = `Post Section Play Knockout Bracket (${totalTeams} Qualifiers)`;
+          const lifeHeadingLabel = isDoubleLife ? 'Double Life' : 'Single Life';
+          heading.innerText = `Post Section Play Knockout Bracket (${totalTeams} Qualifiers - ${lifeHeadingLabel})`;
         } else {
           heading.innerText = `${totalTeams}-Team Knockout Bracket (${isDoubleLife ? 'Double Life' : 'Single Life'})`;
         }
@@ -3461,8 +3475,8 @@
 
       const lifeSysEl = document.getElementById('lifeSystemSelect');
       if (lifeSysEl) {
-        lifeSysEl.disabled = (isRoundRobin || isSectionKnockout);
-        lifeSysEl.className = (isRoundRobin || isSectionKnockout) ? disabledControlClass : enabledControlClass;
+        lifeSysEl.disabled = isRoundRobin;
+        lifeSysEl.className = isRoundRobin ? disabledControlClass : enabledControlClass;
       }
 
       const sectionSizeEl = document.getElementById('sectionSizeSelect');
