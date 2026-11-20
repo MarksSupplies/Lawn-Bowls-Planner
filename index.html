@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v139
+              v140
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -701,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 139 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 140 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v139';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v140';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -806,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 139,
+          version: 140,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1442,7 +1442,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 139,
+        version: 140,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1594,6 +1594,14 @@
       }
     }
 
+    function getTeamFormatMinutesPerEnd(formatKey) {
+      if (formatKey === 'twoBowlPairs') return 8;
+      if (formatKey === 'twoBowlTriples') return 7;
+      if (formatKey === 'threeBowlTriples') return 10;
+      if (formatKey === 'fours') return 10;
+      return 10;
+    }
+
     function updateEstimatedMatchTime() {
       const standardWrapper = document.getElementById('standardDurationWrapper');
       const singlesNote = document.getElementById('singlesDurationNote');
@@ -1604,57 +1612,119 @@
 
       if (standardWrapper) standardWrapper.classList.remove('hidden');
 
-      if (state.selectedTournamentFormat !== 'roundRobin') {
-        if (singlesNote) singlesNote.classList.add('hidden');
-        if (matchDisplayEl) matchDisplayEl.innerText = '--';
-        if (gameDisplayEl) gameDisplayEl.innerText = '--';
+      const tFormat = state.selectedTournamentFormat;
+      const ends = state.selectedEnds || 8;
+
+      if (tFormat === 'roundRobin') {
+        const rounds = state.selectedRounds || 3;
+        let gameMinutes = 0;
+
+        if (state.selectedFormat === 'singles') {
+          if (singlesNote) singlesNote.classList.remove('hidden');
+          gameMinutes = 120; // Each singles game lasts 2 hours
+        } else {
+          if (singlesNote) singlesNote.classList.add('hidden');
+          const minutesPerEnd = getTeamFormatMinutesPerEnd(state.selectedFormat);
+          gameMinutes = ends * minutesPerEnd;
+        }
+
+        const totalMatchMinutes = rounds * gameMinutes;
+
+        if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+        if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
         if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
         if (knockoutDisplayEl) knockoutDisplayEl.innerText = '--';
         return;
       }
 
-      const rounds = state.selectedRounds || 3;
-      const ends = state.selectedEnds || 8;
-      let gameMinutes = 0;
-
-      if (state.selectedFormat === 'singles') {
-        if (singlesNote) singlesNote.classList.remove('hidden');
-        gameMinutes = 120; // Each singles game lasts 2 hours
-      } else {
-        if (singlesNote) singlesNote.classList.add('hidden');
-        let minutesPerEnd = 10;
-        if (state.selectedFormat === 'twoBowlPairs') {
-          minutesPerEnd = 8;
-        } else if (state.selectedFormat === 'twoBowlTriples') {
-          minutesPerEnd = 7;
-        } else if (state.selectedFormat === 'threeBowlTriples') {
-          minutesPerEnd = 10;
-        } else if (state.selectedFormat === 'fours') {
-          minutesPerEnd = 10;
+      if (tFormat === 'knockout') {
+        const distResult = calculateKnockoutTeamDistribution();
+        const totalTeams = Math.max(2, distResult.teams.length);
+        let bracketSize = 2;
+        while (bracketSize < totalTeams) {
+          bracketSize *= 2;
         }
-        gameMinutes = ends * minutesPerEnd;
+        const bracketRounds = Math.ceil(Math.log2(bracketSize));
+
+        if (state.selectedFormat === 'singles') {
+          if (singlesNote) singlesNote.classList.remove('hidden');
+          const gameMinutes = 120;
+          const totalMatchMinutes = gameMinutes * bracketRounds;
+
+          if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+          if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (knockoutDisplayEl) knockoutDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+        } else if (
+          state.selectedFormat === 'twoBowlPairs' ||
+          state.selectedFormat === 'twoBowlTriples' ||
+          state.selectedFormat === 'threeBowlTriples' ||
+          state.selectedFormat === 'fours'
+        ) {
+          if (singlesNote) singlesNote.classList.add('hidden');
+          const minutesPerEnd = getTeamFormatMinutesPerEnd(state.selectedFormat);
+          const gameMinutes = minutesPerEnd * ends;
+          const totalMatchMinutes = gameMinutes * bracketRounds;
+
+          if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+          if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (knockoutDisplayEl) knockoutDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+        } else {
+          if (singlesNote) singlesNote.classList.add('hidden');
+          if (matchDisplayEl) matchDisplayEl.innerText = '--';
+          if (gameDisplayEl) gameDisplayEl.innerText = '--';
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (knockoutDisplayEl) knockoutDisplayEl.innerText = '--';
+        }
+        return;
       }
 
-      const totalMatchMinutes = rounds * gameMinutes;
+      if (tFormat === 'sectionKnockout') {
+        if (singlesNote) singlesNote.classList.add('hidden');
 
-      const formattedMatchTime = formatDurationString(totalMatchMinutes);
-      const formattedGameTime = formatDurationString(gameMinutes);
+        if (
+          state.selectedFormat === 'twoBowlPairs' ||
+          state.selectedFormat === 'twoBowlTriples' ||
+          state.selectedFormat === 'threeBowlTriples' ||
+          state.selectedFormat === 'fours'
+        ) {
+          // Calculate the quantity of Rounds (including Quarter Final, Semi Final & Grand Final) in Post Section Play Knockout Brackets
+          const sectionTeamsList = calculateSectionPlayTeams();
+          const allTeamsCount = sectionTeamsList.length;
+          const sectionSize = resolveEffectiveSectionSize(allTeamsCount);
+          const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
+          const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
+          const numSections = Math.max(1, Math.ceil(allTeamsCount / sectionSize));
+          const { targetTotalSpots } = calculateAdjustedSectionQualifyingSpots(allTeamsCount, numSections, qualCount);
 
-      if (matchDisplayEl) {
-        matchDisplayEl.innerText = formattedMatchTime;
+          let postSectionBracketSize = 2;
+          while (postSectionBracketSize < Math.max(2, targetTotalSpots)) {
+            postSectionBracketSize *= 2;
+          }
+          const postSectionBracketRounds = Math.ceil(Math.log2(postSectionBracketSize));
+          const minutesPerEnd = getTeamFormatMinutesPerEnd(state.selectedFormat);
+          const gameMinutes = minutesPerEnd * ends;
+          const totalMatchMinutes = gameMinutes * postSectionBracketRounds;
+
+          if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+          if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (knockoutDisplayEl) knockoutDisplayEl.innerText = formatDurationString(totalMatchMinutes);
+        } else {
+          if (matchDisplayEl) matchDisplayEl.innerText = '--';
+          if (gameDisplayEl) gameDisplayEl.innerText = '--';
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (knockoutDisplayEl) knockoutDisplayEl.innerText = '--';
+        }
+        return;
       }
 
-      if (gameDisplayEl) {
-        gameDisplayEl.innerText = formattedGameTime;
-      }
-
-      if (sectionPlayDisplayEl) {
-        sectionPlayDisplayEl.innerText = '--';
-      }
-
-      if (knockoutDisplayEl) {
-        knockoutDisplayEl.innerText = '--';
-      }
+      if (singlesNote) singlesNote.classList.add('hidden');
+      if (matchDisplayEl) matchDisplayEl.innerText = '--';
+      if (gameDisplayEl) gameDisplayEl.innerText = '--';
+      if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+      if (knockoutDisplayEl) knockoutDisplayEl.innerText = '--';
     }
 
     function updateRosterCell(teamIdx, posIdx, val) {
