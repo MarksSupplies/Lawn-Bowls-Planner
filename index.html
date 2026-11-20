@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v138
+              v139
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -340,6 +340,14 @@
                 <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-1">
                   <span>Per Game:</span>
                   <span id="estimatedGameTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-1">
+                  <span>Section Play:</span>
+                  <span id="estimatedSectionPlayTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px] font-semibold text-emerald-800/90 border-t border-emerald-200/60 pt-1">
+                  <span>Knockout Bracket:</span>
+                  <span id="estimatedKnockoutTimeDisplay" class="font-bold text-emerald-700 ml-1">--</span>
                 </div>
               </div>
               <div id="singlesDurationNote" class="hidden text-[11px] font-medium text-emerald-900 leading-snug border-t border-emerald-200/60 pt-1">
@@ -693,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 138 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 139 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -722,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v138';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v139';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -798,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 138,
+          version: 139,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1434,7 +1442,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 138,
+        version: 139,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1589,8 +1597,21 @@
     function updateEstimatedMatchTime() {
       const standardWrapper = document.getElementById('standardDurationWrapper');
       const singlesNote = document.getElementById('singlesDurationNote');
+      const matchDisplayEl = document.getElementById('estimatedMatchTimeDisplay');
+      const gameDisplayEl = document.getElementById('estimatedGameTimeDisplay');
+      const sectionPlayDisplayEl = document.getElementById('estimatedSectionPlayTimeDisplay');
+      const knockoutDisplayEl = document.getElementById('estimatedKnockoutTimeDisplay');
 
       if (standardWrapper) standardWrapper.classList.remove('hidden');
+
+      if (state.selectedTournamentFormat !== 'roundRobin') {
+        if (singlesNote) singlesNote.classList.add('hidden');
+        if (matchDisplayEl) matchDisplayEl.innerText = '--';
+        if (gameDisplayEl) gameDisplayEl.innerText = '--';
+        if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+        if (knockoutDisplayEl) knockoutDisplayEl.innerText = '--';
+        return;
+      }
 
       const rounds = state.selectedRounds || 3;
       const ends = state.selectedEnds || 8;
@@ -1619,14 +1640,20 @@
       const formattedMatchTime = formatDurationString(totalMatchMinutes);
       const formattedGameTime = formatDurationString(gameMinutes);
 
-      const matchDisplayEl = document.getElementById('estimatedMatchTimeDisplay');
       if (matchDisplayEl) {
         matchDisplayEl.innerText = formattedMatchTime;
       }
 
-      const gameDisplayEl = document.getElementById('estimatedGameTimeDisplay');
       if (gameDisplayEl) {
         gameDisplayEl.innerText = formattedGameTime;
+      }
+
+      if (sectionPlayDisplayEl) {
+        sectionPlayDisplayEl.innerText = '--';
+      }
+
+      if (knockoutDisplayEl) {
+        knockoutDisplayEl.innerText = '--';
       }
     }
 
