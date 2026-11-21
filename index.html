@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v140
+              v141
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -351,7 +351,7 @@
                 </div>
               </div>
               <div id="singlesDurationNote" class="hidden text-[11px] font-medium text-emerald-900 leading-snug border-t border-emerald-200/60 pt-1">
-                Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, the following timings are based on 2 hour games)
+                Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, however the above timings are broad estimates only, based on the number of points selected for a singles win)
               </div>
             </div>
           </div>
@@ -701,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 140 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 141 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v140';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v141';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -806,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 140,
+          version: 141,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1348,6 +1348,7 @@
       const parsed = parseInt(val, 10);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 50) {
         state.singlesRaceTo = parsed;
+        updateEstimatedMatchTime();
         saveAppStateToLocalStorage();
       }
     }
@@ -1359,6 +1360,7 @@
       if (parsed > 50) parsed = 50;
       inputEl.value = parsed;
       state.singlesRaceTo = parsed;
+      updateEstimatedMatchTime();
       saveAppStateToLocalStorage();
     }
 
@@ -1442,7 +1444,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 140,
+        version: 141,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1618,17 +1620,23 @@
       if (tFormat === 'roundRobin') {
         const rounds = state.selectedRounds || 3;
         let gameMinutes = 0;
+        let totalMatchMinutes = 0;
 
         if (state.selectedFormat === 'singles') {
-          if (singlesNote) singlesNote.classList.remove('hidden');
-          gameMinutes = 120; // Each singles game lasts 2 hours
+          if (singlesNote) {
+            singlesNote.innerHTML = 'Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, however the above timings are broad estimates only, based on the number of points selected for a singles win)';
+            singlesNote.classList.remove('hidden');
+          }
+          const raceToPoints = state.singlesRaceTo || 21;
+          const rawGameMinutes = 5.714 * raceToPoints;
+          gameMinutes = Math.round(rawGameMinutes);
+          totalMatchMinutes = Math.round(rawGameMinutes * rounds);
         } else {
           if (singlesNote) singlesNote.classList.add('hidden');
           const minutesPerEnd = getTeamFormatMinutesPerEnd(state.selectedFormat);
           gameMinutes = ends * minutesPerEnd;
+          totalMatchMinutes = rounds * gameMinutes;
         }
-
-        const totalMatchMinutes = rounds * gameMinutes;
 
         if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
         if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
@@ -1647,9 +1655,14 @@
         const bracketRounds = Math.ceil(Math.log2(bracketSize));
 
         if (state.selectedFormat === 'singles') {
-          if (singlesNote) singlesNote.classList.remove('hidden');
-          const gameMinutes = 120;
-          const totalMatchMinutes = gameMinutes * bracketRounds;
+          if (singlesNote) {
+            singlesNote.innerHTML = 'Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, however the above timings are broad estimates only, based on the number of points selected for a singles win)';
+            singlesNote.classList.remove('hidden');
+          }
+          const raceToPoints = state.singlesRaceTo || 21;
+          const rawGameMinutes = 5.714 * raceToPoints;
+          const gameMinutes = Math.round(rawGameMinutes);
+          const totalMatchMinutes = Math.round(rawGameMinutes * bracketRounds);
 
           if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
           if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
@@ -1681,28 +1694,42 @@
       }
 
       if (tFormat === 'sectionKnockout') {
-        if (singlesNote) singlesNote.classList.add('hidden');
+        // Calculate the quantity of Rounds (including Quarter Final, Semi Final & Grand Final) in Post Section Play Knockout Brackets
+        const sectionTeamsList = calculateSectionPlayTeams();
+        const allTeamsCount = sectionTeamsList.length;
+        const sectionSize = resolveEffectiveSectionSize(allTeamsCount);
+        const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
+        const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
+        const numSections = Math.max(1, Math.ceil(allTeamsCount / sectionSize));
+        const { targetTotalSpots } = calculateAdjustedSectionQualifyingSpots(allTeamsCount, numSections, qualCount);
 
-        if (
+        let postSectionBracketSize = 2;
+        while (postSectionBracketSize < Math.max(2, targetTotalSpots)) {
+          postSectionBracketSize *= 2;
+        }
+        const postSectionBracketRounds = Math.ceil(Math.log2(postSectionBracketSize));
+
+        if (state.selectedFormat === 'singles') {
+          if (singlesNote) {
+            singlesNote.innerHTML = 'Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, however the above timings are broad estimates only, based on the number of points selected for a singles win)';
+            singlesNote.classList.remove('hidden');
+          }
+          const raceToPoints = state.singlesRaceTo || 21;
+          const rawGameMinutes = 5.714 * raceToPoints;
+          const gameMinutes = Math.round(rawGameMinutes);
+          const knockoutBracketMinutes = Math.round(rawGameMinutes * postSectionBracketRounds);
+
+          if (matchDisplayEl) matchDisplayEl.innerText = '--';
+          if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (knockoutDisplayEl) knockoutDisplayEl.innerText = formatDurationString(knockoutBracketMinutes);
+        } else if (
           state.selectedFormat === 'twoBowlPairs' ||
           state.selectedFormat === 'twoBowlTriples' ||
           state.selectedFormat === 'threeBowlTriples' ||
           state.selectedFormat === 'fours'
         ) {
-          // Calculate the quantity of Rounds (including Quarter Final, Semi Final & Grand Final) in Post Section Play Knockout Brackets
-          const sectionTeamsList = calculateSectionPlayTeams();
-          const allTeamsCount = sectionTeamsList.length;
-          const sectionSize = resolveEffectiveSectionSize(allTeamsCount);
-          const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
-          const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
-          const numSections = Math.max(1, Math.ceil(allTeamsCount / sectionSize));
-          const { targetTotalSpots } = calculateAdjustedSectionQualifyingSpots(allTeamsCount, numSections, qualCount);
-
-          let postSectionBracketSize = 2;
-          while (postSectionBracketSize < Math.max(2, targetTotalSpots)) {
-            postSectionBracketSize *= 2;
-          }
-          const postSectionBracketRounds = Math.ceil(Math.log2(postSectionBracketSize));
+          if (singlesNote) singlesNote.classList.add('hidden');
           const minutesPerEnd = getTeamFormatMinutesPerEnd(state.selectedFormat);
           const gameMinutes = minutesPerEnd * ends;
           const totalMatchMinutes = gameMinutes * postSectionBracketRounds;
@@ -1712,6 +1739,7 @@
           if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
           if (knockoutDisplayEl) knockoutDisplayEl.innerText = formatDurationString(totalMatchMinutes);
         } else {
+          if (singlesNote) singlesNote.classList.add('hidden');
           if (matchDisplayEl) matchDisplayEl.innerText = '--';
           if (gameDisplayEl) gameDisplayEl.innerText = '--';
           if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
