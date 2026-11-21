@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v141
+              v142
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -701,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 141 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 142 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v141';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v142';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -806,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 141,
+          version: 142,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1444,7 +1444,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 141,
+        version: 142,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1709,6 +1709,12 @@
         }
         const postSectionBracketRounds = Math.ceil(Math.log2(postSectionBracketSize));
 
+        // Calculate the quantity of TEAMS in the largest section in Section Play
+        const baseSectionSize = Math.floor(allTeamsCount / numSections);
+        const extraTeams = allTeamsCount % numSections;
+        const largestSectionTeamsCount = baseSectionSize + (extraTeams > 0 ? 1 : 0);
+        const sectionGamesMultiplier = Math.max(0, largestSectionTeamsCount - 1);
+
         if (state.selectedFormat === 'singles') {
           if (singlesNote) {
             singlesNote.innerHTML = 'Singles: first to 21 points typically lasts <span class="font-bold">1.5 - 2.5 hours</span> (using a 2 hr timer is recommended, however the above timings are broad estimates only, based on the number of points selected for a singles win)';
@@ -1717,11 +1723,13 @@
           const raceToPoints = state.singlesRaceTo || 21;
           const rawGameMinutes = 5.714 * raceToPoints;
           const gameMinutes = Math.round(rawGameMinutes);
+          const sectionPlayMinutes = Math.round(rawGameMinutes * sectionGamesMultiplier);
           const knockoutBracketMinutes = Math.round(rawGameMinutes * postSectionBracketRounds);
+          const totalMatchMinutes = sectionPlayMinutes + knockoutBracketMinutes;
 
-          if (matchDisplayEl) matchDisplayEl.innerText = '--';
+          if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
           if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
-          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = '--';
+          if (sectionPlayDisplayEl) sectionPlayDisplayEl.innerText = formatDurationString(sectionPlayMinutes);
           if (knockoutDisplayEl) knockoutDisplayEl.innerText = formatDurationString(knockoutBracketMinutes);
         } else if (
           state.selectedFormat === 'twoBowlPairs' ||
