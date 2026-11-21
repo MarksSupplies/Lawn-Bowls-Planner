@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v143
+              v144
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -701,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 143 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 144 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v143';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v144';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -806,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 143,
+          version: 144,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1311,7 +1311,7 @@
       if (lifeSysEl) {
         state.selectedLifeSystem = lifeSysEl.value;
         saveAppStateToLocalStorage();
-        renderKnockoutBracketView(state.viewMode);
+        updateUI();
       }
     }
 
@@ -1444,7 +1444,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 143,
+        version: 144,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1652,7 +1652,9 @@
         while (bracketSize < totalTeams) {
           bracketSize *= 2;
         }
-        const bracketRounds = Math.ceil(Math.log2(bracketSize));
+        const baseBracketRounds = Math.ceil(Math.log2(bracketSize));
+        const isWinningLoserFinalActive = (state.selectedLifeSystem === 'doubleLife');
+        const bracketRounds = baseBracketRounds + (isWinningLoserFinalActive ? 1 : 0);
 
         if (state.selectedFormat === 'singles') {
           if (singlesNote) {
@@ -1694,7 +1696,7 @@
       }
 
       if (tFormat === 'sectionKnockout') {
-        // Calculate the quantity of Rounds (including Quarter Final, Semi Final & Grand Final) in Post Section Play Knockout Brackets
+        // Calculate the quantity of Rounds (including Quarter Final, Semi Final, Winners Final & Grand Final) in Post Section Play Knockout Brackets
         const sectionTeamsList = calculateSectionPlayTeams();
         const allTeamsCount = sectionTeamsList.length;
         const sectionSize = resolveEffectiveSectionSize(allTeamsCount);
@@ -1707,7 +1709,9 @@
         while (postSectionBracketSize < Math.max(2, targetTotalSpots)) {
           postSectionBracketSize *= 2;
         }
-        const postSectionBracketRounds = Math.ceil(Math.log2(postSectionBracketSize));
+        const basePostSectionRounds = Math.ceil(Math.log2(postSectionBracketSize));
+        const isWinningLoserFinalActive = (state.selectedLifeSystem === 'doubleLife');
+        const postSectionBracketRounds = basePostSectionRounds + (isWinningLoserFinalActive ? 1 : 0);
 
         // Calculate the quantity of TEAMS in the largest section in Section Play
         const baseSectionSize = Math.floor(allTeamsCount / numSections);
@@ -1742,7 +1746,7 @@
           const gameMinutes = minutesPerEnd * ends;
           const sectionPlayMinutes = minutesPerEnd * ends * sectionGamesMultiplier;
           const knockoutBracketMinutes = gameMinutes * postSectionBracketRounds;
-          const totalMatchMinutes = sectionPlayMinutes + knockoutBracketMinutes;
+          const totalMatchMinutes = knockoutBracketMinutes;
 
           if (matchDisplayEl) matchDisplayEl.innerText = formatDurationString(totalMatchMinutes);
           if (gameDisplayEl) gameDisplayEl.innerText = formatDurationString(gameMinutes);
