@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v144
+              v145
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -701,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 144 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 145 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v144';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v145';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -806,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 144,
+          version: 145,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1444,7 +1444,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 144,
+        version: 145,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2253,8 +2253,8 @@
       saveAppStateToLocalStorage();
     }
 
-    function buildTeamScorecardHTML(teamLabel) {
-      const matchCount = state.selectedRounds || 3;
+    function buildTeamScorecardHTML(teamLabel, customMatchCount = null) {
+      const matchCount = customMatchCount !== null ? customMatchCount : (state.selectedRounds || 3);
       let rowsHTML = '';
       let sumEnds = 0;
       let sumPtsFor = 0;
@@ -2798,6 +2798,203 @@
     }
 
     // --- MODE SCORECARDS ENGINE (Knockout, Double Life, Section Play Scorecards) ---
+    function getBracketSeedingOrderForSize(size) {
+      let rounds = Math.log2(size) - 1;
+      let seeds = [1, 2];
+      for (let i = 0; i < rounds; i++) {
+        let nextSeeds = [];
+        for (let j = 0; j < seeds.length; j++) {
+          nextSeeds.push(seeds[j]);
+          nextSeeds.push(2 * seeds.length + 1 - seeds[j]);
+        }
+        seeds = nextSeeds;
+      }
+      return seeds;
+    }
+
+    function buildKnockoutBracketTeamScheduleMap(knockoutTeams, bracketSize, totalRounds) {
+      const seedOrder = getBracketSeedingOrderForSize(bracketSize);
+      const seededSlots = seedOrder.map(seedNum => {
+        const teamIdx = seedNum - 1;
+        return teamIdx < knockoutTeams.length ? knockoutTeams[teamIdx] : { label: 'BYE', isBye: true };
+      });
+
+      const roundNames = [];
+      for (let r = 1; r <= totalRounds; r++) {
+        if (r === totalRounds) roundNames.push('Grand Final');
+        else if (r === totalRounds - 1) roundNames.push('Semi-Finals');
+        else if (r === totalRounds - 2) roundNames.push('Quarter-Finals');
+        else roundNames.push(`Round ${r}`);
+      }
+
+      const teamRoundStatus = {};
+      knockoutTeams.forEach(t => {
+        teamRoundStatus[t.label] = {};
+      });
+
+      let currentMatchCount = bracketSize / 2;
+      for (let r = 0; r < totalRounds; r++) {
+        const roundNum = r + 1;
+        const rName = roundNames[r];
+        for (let m = 0; m < currentMatchCount; m++) {
+          const matchId = `R${roundNum}-M${m + 1}`;
+          if (r === 0) {
+            const slotA = seededSlots[m * 2];
+            const slotB = seededSlots[m * 2 + 1];
+            if (!slotA.isBye && slotB.isBye) {
+              teamRoundStatus[slotA.label][roundNum] = { status: 'BYE', detail: `${rName} (${matchId} Auto-Advance)` };
+            } else if (slotA.isBye && !slotB.isBye) {
+              teamRoundStatus[slotB.label][roundNum] = { status: 'BYE', detail: `${rName} (${matchId} Auto-Advance)` };
+            } else if (!slotA.isBye && !slotB.isBye) {
+              teamRoundStatus[slotA.label][roundNum] = { status: matchId, detail: `${rName} vs ${slotB.label}` };
+              teamRoundStatus[slotB.label][roundNum] = { status: matchId, detail: `${rName} vs ${slotA.label}` };
+            }
+          }
+        }
+        currentMatchCount /= 2;
+      }
+
+      return { teamRoundStatus, roundNames };
+    }
+
+    function buildKnockoutBracketTeamScorecardHTML(teamLabel, totalRounds, teamRoundInfo) {
+      let rowsHTML = '';
+      let sumEnds = 0;
+      let sumPtsFor = 0;
+      let sumPtsAgst = 0;
+      let sumMatchPts = 0;
+      let hasEnds = false;
+      let hasPtsFor = false;
+      let hasPtsAgst = false;
+      let hasOutcomes = false;
+
+      let winPoints = 3;
+      let drawPoints = 1;
+      if (state.selectedMatchPoints === '4_2') {
+        winPoints = 4;
+        drawPoints = 2;
+      } else if (state.selectedMatchPoints === '2_1') {
+        winPoints = 2;
+        drawPoints = 1;
+      }
+
+      const storeKeyPrefix = `KO_SC_${teamLabel}`;
+
+      for (let m = 1; m <= totalRounds; m++) {
+        const roundInfo = teamRoundInfo && teamRoundInfo[m] ? teamRoundInfo[m] : null;
+        const slotDisplay = roundInfo ? roundInfo.status : `R${m}`;
+
+        const matchData = (matchResultStore[storeKeyPrefix] && matchResultStore[storeKeyPrefix][m]) || { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
+        const currentVal = matchData.outcome || '';
+
+        if (currentVal) {
+          hasOutcomes = true;
+          if (currentVal === 'W') sumMatchPts += winPoints;
+          else if (currentVal === 'D') sumMatchPts += drawPoints;
+        }
+
+        if (matchData.ends !== '') {
+          sumEnds += parseInt(matchData.ends, 10) || 0;
+          hasEnds = true;
+        }
+        if (matchData.ptsFor !== '') {
+          sumPtsFor += parseInt(matchData.ptsFor, 10) || 0;
+          hasPtsFor = true;
+        }
+        if (matchData.ptsAgainst !== '') {
+          sumPtsAgst += parseInt(matchData.ptsAgainst, 10) || 0;
+          hasPtsAgst = true;
+        }
+
+        const wClass = currentVal === 'W'
+          ? 'bg-emerald-600 text-white font-extrabold shadow-xs'
+          : 'bg-slate-100 text-slate-500 hover:bg-emerald-100 hover:text-emerald-800 font-semibold';
+        const dClass = currentVal === 'D'
+          ? 'bg-amber-500 text-white font-extrabold shadow-xs'
+          : 'bg-slate-100 text-slate-500 hover:bg-amber-100 hover:text-amber-800 font-semibold';
+        const lClass = currentVal === 'L'
+          ? 'bg-rose-600 text-white font-extrabold shadow-xs'
+          : 'bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-800 font-semibold';
+
+        const safeLabel = storeKeyPrefix.replace(/\s+/g, '_');
+
+        rowsHTML += `
+          <tr>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-semibold bg-slate-50 text-[10px] sm:text-xs">${m}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-extrabold text-emerald-700 text-[10px] sm:text-xs">${slotDisplay}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <div class="inline-flex items-center space-x-0.5 sm:space-x-1 justify-center">
+                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'W')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${wClass}">W</button>
+                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'D')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${dClass}">D</button>
+                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'L')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${lClass}">L</button>
+              </div>
+            </td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <input type="text" inputmode="numeric" pattern="[0-9]*"
+                id="scorecard_input_${safeLabel}_${m}_ends"
+                data-team="${storeKeyPrefix}" data-match="${m}" data-field="ends" data-col="0"
+                value="${matchData.ends || ''}" 
+                placeholder="0"
+                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ends', this.value)"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+              />
+            </td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <input type="text" inputmode="numeric" pattern="[0-9]*"
+                id="scorecard_input_${safeLabel}_${m}_ptsFor"
+                data-team="${storeKeyPrefix}" data-match="${m}" data-field="ptsFor" data-col="1"
+                value="${matchData.ptsFor || ''}" 
+                placeholder="0"
+                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsFor', this.value)"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+              />
+            </td>
+            <td class="p-0.5 sm:p-1">
+              <input type="text" inputmode="numeric" pattern="[0-9]*"
+                id="scorecard_input_${safeLabel}_${m}_ptsAgainst"
+                data-team="${storeKeyPrefix}" data-match="${m}" data-field="ptsAgainst" data-col="2"
+                value="${matchData.ptsAgainst || ''}" 
+                placeholder="0"
+                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsAgainst', this.value)"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+              />
+            </td>
+          </tr>
+        `;
+      }
+
+      const safeLabel = storeKeyPrefix.replace(/\s+/g, '_');
+
+      return `
+        <div class="bg-white p-1.5 sm:p-2.5 rounded-xl border-2 border-emerald-600/30 ring-1 ring-emerald-600/10 shadow-sm min-h-[175px] h-full flex flex-col justify-between">
+          <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15%] sm:w-[12%] align-middle">Round</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[14%] align-middle">Bracket</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[26%] sm:w-[29%] align-middle">Result</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[14%] sm:w-[14%] leading-tight align-middle">Ends<br>Won</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15.5%] sm:w-[15.5%] leading-tight align-middle">Pts<br>For</th>
+                <th class="p-1 sm:p-1.5 w-[15.5%] sm:w-[15.5%] leading-tight align-middle">Pts<br>Agst</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+              ${rowsHTML}
+            </tbody>
+            <tfoot>
+              <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[10px] sm:text-xs">
+                <td colspan="2" class="p-1 sm:p-1.5 border-r border-slate-800 text-center uppercase tracking-tight">Total</td>
+                <td id="total_wdl_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-amber-300 font-black">${hasOutcomes ? `${sumMatchPts} pts` : '--'}</td>
+                <td id="total_ends_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-emerald-300 font-black">${hasEnds ? sumEnds : '--'}</td>
+                <td id="total_ptsFor_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-emerald-300 font-black">${hasPtsFor ? sumPtsFor : '--'}</td>
+                <td id="total_ptsAgst_${safeLabel}" class="p-1 sm:p-1.5 text-rose-300 font-black">${hasPtsAgst ? sumPtsAgst : '--'}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    }
+
     function getSectionPlayStandingsBySection() {
       const teams = calculateSectionPlayTeams();
       const sectionSize = resolveEffectiveSectionSize(teams.length);
@@ -3054,7 +3251,103 @@
         return;
       }
 
-      // Knockout Brackets Scorecard or Double Life Knockout Scorecard
+      let bracketSize = 2;
+      while (bracketSize < teams.length) bracketSize *= 2;
+      const totalRounds = Math.ceil(Math.log2(bracketSize));
+
+      // Knockout Brackets Scorecard populated strictly from the Knockout Brackets data
+      if (mode === 'bracketScorecard') {
+        const distResult = calculateKnockoutTeamDistribution();
+        const knockoutTeams = distResult.teams;
+        const ruleAppliedText = distResult.ruleUsed;
+
+        if (knockoutTeams.length < 2) {
+          container.innerHTML = `<div class="p-6 text-center text-slate-400 italic">At least 2 knockout teams are required to build scorecards.</div>`;
+          return;
+        }
+
+        let koBracketSize = 2;
+        while (koBracketSize < knockoutTeams.length) koBracketSize *= 2;
+        const koTotalRounds = Math.ceil(Math.log2(koBracketSize));
+        const { teamRoundStatus } = buildKnockoutBracketTeamScheduleMap(knockoutTeams, koBracketSize, koTotalRounds);
+
+        if (heading) {
+          heading.innerText = `${knockoutTeams.length}-Team Knockout Brackets Scorecard`;
+        }
+        if (badge) {
+          badge.innerText = `Single Life • ${ruleAppliedText} (${knockoutTeams.length} Teams)`;
+          badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
+        }
+
+        const cardsWrapper = document.createElement('div');
+        cardsWrapper.className = 'space-y-3';
+
+        knockoutTeams.forEach((team) => {
+          const teamIdx = parseTeamIndexFromLabel(team.label);
+          const round1Info = teamRoundStatus[team.label] ? teamRoundStatus[team.label][1] : null;
+          const bracketMatchBadge = round1Info
+            ? `<span class="ml-2 text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center">${round1Info.detail}</span>`
+            : '';
+
+          const card = document.createElement('div');
+          card.className = 'bg-white border border-slate-200/90 rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-shadow';
+
+          card.innerHTML = `
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center space-x-2">
+                  <span class="px-2.5 py-0.5 rounded-md bg-bowls-900 text-white font-bold text-xs tracking-wide">
+                    ${team.label}
+                  </span>
+                  <span class="text-xs font-extrabold text-slate-700">
+                    Knockout Bracket Team Roster &amp; Scorecard
+                  </span>
+                </div>
+                <span class="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2.5 py-0.5 rounded-full inline-flex items-center">
+                  Remember to put Team A or Team B etc on your Score Card
+                </span>
+              </div>
+              <span class="text-xs font-semibold text-slate-500">${team.playerCount} Bowler${team.playerCount === 1 ? '' : 's'} &bull; ${team.bowlDist ? team.bowlDist.totalTeamBowls : ''} Bowls</span>
+            </div>
+
+            <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-2 items-stretch">
+              <div class="sm:col-span-5 bg-blue-50/40 rounded-xl p-2 border border-blue-200/60 flex flex-col min-w-0 overflow-hidden">
+                <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+                  <div class="flex items-center flex-wrap gap-1">
+                    <span class="text-sm font-extrabold text-slate-900">${team.label}</span>
+                    ${bracketMatchBadge}
+                  </div>
+                  <span class="text-xs font-semibold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full">
+                    ${team.playerCount} Bowlers
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  ${buildTeamRosterHTML(teamIdx, team.playerCount, team.bowlDist)}
+                </div>
+              </div>
+
+              <div class="sm:col-span-7 bg-slate-50/70 rounded-xl p-2 border border-slate-200/80 flex flex-col min-w-0 overflow-hidden">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-sm font-extrabold text-slate-900">Knockout Scorecard</span>
+                  <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                    ${koTotalRounds} Knockout Round${koTotalRounds === 1 ? '' : 's'}
+                  </span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  ${buildKnockoutBracketTeamScorecardHTML(team.label, koTotalRounds, teamRoundStatus[team.label])}
+                </div>
+              </div>
+            </div>
+          `;
+          cardsWrapper.appendChild(card);
+        });
+
+        container.appendChild(cardsWrapper);
+        attachScorecardKeyboardNav();
+        return;
+      }
+
+      // Double Life Knockout Scorecard
       const isDoubleLife = (mode === 'doubleLifeScorecard');
       if (heading) {
         heading.innerText = isDoubleLife ? 'Knockout Brackets Double Life Scorecard' : 'Knockout Brackets Scorecard';
@@ -3065,10 +3358,6 @@
           ? 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300'
           : 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
       }
-
-      let bracketSize = 2;
-      while (bracketSize < teams.length) bracketSize *= 2;
-      const totalRounds = Math.ceil(Math.log2(bracketSize));
 
       const sectionsToRender = [
         { prefix: 'ko_win', title: isDoubleLife ? 'Winners Bracket (Life #1) Scorecard' : 'Main Knockout Bracket Scorecard', headerBg: 'bg-slate-900' }
@@ -3283,15 +3572,15 @@
       const lifeSys = state.selectedLifeSystem || 'singleLife';
 
       // Determine Double Life & Winning-Loser-Final modes:
-      // For Post Section Play Knockout Brackets, adapt strictly to the selected Life System.
+      // For Post Section Play Knockout Brackets and Knockout Brackets, adapt to Double Life (winning loser returns to final) so there is 1 overall winner.
       // For all other views, preserve existing behavior unchanged.
-      const isWinningLoserFinal = isPostSection
+      const isWinningLoserFinal = (isPostSection || activeView === 'bracket')
         ? (lifeSys === 'doubleLife')
         : (activeView === 'doubleLifeWinningLoser');
 
       const isDoubleLife = isPostSection
         ? (lifeSys === 'doubleLife' || lifeSys === 'doubleLifePlate')
-        : ((activeView === 'doubleLifeBracket') || isWinningLoserFinal || (lifeSys === 'doubleLife'));
+        : ((activeView === 'doubleLifeBracket') || isWinningLoserFinal || (lifeSys === 'doubleLife') || (activeView === 'bracket' && lifeSys === 'doubleLifePlate'));
 
       let knockoutTeams = [];
       let ruleAppliedText = '';
