@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v145
+              v146
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -701,7 +701,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 145 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 146 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +730,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v145';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v146';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -806,7 +806,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 145,
+          version: 146,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1444,7 +1444,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 145,
+        version: 146,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2812,7 +2812,7 @@
       return seeds;
     }
 
-    function buildKnockoutBracketTeamScheduleMap(knockoutTeams, bracketSize, totalRounds) {
+    function buildKnockoutBracketTeamScheduleMap(knockoutTeams, bracketSize, baseBracketRounds, isWinningLoserFinal = false) {
       const seedOrder = getBracketSeedingOrderForSize(bracketSize);
       const seededSlots = seedOrder.map(seedNum => {
         const teamIdx = seedNum - 1;
@@ -2820,20 +2820,24 @@
       });
 
       const roundNames = [];
-      for (let r = 1; r <= totalRounds; r++) {
-        if (r === totalRounds) roundNames.push('Grand Final');
-        else if (r === totalRounds - 1) roundNames.push('Semi-Finals');
-        else if (r === totalRounds - 2) roundNames.push('Quarter-Finals');
+      for (let r = 1; r <= baseBracketRounds; r++) {
+        if (r === baseBracketRounds) roundNames.push(isWinningLoserFinal ? 'Winners Final' : 'Grand Final');
+        else if (r === baseBracketRounds - 1) roundNames.push('Semi-Final');
+        else if (r === baseBracketRounds - 2) roundNames.push('Quarter-Final');
         else roundNames.push(`Round ${r}`);
       }
+      if (isWinningLoserFinal) {
+        roundNames.push('Grand Final');
+      }
 
+      const totalScorecardRounds = roundNames.length;
       const teamRoundStatus = {};
       knockoutTeams.forEach(t => {
         teamRoundStatus[t.label] = {};
       });
 
       let currentMatchCount = bracketSize / 2;
-      for (let r = 0; r < totalRounds; r++) {
+      for (let r = 0; r < baseBracketRounds; r++) {
         const roundNum = r + 1;
         const rName = roundNames[r];
         for (let m = 0; m < currentMatchCount; m++) {
@@ -2842,22 +2846,22 @@
             const slotA = seededSlots[m * 2];
             const slotB = seededSlots[m * 2 + 1];
             if (!slotA.isBye && slotB.isBye) {
-              teamRoundStatus[slotA.label][roundNum] = { status: 'BYE', detail: `${rName} (${matchId} Auto-Advance)` };
+              teamRoundStatus[slotA.label][roundNum] = { status: 'BYE', shortLabel: rName, detail: `${rName} (${matchId} Auto-Advance)` };
             } else if (slotA.isBye && !slotB.isBye) {
-              teamRoundStatus[slotB.label][roundNum] = { status: 'BYE', detail: `${rName} (${matchId} Auto-Advance)` };
+              teamRoundStatus[slotB.label][roundNum] = { status: 'BYE', shortLabel: rName, detail: `${rName} (${matchId} Auto-Advance)` };
             } else if (!slotA.isBye && !slotB.isBye) {
-              teamRoundStatus[slotA.label][roundNum] = { status: matchId, detail: `${rName} vs ${slotB.label}` };
-              teamRoundStatus[slotB.label][roundNum] = { status: matchId, detail: `${rName} vs ${slotA.label}` };
+              teamRoundStatus[slotA.label][roundNum] = { status: matchId, shortLabel: rName, detail: `${rName} vs ${slotB.label}` };
+              teamRoundStatus[slotB.label][roundNum] = { status: matchId, shortLabel: rName, detail: `${rName} vs ${slotA.label}` };
             }
           }
         }
         currentMatchCount /= 2;
       }
 
-      return { teamRoundStatus, roundNames };
+      return { teamRoundStatus, roundNames, totalScorecardRounds };
     }
 
-    function buildKnockoutBracketTeamScorecardHTML(teamLabel, totalRounds, teamRoundInfo) {
+    function buildKnockoutBracketTeamScorecardHTML(teamLabel, totalRounds, teamRoundInfo, roundNames = []) {
       let rowsHTML = '';
       let sumEnds = 0;
       let sumPtsFor = 0;
@@ -2882,7 +2886,8 @@
 
       for (let m = 1; m <= totalRounds; m++) {
         const roundInfo = teamRoundInfo && teamRoundInfo[m] ? teamRoundInfo[m] : null;
-        const slotDisplay = roundInfo ? roundInfo.status : `R${m}`;
+        const roundTitle = roundNames[m - 1] || `Round ${m}`;
+        const slotDisplay = roundInfo ? (roundInfo.status === 'BYE' ? 'BYE' : roundTitle) : roundTitle;
 
         const matchData = (matchResultStore[storeKeyPrefix] && matchResultStore[storeKeyPrefix][m]) || { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
         const currentVal = matchData.outcome || '';
@@ -2921,7 +2926,7 @@
         rowsHTML += `
           <tr>
             <td class="p-0.5 sm:p-1 border-r border-slate-100 font-semibold bg-slate-50 text-[10px] sm:text-xs">${m}</td>
-            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-extrabold text-emerald-700 text-[10px] sm:text-xs">${slotDisplay}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-extrabold text-emerald-700 text-[9px] sm:text-[11px] leading-tight">${slotDisplay}</td>
             <td class="p-0.5 sm:p-1 border-r border-slate-100">
               <div class="inline-flex items-center space-x-0.5 sm:space-x-1 justify-center">
                 <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'W')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${wClass}">W</button>
@@ -2970,12 +2975,12 @@
           <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
             <thead>
               <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15%] sm:w-[12%] align-middle">Round</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[14%] align-middle">Bracket</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[26%] sm:w-[29%] align-middle">Result</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[14%] sm:w-[14%] leading-tight align-middle">Ends<br>Won</th>
-                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15.5%] sm:w-[15.5%] leading-tight align-middle">Pts<br>For</th>
-                <th class="p-1 sm:p-1.5 w-[15.5%] sm:w-[15.5%] leading-tight align-middle">Pts<br>Agst</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[13%] sm:w-[11%] align-middle">#</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[20%] align-middle">Round</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[24%] sm:w-[27%] align-middle">Result</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[13%] sm:w-[13%] leading-tight align-middle">Ends<br>Won</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15%] sm:w-[14.5%] leading-tight align-middle">Pts<br>For</th>
+                <th class="p-1 sm:p-1.5 w-[15%] sm:w-[14.5%] leading-tight align-middle">Pts<br>Agst</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
@@ -3255,7 +3260,7 @@
       while (bracketSize < teams.length) bracketSize *= 2;
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
-      // Knockout Brackets Scorecard populated strictly from the Knockout Brackets data
+      // Knockout Brackets Scorecard populated strictly from the Knockout Brackets data (including Quarter Final, Semi Final, Winners Final & Grand Final)
       if (mode === 'bracketScorecard') {
         const distResult = calculateKnockoutTeamDistribution();
         const knockoutTeams = distResult.teams;
@@ -3268,14 +3273,25 @@
 
         let koBracketSize = 2;
         while (koBracketSize < knockoutTeams.length) koBracketSize *= 2;
-        const koTotalRounds = Math.ceil(Math.log2(koBracketSize));
-        const { teamRoundStatus } = buildKnockoutBracketTeamScheduleMap(knockoutTeams, koBracketSize, koTotalRounds);
+        const baseKoRounds = Math.ceil(Math.log2(koBracketSize));
+        const lifeSys = state.selectedLifeSystem || 'singleLife';
+        const isWinningLoserFinal = (lifeSys === 'doubleLife');
+        const { teamRoundStatus, roundNames, totalScorecardRounds } = buildKnockoutBracketTeamScheduleMap(
+          knockoutTeams,
+          koBracketSize,
+          baseKoRounds,
+          isWinningLoserFinal
+        );
+
+        const lifeBadgeText = lifeSys === 'doubleLife'
+          ? 'Double Life (Winners Final & Grand Final)'
+          : (lifeSys === 'doubleLifePlate' ? 'Double Life (Plate)' : 'Single Life');
 
         if (heading) {
           heading.innerText = `${knockoutTeams.length}-Team Knockout Brackets Scorecard`;
         }
         if (badge) {
-          badge.innerText = `Single Life • ${ruleAppliedText} (${knockoutTeams.length} Teams)`;
+          badge.innerText = `${lifeBadgeText} • ${ruleAppliedText} (${knockoutTeams.length} Teams)`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300';
         }
 
@@ -3330,11 +3346,11 @@
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-sm font-extrabold text-slate-900">Knockout Scorecard</span>
                   <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                    ${koTotalRounds} Knockout Round${koTotalRounds === 1 ? '' : 's'}
+                    ${totalScorecardRounds} Knockout Round${totalScorecardRounds === 1 ? '' : 's'}
                   </span>
                 </div>
                 <div class="flex-1 min-w-0">
-                  ${buildKnockoutBracketTeamScorecardHTML(team.label, koTotalRounds, teamRoundStatus[team.label])}
+                  ${buildKnockoutBracketTeamScorecardHTML(team.label, totalScorecardRounds, teamRoundStatus[team.label], roundNames)}
                 </div>
               </div>
             </div>
