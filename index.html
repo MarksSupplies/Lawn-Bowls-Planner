@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v146
+              v147
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -275,6 +275,18 @@
               <option value="singleLife" selected>Single Life (Default)</option>
               <option value="doubleLife">Double Life (winning loser returns to final)</option>
               <option value="doubleLifePlate">Double Life (losers go to a plate round)</option>
+            </select>
+          </div>
+
+          <!-- 6b. 2 LIVES or 1 in the BRACKET FINAL -->
+          <div class="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 space-y-2 hover:border-slate-300 transition">
+            <div class="flex items-center space-x-2">
+              <i class="ph-bold ph-crown text-bowls-700 text-base"></i>
+              <label for="bracketFinalLivesSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">2 LIVES or 1 in the BRACKET FINAL</label>
+            </div>
+            <select id="bracketFinalLivesSelect" onchange="onBracketFinalLivesChange()" disabled class="w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60">
+              <option value="keepBothLives" selected>Bowler keeps both lives in the winners bracket final</option>
+              <option value="resetToOneLife">Bowlers lives reset to 1 each in the winners bracket final</option>
             </select>
           </div>
 
@@ -701,7 +713,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 146 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 147 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -730,7 +742,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v146';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v147';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -751,6 +763,7 @@
       selectedSectionSize: 'bestMatch',
       selectedSectionQualifying: 'top2',
       selectedLifeSystem: 'singleLife',
+      selectedFinalLives: 'keepBothLives',
       selectedSectionBracketTransition: 'random',
       selectedFormat: 'threeBowlTriples',
       selectedMatchPoints: '3_1',
@@ -806,7 +819,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 146,
+          version: 147,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -864,6 +877,10 @@
           const lifeSysEl = document.getElementById('lifeSystemSelect');
           if (lifeSysEl) {
             lifeSysEl.value = state.selectedLifeSystem || 'singleLife';
+          }
+          const finalLivesEl = document.getElementById('bracketFinalLivesSelect');
+          if (finalLivesEl) {
+            finalLivesEl.value = state.selectedFinalLives || 'keepBothLives';
           }
           const transEl = document.getElementById('sectionBracketTransitionSelect');
           if (transEl) {
@@ -1212,6 +1229,7 @@
       } else {
         if (cards) cards.classList.remove('hidden');
       }
+      updateUI();
       saveAppStateToLocalStorage();
     }
 
@@ -1310,6 +1328,15 @@
       const lifeSysEl = document.getElementById('lifeSystemSelect');
       if (lifeSysEl) {
         state.selectedLifeSystem = lifeSysEl.value;
+        saveAppStateToLocalStorage();
+        updateUI();
+      }
+    }
+
+    function onBracketFinalLivesChange() {
+      const finalLivesEl = document.getElementById('bracketFinalLivesSelect');
+      if (finalLivesEl) {
+        state.selectedFinalLives = finalLivesEl.value;
         saveAppStateToLocalStorage();
         updateUI();
       }
@@ -1415,6 +1442,8 @@
       if (singlesRaceToEl) singlesRaceToEl.value = state.singlesRaceTo;
       const lifeSysEl = document.getElementById('lifeSystemSelect');
       if (lifeSysEl) lifeSysEl.value = state.selectedLifeSystem;
+      const finalLivesEl = document.getElementById('bracketFinalLivesSelect');
+      if (finalLivesEl) finalLivesEl.value = state.selectedFinalLives;
 
       renderPriorityGreensTable();
       updateUI();
@@ -1444,7 +1473,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 146,
+        version: 147,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1514,6 +1543,8 @@
             if (sQualEl) sQualEl.value = state.selectedSectionQualifying || 'top2';
             const lifeSysEl = document.getElementById('lifeSystemSelect');
             if (lifeSysEl) lifeSysEl.value = state.selectedLifeSystem || 'singleLife';
+            const finalLivesEl = document.getElementById('bracketFinalLivesSelect');
+            if (finalLivesEl) finalLivesEl.value = state.selectedFinalLives || 'keepBothLives';
             const transEl = document.getElementById('sectionBracketTransitionSelect');
             if (transEl) transEl.value = state.selectedSectionBracketTransition || 'random';
             const matchPointsEl = document.getElementById('matchPointsSelect');
@@ -2812,25 +2843,47 @@
       return seeds;
     }
 
-    function buildKnockoutBracketTeamScheduleMap(knockoutTeams, bracketSize, baseBracketRounds, isWinningLoserFinal = false) {
+    function buildKnockoutBracketTeamScheduleMap(knockoutTeams, bracketSize, baseBracketRounds, lifeSys = 'singleLife') {
       const seedOrder = getBracketSeedingOrderForSize(bracketSize);
       const seededSlots = seedOrder.map(seedNum => {
         const teamIdx = seedNum - 1;
         return teamIdx < knockoutTeams.length ? knockoutTeams[teamIdx] : { label: 'BYE', isBye: true };
       });
 
+      const isSingleLife = (lifeSys === 'singleLife');
+      const isWinningLoserFinal = (lifeSys === 'doubleLife');
+      const isPlateDoubleLife = (lifeSys === 'doubleLifePlate');
+      const keepBothLivesInFinal = (state.selectedFinalLives !== 'resetToOneLife');
+
+      const getWinnersRoundName = (r) => {
+        if (r === baseBracketRounds) return isWinningLoserFinal ? 'Winners Final' : 'Grand Final';
+        if (r === baseBracketRounds - 1) return 'Semi-Final';
+        if (r === baseBracketRounds - 2) return 'Quarter-Final';
+        return `Round ${r}`;
+      };
+
+      const losersRoundsCount = baseBracketRounds <= 1 ? 1 : 2 * (baseBracketRounds - 1);
+      const getLosersRoundName = (lr) => {
+        if (lr === losersRoundsCount) {
+          return isPlateDoubleLife ? 'Plate Final' : 'Life #2 Final';
+        }
+        return `Elimination R${lr}`;
+      };
+
+      const extraFinalRounds = isWinningLoserFinal ? (keepBothLivesInFinal ? 2 : 1) : 0;
+      const totalScorecardRounds = isSingleLife
+        ? baseBracketRounds
+        : (baseBracketRounds + losersRoundsCount + extraFinalRounds);
+
       const roundNames = [];
-      for (let r = 1; r <= baseBracketRounds; r++) {
-        if (r === baseBracketRounds) roundNames.push(isWinningLoserFinal ? 'Winners Final' : 'Grand Final');
-        else if (r === baseBracketRounds - 1) roundNames.push('Semi-Final');
-        else if (r === baseBracketRounds - 2) roundNames.push('Quarter-Final');
-        else roundNames.push(`Round ${r}`);
-      }
-      if (isWinningLoserFinal) {
-        roundNames.push('Grand Final');
+      for (let r = 1; r <= totalScorecardRounds; r++) {
+        if (isSingleLife) {
+          roundNames.push(getWinnersRoundName(r));
+        } else {
+          roundNames.push(r === 1 ? getWinnersRoundName(1) : `${r}`);
+        }
       }
 
-      const totalScorecardRounds = roundNames.length;
       const teamRoundStatus = {};
       knockoutTeams.forEach(t => {
         teamRoundStatus[t.label] = {};
@@ -2839,7 +2892,7 @@
       let currentMatchCount = bracketSize / 2;
       for (let r = 0; r < baseBracketRounds; r++) {
         const roundNum = r + 1;
-        const rName = roundNames[r];
+        const rName = getWinnersRoundName(roundNum);
         for (let m = 0; m < currentMatchCount; m++) {
           const matchId = `R${roundNum}-M${m + 1}`;
           if (r === 0) {
@@ -2856,6 +2909,95 @@
           }
         }
         currentMatchCount /= 2;
+      }
+
+      // For Double Life systems, keep Round 1 name and default subsequent rounds to numbers (2, 3, ...) until W or L reveals the team's next round
+      if (!isSingleLife) {
+        knockoutTeams.forEach(t => {
+          const storeKeyPrefix = `KO_SC_${t.label}`;
+          const teamStore = matchResultStore[storeKeyPrefix] || {};
+
+          let bracketState = 'WINNERS';
+          let winnersRound = 1;
+          let losersRound = 0;
+          let hadLossBeforeFinal = false;
+
+          for (let m = 1; m <= totalScorecardRounds; m++) {
+            const existingInfo = teamRoundStatus[t.label][m] || {};
+            let resolvedLabel = m === 1 ? getWinnersRoundName(1) : `${m}`;
+
+            if (m === 1) {
+              resolvedLabel = getWinnersRoundName(1);
+            } else if (bracketState === 'WINNERS') {
+              resolvedLabel = getWinnersRoundName(winnersRound);
+            } else if (bracketState === 'LOSERS') {
+              resolvedLabel = getLosersRoundName(losersRound);
+            } else if (bracketState === 'GRAND_FINAL') {
+              resolvedLabel = 'Grand Final';
+            } else if (bracketState === 'GRAND_FINAL_REPLAY') {
+              resolvedLabel = 'If 1st Loss Final';
+            } else if (bracketState === 'DONE') {
+              resolvedLabel = '--';
+            }
+
+            teamRoundStatus[t.label][m] = {
+              ...existingInfo,
+              resolvedRoundLabel: resolvedLabel
+            };
+
+            const outcome = (teamStore[m] && teamStore[m].outcome) || '';
+            const isAutoBye = (m === 1 && existingInfo.status === 'BYE');
+
+            if (bracketState === 'DONE') {
+              continue;
+            }
+
+            if (outcome === 'W' || isAutoBye) {
+              if (bracketState === 'WINNERS') {
+                if (winnersRound < baseBracketRounds) {
+                  winnersRound += 1;
+                } else if (isWinningLoserFinal) {
+                  bracketState = 'GRAND_FINAL';
+                } else {
+                  bracketState = 'DONE';
+                }
+              } else if (bracketState === 'LOSERS') {
+                if (losersRound < losersRoundsCount) {
+                  losersRound += 1;
+                } else if (isWinningLoserFinal) {
+                  bracketState = 'GRAND_FINAL';
+                } else {
+                  bracketState = 'DONE';
+                }
+              } else if (bracketState === 'GRAND_FINAL') {
+                if (hadLossBeforeFinal && keepBothLivesInFinal) {
+                  bracketState = 'GRAND_FINAL_REPLAY';
+                } else {
+                  bracketState = 'DONE';
+                }
+              } else if (bracketState === 'GRAND_FINAL_REPLAY') {
+                bracketState = 'DONE';
+              }
+            } else if (outcome === 'L') {
+              if (bracketState === 'WINNERS') {
+                hadLossBeforeFinal = true;
+                bracketState = 'LOSERS';
+                losersRound = winnersRound === 1 ? 1 : Math.min(losersRoundsCount, 2 * (winnersRound - 1));
+              } else if (bracketState === 'GRAND_FINAL') {
+                if (!hadLossBeforeFinal && keepBothLivesInFinal) {
+                  hadLossBeforeFinal = true;
+                  bracketState = 'GRAND_FINAL_REPLAY';
+                } else {
+                  bracketState = 'DONE';
+                }
+              } else if (bracketState === 'LOSERS' || bracketState === 'GRAND_FINAL_REPLAY') {
+                bracketState = 'DONE';
+              }
+            } else {
+              break;
+            }
+          }
+        });
       }
 
       return { teamRoundStatus, roundNames, totalScorecardRounds };
@@ -2886,7 +3028,7 @@
 
       for (let m = 1; m <= totalRounds; m++) {
         const roundInfo = teamRoundInfo && teamRoundInfo[m] ? teamRoundInfo[m] : null;
-        const roundTitle = roundNames[m - 1] || `Round ${m}`;
+        const roundTitle = (roundInfo && roundInfo.resolvedRoundLabel) || roundNames[m - 1] || `${m}`;
         const slotDisplay = roundInfo ? (roundInfo.status === 'BYE' ? 'BYE' : roundTitle) : roundTitle;
 
         const matchData = (matchResultStore[storeKeyPrefix] && matchResultStore[storeKeyPrefix][m]) || { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
@@ -3260,7 +3402,7 @@
       while (bracketSize < teams.length) bracketSize *= 2;
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
-      // Knockout Brackets Scorecard populated strictly from the Knockout Brackets data (including Quarter Final, Semi Final, Winners Final & Grand Final)
+      // Knockout Brackets Scorecard populated strictly from the Knockout Brackets data (including Quarter Final, Semi Final, Winners Final & Grand Final, and dynamic Double Life rounds)
       if (mode === 'bracketScorecard') {
         const distResult = calculateKnockoutTeamDistribution();
         const knockoutTeams = distResult.teams;
@@ -3275,12 +3417,11 @@
         while (koBracketSize < knockoutTeams.length) koBracketSize *= 2;
         const baseKoRounds = Math.ceil(Math.log2(koBracketSize));
         const lifeSys = state.selectedLifeSystem || 'singleLife';
-        const isWinningLoserFinal = (lifeSys === 'doubleLife');
         const { teamRoundStatus, roundNames, totalScorecardRounds } = buildKnockoutBracketTeamScheduleMap(
           knockoutTeams,
           koBracketSize,
           baseKoRounds,
-          isWinningLoserFinal
+          lifeSys
         );
 
         const lifeBadgeText = lifeSys === 'doubleLife'
@@ -3346,7 +3487,7 @@
                 <div class="flex items-center justify-between mb-1">
                   <span class="text-sm font-extrabold text-slate-900">Knockout Scorecard</span>
                   <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                    ${totalScorecardRounds} Knockout Round${totalScorecardRounds === 1 ? '' : 's'}
+                    ${totalScorecardRounds} Possible Round${totalScorecardRounds === 1 ? '' : 's'}
                   </span>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -3586,10 +3727,9 @@
       const activeView = viewOverride || state.viewMode;
       const isPostSection = (activeView === 'postSectionBracket');
       const lifeSys = state.selectedLifeSystem || 'singleLife';
+      const keepBothLivesInFinal = (state.selectedFinalLives !== 'resetToOneLife');
 
-      // Determine Double Life & Winning-Loser-Final modes:
-      // For Post Section Play Knockout Brackets and Knockout Brackets, adapt to Double Life (winning loser returns to final) so there is 1 overall winner.
-      // For all other views, preserve existing behavior unchanged.
+      // Determine Double Life & Winning-Loser-Final modes across all 4 bracket views
       const isWinningLoserFinal = (isPostSection || activeView === 'bracket')
         ? (lifeSys === 'doubleLife')
         : (activeView === 'doubleLifeWinningLoser');
@@ -3690,14 +3830,17 @@
         if (isPostSection) {
           const transitionLabel = state.selectedSectionBracketTransition === 'seeded' ? 'Seeded Draw' : 'Random Draw';
           const lifeBadgeLabel = lifeSys === 'doubleLife'
-            ? 'Double Life (Final Return)'
+            ? (keepBothLivesInFinal ? 'Double Life (Final Return • Keep 2 Lives)' : 'Double Life (Final Return • Reset to 1 Life)')
             : (lifeSys === 'doubleLifePlate' ? 'Double Life (Plate)' : 'Single Life');
           badge.innerText = `Post Section Qualifiers • ${transitionLabel} • ${lifeBadgeLabel}`;
           badge.className = isDoubleLife
             ? 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300'
             : 'text-xs font-bold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300';
         } else if (isDoubleLife) {
-          badge.innerText = `Double Life • ${ruleAppliedText} (${totalTeams} Teams)`;
+          const finalLivesLabel = isWinningLoserFinal
+            ? (keepBothLivesInFinal ? ' • Keep 2 Lives' : ' • Reset to 1 Life')
+            : ' • Plate Round';
+          badge.innerText = `Double Life${finalLivesLabel} • ${ruleAppliedText} (${totalTeams} Teams)`;
           badge.className = 'text-xs font-bold px-3 py-1 rounded-full bg-purple-100 text-purple-800 border border-purple-300';
         } else {
           badge.innerText = `Single Life • ${ruleAppliedText} (${totalTeams} Teams)`;
@@ -3723,15 +3866,22 @@
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
       // Build Single Life (Main / Winners) Tree
-      const winnersBracketHTML = generateSingleBracketTree('Main Winners Bracket', knockoutTeams, bracketSize, totalRounds, {
-        isWinningLoserFinal
+      const winnersBracketResult = generateSingleBracketTree('Main Winners Bracket', knockoutTeams, bracketSize, totalRounds, {
+        isWinningLoserFinal,
+        keepBothLivesInFinal
       });
 
       if (!isDoubleLife) {
-        container.innerHTML = winnersBracketHTML;
+        container.innerHTML = winnersBracketResult.html;
       } else {
-        // Build Losers (Double Life Elimination) Tree using the exact same bracketSize as Winners Bracket (Life #1)
-        const losersBracketHTML = generateDoubleLifeLosersTree('Losers / Elimination Bracket', bracketSize, totalRounds, isWinningLoserFinal);
+        // Build Losers (Double Life Elimination) Tree using the exact same bracketSize and Round 1 BYE structure as Winners Bracket (Life #1)
+        const losersBracketHTML = generateDoubleLifeLosersTree(
+          'Losers / Elimination Bracket',
+          bracketSize,
+          totalRounds,
+          isWinningLoserFinal,
+          winnersBracketResult.roundMatches
+        );
         container.innerHTML = `
           <div class="space-y-8 w-max min-w-full">
             <div class="bg-slate-50/60 border border-slate-200 rounded-xl p-4">
@@ -3739,7 +3889,7 @@
                 <i class="ph-bold ph-trophy text-amber-500"></i>
                 <span>Winners Bracket (Life #1)</span>
               </h4>
-              ${winnersBracketHTML}
+              ${winnersBracketResult.html}
             </div>
 
             <!-- Middle Native Horizontal Scrollbar Between Winners & Losers Brackets (Same Length as Top & Bottom Scrollbars) -->
@@ -3762,6 +3912,7 @@
 
     function generateSingleBracketTree(title, teams, bracketSize, totalRounds, options = {}) {
       const isWinningLoserFinal = !!options.isWinningLoserFinal;
+      const keepBothLivesInFinal = options.keepBothLivesInFinal !== false;
       const roundNames = [];
       for (let r = 1; r <= totalRounds; r++) {
         if (r === totalRounds) roundNames.push(isWinningLoserFinal ? 'Winners Final' : 'Grand Final');
@@ -3804,12 +3955,19 @@
 
             let winnerObj = null;
             let autoAdvance = false;
+            let hasNoLoser = false;
             if (!slotA.isBye && slotB.isBye) {
               winnerObj = slotA;
               autoAdvance = true;
+              hasNoLoser = true;
             } else if (slotA.isBye && !slotB.isBye) {
               winnerObj = slotB;
               autoAdvance = true;
+              hasNoLoser = true;
+            } else if (slotA.isBye && slotB.isBye) {
+              winnerObj = { label: 'BYE', isBye: true };
+              autoAdvance = true;
+              hasNoLoser = true;
             }
 
             matchesInRound.push({
@@ -3817,7 +3975,8 @@
               slotA,
               slotB,
               winnerObj,
-              autoAdvance
+              autoAdvance,
+              hasNoLoser
             });
           } else {
             const prevMatchA = roundMatches[r - 1][m * 2];
@@ -3826,12 +3985,30 @@
             const slotA = prevMatchA.winnerObj ? prevMatchA.winnerObj : { label: `Winner ${prevMatchA.id}`, isPlaceholder: true };
             const slotB = prevMatchB.winnerObj ? prevMatchB.winnerObj : { label: `Winner ${prevMatchB.id}`, isPlaceholder: true };
 
+            let winnerObj = null;
+            let autoAdvance = false;
+            let hasNoLoser = false;
+            if (!slotA.isBye && slotB.isBye) {
+              winnerObj = slotA;
+              autoAdvance = true;
+              hasNoLoser = true;
+            } else if (slotA.isBye && !slotB.isBye) {
+              winnerObj = slotB;
+              autoAdvance = true;
+              hasNoLoser = true;
+            } else if (slotA.isBye && slotB.isBye) {
+              winnerObj = { label: 'BYE', isBye: true };
+              autoAdvance = true;
+              hasNoLoser = true;
+            }
+
             matchesInRound.push({
               id: `R${r + 1}-M${m + 1}`,
               slotA,
               slotB,
-              winnerObj: null,
-              autoAdvance: false
+              winnerObj,
+              autoAdvance,
+              hasNoLoser
             });
           }
         }
@@ -3923,7 +4100,12 @@
       const grandFinalId = grandFinalMatch ? grandFinalMatch.id : `R${totalRounds}-M1`;
 
       if (isWinningLoserFinal) {
-        const losersRoundsCount = Math.max(1, totalRounds - 1);
+        const losersRoundsCount = totalRounds <= 1 ? 1 : 2 * (totalRounds - 1);
+        const elimFinalSource = totalRounds <= 1 ? `Loser ${grandFinalId}` : `Winner L${losersRoundsCount}-M1`;
+        const life1BadgeText = keepBothLivesInFinal ? '2 Lives' : '1 Life';
+        const life2BadgeText = '1 Life';
+        const finalHeaderBadge = keepBothLivesInFinal ? '2 Lives vs 1 Life' : '1 Life Each';
+
         treeHTML += `
           <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
             <div class="text-center font-extrabold text-xs uppercase tracking-wider text-amber-900 bg-amber-100/90 py-1.5 px-3 rounded-lg border border-amber-300 flex items-center justify-center space-x-1.5">
@@ -3934,7 +4116,7 @@
               <div class="bg-white border-2 border-amber-300 rounded-xl shadow-2xs overflow-hidden">
                 <div class="bg-amber-50 text-[10px] font-bold text-amber-800 px-2.5 py-1 border-b border-amber-200 flex justify-between items-center">
                   <span>Championship Final</span>
-                  <span class="text-amber-700 font-extrabold">1 Overall Winner</span>
+                  <span class="text-amber-700 font-extrabold">${finalHeaderBadge}</span>
                 </div>
                 <div class="p-2 space-y-1.5">
                   <div class="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50/70 border border-emerald-200 text-slate-900 font-bold">
@@ -3942,21 +4124,60 @@
                       <div class="text-xs truncate">Winner ${grandFinalId}</div>
                       <div class="text-[10px] font-medium text-slate-500 truncate">Winners Bracket Champion</div>
                     </div>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-emerald-100 text-emerald-800 font-bold">Life #1</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-emerald-100 text-emerald-800 font-bold">${life1BadgeText}</span>
                   </div>
                   <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/70 border border-purple-200 text-slate-900 font-bold">
                     <div class="min-w-0 pr-1.5">
-                      <div class="text-xs truncate">Winner L${losersRoundsCount}-M1</div>
+                      <div class="text-xs truncate">${elimFinalSource}</div>
                       <div class="text-[10px] font-medium text-purple-700 truncate">Elimination Bracket Winner</div>
                     </div>
-                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-200 text-purple-900 font-bold">Life #2</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-200 text-purple-900 font-bold">${life2BadgeText}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         `;
+
+        if (keepBothLivesInFinal) {
+          treeHTML += `
+            <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
+              <div class="text-center font-extrabold text-xs uppercase tracking-wider text-amber-900 bg-amber-100/90 py-1.5 px-3 rounded-lg border border-dashed border-amber-400 flex items-center justify-center space-x-1.5">
+                <i class="ph-bold ph-arrows-clockwise text-amber-700"></i>
+                <span>If 1st Loss (Deciding Final)</span>
+              </div>
+              <div class="flex flex-col justify-around flex-1">
+                <div class="bg-white border-2 border-dashed border-amber-400 rounded-xl shadow-2xs overflow-hidden">
+                  <div class="bg-amber-50/80 text-[10px] font-bold text-amber-800 px-2.5 py-1 border-b border-dashed border-amber-300 flex justify-between items-center">
+                    <span>If Winners Champ Loses</span>
+                    <span class="text-amber-700 font-extrabold">2nd Life Replay</span>
+                  </div>
+                  <div class="p-2 space-y-1.5">
+                    <div class="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50/60 border border-emerald-200 text-slate-900 font-bold">
+                      <div class="min-w-0 pr-1.5">
+                        <div class="text-xs truncate">Winner ${grandFinalId} (2nd Life)</div>
+                        <div class="text-[10px] font-medium text-slate-500 truncate">If 1st Loss in Grand Final</div>
+                      </div>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-amber-100 text-amber-900 font-bold">Life #2</span>
+                    </div>
+                    <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/60 border border-purple-200 text-slate-900 font-bold">
+                      <div class="min-w-0 pr-1.5">
+                        <div class="text-xs truncate">${elimFinalSource}</div>
+                        <div class="text-[10px] font-medium text-purple-700 truncate">Grand Final Game 1 Winner</div>
+                      </div>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-200 text-purple-900 font-bold">Life #2</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
       }
+
+      const finalWinnerSubtext = isWinningLoserFinal
+        ? (keepBothLivesInFinal ? 'Winner Grand Final / Decider' : 'Winner Grand Final')
+        : `Winner ${grandFinalId}`;
 
       treeHTML += `
         <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
@@ -3973,8 +4194,8 @@
               <div class="p-2">
                 <div class="flex items-center justify-between p-2 rounded-lg bg-amber-50/70 border border-amber-200 text-amber-950 font-extrabold">
                   <div class="min-w-0 pr-1.5">
-                    <div class="text-xs truncate">${isWinningLoserFinal ? 'Winner Grand Final' : `Winner ${grandFinalId}`}</div>
-                    <div class="text-[10px] font-medium text-amber-700 truncate">Actual Winner</div>
+                    <div class="text-xs truncate">${finalWinnerSubtext}</div>
+                    <div class="text-[10px] font-medium text-amber-700 truncate">${isWinningLoserFinal ? '1 Overall Winner' : 'Actual Winner'}</div>
                   </div>
                   <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-amber-500 text-white font-extrabold">
                     WINNER
@@ -3987,55 +4208,158 @@
       `;
 
       treeHTML += `</div>`;
-      return treeHTML;
+      return { html: treeHTML, roundMatches };
     }
 
-    function generateDoubleLifeLosersTree(title, bracketSize, totalRounds, isWinningLoserFinal = false) {
+    function generateDoubleLifeLosersTree(title, bracketSize, totalRounds, isWinningLoserFinal = false, winnersRoundMatches = []) {
       let treeHTML = `<div class="flex items-start space-x-6 min-w-max">`;
-      const losersRounds = Math.max(1, totalRounds - 1);
-      const initialLoserTeams = bracketSize / 2;
 
-      for (let r = 1; r <= losersRounds; r++) {
-        const matchesInRound = Math.max(1, (initialLoserTeams / 2) / Math.pow(2, r - 1));
+      const getWinnersLoserSlot = (wRoundIdx, wMatchIdx) => {
+        const wMatch = winnersRoundMatches[wRoundIdx]?.[wMatchIdx];
+        if (wMatch && wMatch.hasNoLoser) {
+          return { label: 'BYE', isBye: true };
+        }
+        const matchId = wMatch ? wMatch.id : `R${wRoundIdx + 1}-M${wMatchIdx + 1}`;
+        return { label: `Loser ${matchId}`, isBye: false };
+      };
 
+      if (totalRounds <= 1) {
+        const soleLoserSlot = getWinnersLoserSlot(0, 0);
         treeHTML += `
-          <div class="flex flex-col space-y-4 w-60 flex-shrink-0">
+          <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
             <div class="text-center font-extrabold text-xs uppercase tracking-wider text-purple-900 bg-purple-100/80 py-1.5 px-3 rounded-lg border border-purple-200">
-              ${r === losersRounds ? 'Life #2 Final' : `Elimination R${r}`}
+              Elimination Finalist
             </div>
-            <div class="flex flex-col justify-around flex-1 space-y-6">
-        `;
-
-        for (let m = 1; m <= matchesInRound; m++) {
-          treeHTML += `
-            <div class="bg-white border-2 border-purple-200 rounded-xl shadow-2xs overflow-hidden">
-              <div class="bg-purple-100/60 text-[10px] font-bold text-purple-800 px-2 py-0.5 border-b border-purple-200 flex justify-between items-center">
-                <span>Loss Match L${r}-M${m}</span>
-                <span class="text-purple-700 font-extrabold">2nd Life</span>
+            <div class="flex flex-col justify-around flex-1">
+              <div class="bg-white border-2 border-purple-200 rounded-xl shadow-2xs overflow-hidden">
+                <div class="bg-purple-100/60 text-[10px] font-bold text-purple-800 px-2.5 py-1 border-b border-purple-200 flex justify-between items-center">
+                  <span>2nd Life Qualifier</span>
+                  <span class="text-emerald-700 font-extrabold flex items-center gap-1"><i class="ph-bold ph-fast-forward"></i> Auto-Advance</span>
+                </div>
+                <div class="p-2">
+                  <div class="flex items-center justify-between p-1.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-950 font-extrabold">
+                    <span class="text-xs truncate max-w-[165px]">${soleLoserSlot.label}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-extrabold">ADVANCES</span>
+                  </div>
+                </div>
               </div>
-              <div class="p-2 space-y-1.5">
-                <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/50 text-slate-800 font-semibold">
-                  <span class="text-xs truncate max-w-[140px]">Loser R${r}-M${m * 2 - 1}</span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-900 font-bold">L1</span>
+            </div>
+          </div>
+        `;
+      } else {
+        const totalLosersRounds = 2 * (totalRounds - 1);
+        const losersRoundMatches = [];
+
+        for (let lr = 1; lr <= totalLosersRounds; lr++) {
+          const isMinorRound = (lr % 2 === 1);
+          const winnersDropRoundIdx = Math.floor(lr / 2);
+          const matchesInRound = isMinorRound
+            ? (bracketSize / Math.pow(2, winnersDropRoundIdx + 2))
+            : (bracketSize / Math.pow(2, winnersDropRoundIdx + 1));
+
+          const currentRoundList = [];
+
+          for (let m = 0; m < matchesInRound; m++) {
+            const matchId = `L${lr}-M${m + 1}`;
+            let slotA;
+            let slotB;
+
+            if (lr === 1) {
+              slotA = getWinnersLoserSlot(0, m * 2);
+              slotB = getWinnersLoserSlot(0, m * 2 + 1);
+            } else if (isMinorRound) {
+              const prevA = losersRoundMatches[lr - 2][m * 2];
+              const prevB = losersRoundMatches[lr - 2][m * 2 + 1];
+              slotA = prevA.winnerObj ? prevA.winnerObj : { label: `Winner ${prevA.id}`, isBye: false };
+              slotB = prevB.winnerObj ? prevB.winnerObj : { label: `Winner ${prevB.id}`, isBye: false };
+            } else {
+              const prevMinor = losersRoundMatches[lr - 2][m];
+              slotA = getWinnersLoserSlot(winnersDropRoundIdx, m);
+              slotB = prevMinor.winnerObj ? prevMinor.winnerObj : { label: `Winner ${prevMinor.id}`, isBye: false };
+            }
+
+            let winnerObj = null;
+            let autoAdvance = false;
+            if (!slotA.isBye && slotB.isBye) {
+              winnerObj = slotA;
+              autoAdvance = true;
+            } else if (slotA.isBye && !slotB.isBye) {
+              winnerObj = slotB;
+              autoAdvance = true;
+            } else if (slotA.isBye && slotB.isBye) {
+              winnerObj = { label: 'BYE', isBye: true };
+              autoAdvance = true;
+            }
+
+            currentRoundList.push({
+              id: matchId,
+              slotA,
+              slotB,
+              winnerObj,
+              autoAdvance
+            });
+          }
+
+          losersRoundMatches.push(currentRoundList);
+
+          const colTitle = lr === totalLosersRounds
+            ? (isWinningLoserFinal ? 'Life #2 Final' : 'Plate Final')
+            : `Elimination R${lr}`;
+
+          treeHTML += `
+            <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
+              <div class="text-center font-extrabold text-xs uppercase tracking-wider text-purple-900 bg-purple-100/80 py-1.5 px-3 rounded-lg border border-purple-200">
+                ${colTitle}
+              </div>
+              <div class="flex flex-col justify-around flex-1 space-y-6">
+          `;
+
+          currentRoundList.forEach((match) => {
+            const isABye = !!match.slotA.isBye;
+            const isBBye = !!match.slotB.isBye;
+            const isAutoAdv = match.autoAdvance;
+            const winnerLabel = match.winnerObj ? match.winnerObj.label : null;
+
+            treeHTML += `
+              <div class="bg-white border-2 ${isAutoAdv ? 'border-emerald-300/80' : 'border-purple-200'} rounded-xl shadow-2xs overflow-hidden">
+                <div class="bg-purple-100/60 text-[10px] font-bold text-purple-800 px-2.5 py-1 border-b border-purple-200 flex justify-between items-center">
+                  <span>Match ${match.id}</span>
+                  ${isAutoAdv
+                    ? `<span class="text-emerald-700 font-extrabold flex items-center gap-1"><i class="ph-bold ph-fast-forward"></i> Auto-Advance</span>`
+                    : `<span class="text-purple-700 font-extrabold">2nd Life</span>`}
                 </div>
-                <div class="flex items-center justify-between p-1.5 rounded-lg bg-purple-50/50 text-slate-800 font-semibold">
-                  <span class="text-xs truncate max-w-[140px]">Loser R${r}-M${m * 2}</span>
-                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-900 font-bold">L1</span>
+                <div class="p-2 space-y-1.5">
+                  <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.slotA.label && !isABye ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isABye ? 'bg-slate-50 text-slate-400' : 'bg-purple-50/50 text-slate-800 font-semibold'}">
+                    <span class="text-xs truncate max-w-[165px]" title="${match.slotA.label}">${match.slotA.label}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${winnerLabel === match.slotA.label && !isABye ? 'bg-emerald-600 text-white font-extrabold' : isABye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-purple-200 text-purple-900 font-bold'}">
+                      ${winnerLabel === match.slotA.label && !isABye ? 'ADVANCES' : isABye ? 'BYE' : 'L1'}
+                    </span>
+                  </div>
+                  <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.slotB.label && !isBBye ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isBBye ? 'bg-slate-50 text-slate-400' : 'bg-purple-50/50 text-slate-800 font-semibold'}">
+                    <span class="text-xs truncate max-w-[165px]" title="${match.slotB.label}">${match.slotB.label}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ${winnerLabel === match.slotB.label && !isBBye ? 'bg-emerald-600 text-white font-extrabold' : isBBye ? 'bg-slate-200 text-slate-500 font-medium' : 'bg-purple-200 text-purple-900 font-bold'}">
+                      ${winnerLabel === match.slotB.label && !isBBye ? 'ADVANCES' : isBBye ? 'BYE' : 'L1'}
+                    </span>
+                  </div>
                 </div>
+              </div>
+            `;
+          });
+
+          treeHTML += `
               </div>
             </div>
           `;
         }
-
-        treeHTML += `
-            </div>
-          </div>
-        `;
       }
+
+      const finalLoserMatchLabel = totalRounds <= 1
+        ? getWinnersLoserSlot(0, 0).label
+        : `Winner L${2 * (totalRounds - 1)}-M1`;
 
       if (isWinningLoserFinal) {
         treeHTML += `
-          <div class="flex flex-col space-y-4 w-64 flex-shrink-0">
+          <div class="flex flex-col space-y-4 w-72 flex-shrink-0">
             <div class="text-center font-extrabold text-xs uppercase tracking-wider text-amber-900 bg-amber-100/90 py-1.5 px-3 rounded-lg border border-amber-300 flex items-center justify-center space-x-1.5">
               <i class="ph-bold ph-arrow-up-right text-amber-700"></i>
               <span>Advances to Grand Final</span>
@@ -4049,7 +4373,7 @@
                 <div class="p-2">
                   <div class="flex items-center justify-between p-2 rounded-lg bg-purple-50/70 border border-purple-200 text-purple-950 font-extrabold">
                     <div class="min-w-0 pr-1.5">
-                      <div class="text-xs truncate">Winner L${losersRounds}-M1</div>
+                      <div class="text-xs truncate">${finalLoserMatchLabel}</div>
                       <div class="text-[10px] font-medium text-purple-700 truncate">Enters Grand Final (Above)</div>
                     </div>
                     <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-600 text-white font-extrabold">
@@ -4077,7 +4401,7 @@
                 <div class="p-2">
                   <div class="flex items-center justify-between p-2 rounded-lg bg-purple-50/70 border border-purple-200 text-purple-950 font-extrabold">
                     <div class="min-w-0 pr-1.5">
-                      <div class="text-xs truncate">Winner L${losersRounds}-M1</div>
+                      <div class="text-xs truncate">${finalLoserMatchLabel}</div>
                       <div class="text-[10px] font-medium text-purple-700 truncate">Actual Plate Winner</div>
                     </div>
                     <span class="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 bg-purple-600 text-white font-extrabold">
@@ -4108,18 +4432,18 @@
       if (!topEl || !bottomEl) return;
 
       isSyncingBracketScroll = true;
-      let scrollPos = bottomEl.scrollLeft;
-      if (source === 'top') {
-        scrollPos = topEl.scrollLeft;
-      } else if (source === 'middle' && middleEl) {
-        scrollPos = middleEl.scrollLeft;
-      }
+      let targetLeft = 0;
+      if (source === 'top') targetLeft = topEl.scrollLeft;
+      else if (source === 'middle' && middleEl) targetLeft = middleEl.scrollLeft;
+      else targetLeft = bottomEl.scrollLeft;
 
-      if (source !== 'top') topEl.scrollLeft = scrollPos;
-      if (middleEl && source !== 'middle') middleEl.scrollLeft = scrollPos;
-      if (source !== 'bottom') bottomEl.scrollLeft = scrollPos;
+      if (source !== 'top') topEl.scrollLeft = targetLeft;
+      if (source !== 'middle' && middleEl) middleEl.scrollLeft = targetLeft;
+      if (source !== 'bottom') bottomEl.scrollLeft = targetLeft;
 
-      isSyncingBracketScroll = false;
+      requestAnimationFrame(() => {
+        isSyncingBracketScroll = false;
+      });
     }
 
     function updateBracketTopScrollbarWidth() {
@@ -4130,64 +4454,71 @@
       const bottomEl = document.getElementById('bracketTreeContent');
       if (!topEl || !topInner || !bottomEl) return;
 
-      const fullWidth = bottomEl.scrollWidth;
-      const visibleWidth = bottomEl.clientWidth;
-      const isOverflowing = fullWidth > visibleWidth;
+      const contentWidth = bottomEl.scrollWidth;
+      const clientWidth = bottomEl.clientWidth;
 
-      topInner.style.width = fullWidth + 'px';
-      topEl.style.display = isOverflowing ? 'block' : 'none';
-
-      if (middleEl && middleInner) {
-        middleEl.style.width = visibleWidth + 'px';
-        middleInner.style.width = fullWidth + 'px';
-        middleEl.style.display = isOverflowing ? 'block' : 'none';
+      if (contentWidth > clientWidth) {
+        topEl.classList.remove('hidden');
+        topInner.style.width = `${contentWidth}px`;
+        if (middleEl && middleInner) {
+          middleEl.classList.remove('hidden');
+          middleInner.style.width = `${contentWidth}px`;
+        }
+      } else {
+        topEl.classList.add('hidden');
+        if (middleEl) middleEl.classList.add('hidden');
       }
-
-      syncBracketScroll('bottom');
     }
 
     window.addEventListener('resize', updateBracketTopScrollbarWidth);
 
-    function updateUI() {
-      // Determine format target size to check even/odd natural team counts
-      const formatSpec = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
-      const targetSize = formatSpec.targetTeamSize;
-      const naturalTeamCount = Math.ceil(state.totalBowlers / targetSize);
-      const isNaturallyEven = (naturalTeamCount % 2 === 0);
-      const isCleanlyDivisible = (state.totalBowlers % targetSize === 0);
+    function showSkipsMismatchModal() {
+      const modal = document.getElementById('skipsMismatchModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+    }
 
-      // Handle lock state for format-specific controls across Tournament Format selections
-      const isRoundRobin = (state.selectedTournamentFormat === 'roundRobin');
-      const isKnockout = (state.selectedTournamentFormat === 'knockout');
-      const isSectionKnockout = (state.selectedTournamentFormat === 'sectionKnockout');
-      const isSectionDisabled = (isKnockout || isRoundRobin);
+    function closeSkipsMismatchModal() {
+      const modal = document.getElementById('skipsMismatchModal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    }
 
-      // Lock/unlock Round Robin Score Cards button & automatically switch view if locked
-      const btnTabs = document.getElementById('viewTabsBtn');
-      if (btnTabs) {
-        btnTabs.disabled = !isRoundRobin;
-        if (!isRoundRobin) {
-          btnTabs.className = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-400 opacity-50 cursor-not-allowed';
-          btnTabs.title = 'Only available when Round Robin is selected in Tournament Format';
-          if (state.viewMode === 'tabs') {
-            setScheduleView(isKnockout ? 'bracket' : 'matrix');
-          }
-        } else {
-          btnTabs.title = '';
-          btnTabs.className = (state.viewMode === 'tabs')
-            ? 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs'
-            : 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+    function updateSkipsCountWarning() {
+      const warningIcon = document.getElementById('bowlersWarningIcon');
+      if (!warningIcon) return;
+
+      let skipsEnteredCount = 0;
+      for (let i = 0; i < 160; i++) {
+        if (masterRoster[i] && masterRoster[i][0] && masterRoster[i][0].trim() !== '') {
+          skipsEnteredCount++;
         }
       }
 
-      const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
-      const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
+      if (skipsEnteredCount !== state.totalBowlers) {
+        warningIcon.classList.remove('hidden');
+      } else {
+        warningIcon.classList.add('hidden');
+      }
+    }
 
+    function updateUI() {
+      updateSkipsCountWarning();
+
+      const tFormat = state.selectedTournamentFormat;
+      const isRoundRobin = (tFormat === 'roundRobin');
+      const isSectionKnockout = (tFormat === 'sectionKnockout');
       const isSingles = (state.selectedFormat === 'singles');
-      const singlesRaceToEl = document.getElementById('singlesRaceToInput');
-      if (singlesRaceToEl) {
-        singlesRaceToEl.disabled = !isSingles;
-        singlesRaceToEl.className = !isSingles ? disabledControlClass : enabledControlClass;
+
+      const enabledControlClass = 'w-full bg-white border border-slate-300 rounded-xl p-2.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-bowls-700 focus:border-bowls-700 outline-none transition';
+      const disabledControlClass = 'w-full bg-slate-200/70 border border-slate-300 text-slate-400 font-medium rounded-xl p-2.5 text-xs outline-none cursor-not-allowed opacity-60';
+
+      const roundsEl = document.getElementById('roundsSelect');
+      if (roundsEl) {
+        roundsEl.disabled = !isRoundRobin;
+        roundsEl.className = !isRoundRobin ? disabledControlClass : enabledControlClass;
       }
 
       const endsEl = document.getElementById('endsSelect');
@@ -4196,10 +4527,22 @@
         endsEl.className = isSingles ? disabledControlClass : enabledControlClass;
       }
 
-      const roundsEl = document.getElementById('roundsSelect');
-      if (roundsEl) {
-        roundsEl.disabled = (isKnockout || isSectionKnockout);
-        roundsEl.className = (isKnockout || isSectionKnockout) ? disabledControlClass : enabledControlClass;
+      const matchPointsEl = document.getElementById('matchPointsSelect');
+      if (matchPointsEl) {
+        matchPointsEl.disabled = false;
+        matchPointsEl.className = enabledControlClass;
+      }
+
+      const tieBreakEl = document.getElementById('tieBreakPrioritySelect');
+      if (tieBreakEl) {
+        tieBreakEl.disabled = false;
+        tieBreakEl.className = enabledControlClass;
+      }
+
+      const singlesRaceToEl = document.getElementById('singlesRaceToInput');
+      if (singlesRaceToEl) {
+        singlesRaceToEl.disabled = !isSingles;
+        singlesRaceToEl.className = !isSingles ? disabledControlClass : enabledControlClass;
       }
 
       const lifeSysEl = document.getElementById('lifeSystemSelect');
@@ -4208,177 +4551,246 @@
         lifeSysEl.className = isRoundRobin ? disabledControlClass : enabledControlClass;
       }
 
+      const finalLivesEl = document.getElementById('bracketFinalLivesSelect');
+      if (finalLivesEl) {
+        const isFinalLivesEnabled = (!isRoundRobin && state.selectedLifeSystem === 'doubleLife') || (state.viewMode === 'doubleLifeWinningLoser');
+        finalLivesEl.disabled = !isFinalLivesEnabled;
+        finalLivesEl.className = !isFinalLivesEnabled ? disabledControlClass : enabledControlClass;
+      }
+
       const sectionSizeEl = document.getElementById('sectionSizeSelect');
       if (sectionSizeEl) {
-        sectionSizeEl.disabled = isSectionDisabled;
-        sectionSizeEl.className = isSectionDisabled ? disabledControlClass : enabledControlClass;
+        sectionSizeEl.disabled = !isSectionKnockout;
+        sectionSizeEl.className = !isSectionKnockout ? disabledControlClass : enabledControlClass;
       }
 
       const sectionQualEl = document.getElementById('sectionQualifyingSelect');
       if (sectionQualEl) {
-        sectionQualEl.disabled = isSectionDisabled;
-        sectionQualEl.className = isSectionDisabled ? disabledControlClass : enabledControlClass;
+        sectionQualEl.disabled = !isSectionKnockout;
+        sectionQualEl.className = !isSectionKnockout ? disabledControlClass : enabledControlClass;
       }
 
-      const sectionTransEl = document.getElementById('sectionBracketTransitionSelect');
-      if (sectionTransEl) {
-        sectionTransEl.disabled = isSectionDisabled;
-        sectionTransEl.className = isSectionDisabled ? disabledControlClass : enabledControlClass;
+      const transEl = document.getElementById('sectionBracketTransitionSelect');
+      if (transEl) {
+        transEl.disabled = !isSectionKnockout;
+        transEl.className = !isSectionKnockout ? disabledControlClass : enabledControlClass;
       }
 
-      const radioByes = document.getElementById('radioByes');
+      const optRadio = document.getElementById('radioOptimize');
+      const byesRadio = document.getElementById('radioByes');
+      const labelOpt = document.getElementById('labelOptimize');
       const labelByes = document.getElementById('labelByes');
-      const byesTitle = document.getElementById('textByesTitle');
-      const byesSubtitle = document.getElementById('textByesSubtitle');
-      const byesDisabledReason = document.getElementById('textByesDisabledReason');
+      const textOptimizeTitle = document.getElementById('textOptimizeTitle');
+      const textOptimizeSubtitle = document.getElementById('textOptimizeSubtitle');
+      const textByesTitle = document.getElementById('textByesTitle');
+      const textByesSubtitle = document.getElementById('textByesSubtitle');
+      const textByesReason = document.getElementById('textByesDisabledReason');
       const reasonText = document.getElementById('reasonText');
       const byesLockedChip = document.getElementById('byesLockedChip');
-
-      const radioOptimize = document.getElementById('radioOptimize');
-      const labelOptimize = document.getElementById('labelOptimize');
-      const optimizeTitle = document.getElementById('textOptimizeTitle');
-      const optimizeSubtitle = document.getElementById('textOptimizeSubtitle');
+      const activeBadge = document.getElementById('activeModeBadge');
 
       if (isSectionKnockout) {
         state.balancingMode = 'byes';
-        if (radioOptimize) {
-          radioOptimize.disabled = true;
-          radioOptimize.checked = false;
+        if (optRadio) {
+          optRadio.disabled = true;
+          optRadio.checked = false;
         }
-        if (labelOptimize) {
-          labelOptimize.className = 'relative flex p-4 rounded-xl border-2 border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed';
-          labelOptimize.onclick = null;
+        if (labelOpt) {
+          labelOpt.className = 'relative flex p-4 rounded-xl border-2 border-slate-200 bg-slate-100/80 opacity-60 cursor-not-allowed transition-all';
         }
-        if (optimizeTitle) optimizeTitle.className = 'block text-sm font-bold text-slate-400';
-        if (optimizeSubtitle) optimizeTitle.className = 'block text-xs text-slate-400 mt-1';
-      } else {
-        if (radioOptimize) {
-          radioOptimize.disabled = false;
-          radioOptimize.checked = (state.balancingMode === 'optimizeTeamNumbers');
-        }
-        if (labelOptimize) {
-          labelOptimize.onclick = function() { setBalancingMode('optimizeTeamNumbers'); };
-        }
-        if (optimizeTitle) optimizeTitle.className = 'block text-sm font-bold text-slate-900';
-        if (optimizeSubtitle) optimizeTitle.className = 'block text-xs text-slate-500 mt-1';
-      }
+        if (textOptimizeTitle) textOptimizeTitle.className = 'block text-sm font-bold text-slate-500';
+        if (textOptimizeSubtitle) textOptimizeSubtitle.className = 'block text-xs text-slate-400 mt-1';
 
-      // Check if Standard Byes should be greyed out & disabled (always unlocked when Knockout Bracket or Section Play + Knockout Bracket is selected)
-      const shouldDisableByes = !isKnockout && !isSectionKnockout && (isNaturallyEven || !isCleanlyDivisible);
-
-      if (shouldDisableByes) {
-        if (state.balancingMode === 'byes') {
-          state.balancingMode = 'optimizeTeamNumbers';
-        }
-        if (radioByes) {
-          radioByes.disabled = true;
-          radioByes.checked = false;
+        if (byesRadio) {
+          byesRadio.disabled = false;
+          byesRadio.checked = true;
         }
         if (labelByes) {
-          labelByes.className = 'relative flex p-4 rounded-xl border-2 border-slate-200 bg-slate-100/70 opacity-60 cursor-not-allowed';
-          labelByes.onclick = null;
+          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
         }
-        if (byesTitle) byesTitle.className = 'block text-sm font-bold text-slate-400';
-        if (byesSubtitle) byesSubtitle.className = 'block text-xs text-slate-400 mt-1';
-        if (byesDisabledReason && reasonText) {
-          if (!isCleanlyDivisible) {
-            reasonText.innerText = `${state.totalBowlers} bowlers is not cleanly divisible by team size ${targetSize}. Standard Byes disabled.`;
-          } else {
-            reasonText.innerText = `${state.totalBowlers} bowlers naturally form ${naturalTeamCount} teams (even count). No byes required.`;
-          }
-          byesDisabledReason.classList.remove('hidden');
-        }
-        if (byesLockedChip) byesLockedChip.classList.remove('hidden');
-      } else {
-        if (radioByes) {
-          radioByes.disabled = false;
-          radioByes.checked = (state.balancingMode === 'byes');
-        }
-        if (labelByes) {
-          labelByes.onclick = function() { setBalancingMode('byes'); };
-        }
-        if (byesTitle) byesTitle.className = 'block text-sm font-bold text-slate-900';
-        if (byesSubtitle) byesSubtitle.className = 'block text-xs text-slate-500 mt-1';
-        if (byesDisabledReason) byesDisabledReason.classList.add('hidden');
+        if (textByesTitle) textByesTitle.className = 'block text-sm font-bold text-slate-900';
+        if (textByesSubtitle) textByesSubtitle.className = 'block text-xs text-slate-500 mt-1';
+        if (textByesReason) textByesReason.classList.add('hidden');
         if (byesLockedChip) byesLockedChip.classList.add('hidden');
-      }
-
-      state.schedule = generateSchedule();
-      updateEstimatedMatchTime();
-      renderMasterRosterTable();
-
-      const labelOpt = document.getElementById('labelOptimize');
-      const activeBadge = document.getElementById('activeModeBadge');
-
-      if (labelOpt && labelByes && !shouldDisableByes) {
-        if (isSectionKnockout) {
-          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
-        } else if (state.balancingMode === 'optimizeTeamNumbers') {
-          labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm';
-          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
-        } else {
-          labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
-          labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
-        }
-      }
-
-      if (activeBadge) {
-        if (state.balancingMode === 'optimizeTeamNumbers') {
-          activeBadge.innerText = 'Optimize Teams Active';
-          activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200';
-        } else {
+        if (activeBadge) {
           activeBadge.innerText = 'Standard Byes Active';
           activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200';
         }
-      }
+      } else {
+        if (optRadio) optRadio.disabled = false;
+        if (textOptimizeTitle) textOptimizeTitle.className = 'block text-sm font-bold text-slate-900';
+        if (textOptimizeSubtitle) textOptimizeSubtitle.className = 'block text-xs text-slate-500 mt-1';
 
-      // Check Skip count in Master Roster against Total Bowlers
-      let skipCount = 0;
-      for (let r = 0; r < 160; r++) {
-        if (masterRoster[r][0] && masterRoster[r][0].trim() !== '') {
-          skipCount++;
+        let shouldDisableByes = false;
+        let disableReason = '';
+        const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
+        const targetSize = format.targetTeamSize;
+
+        if (state.totalBowlers % targetSize === 0) {
+          shouldDisableByes = true;
+          disableReason = `Disabled because ${state.totalBowlers} bowlers divides evenly into ${state.totalBowlers / targetSize} teams of ${targetSize} (No byes needed).`;
         }
-      }
 
-      const warningIcon = document.getElementById('bowlersWarningIcon');
-      if (warningIcon) {
-        if (state.totalBowlers !== skipCount) {
-          warningIcon.classList.remove('hidden');
+        if (shouldDisableByes) {
+          state.balancingMode = 'optimizeTeamNumbers';
+          if (optRadio) optRadio.checked = true;
+          if (byesRadio) {
+            byesRadio.checked = false;
+            byesRadio.disabled = true;
+          }
+          if (labelOpt) {
+            labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm';
+          }
+          if (labelByes) {
+            labelByes.className = 'relative flex p-4 rounded-xl border-2 border-slate-200 bg-slate-100/80 opacity-60 cursor-not-allowed transition-all';
+          }
+          if (textByesTitle) textByesTitle.className = 'block text-sm font-bold text-slate-500';
+          if (textByesSubtitle) textByesSubtitle.className = 'block text-xs text-slate-400 mt-1';
+          if (textByesReason && reasonText) {
+            textByesReason.classList.remove('hidden');
+            reasonText.innerText = disableReason;
+          }
+          if (byesLockedChip) {
+            byesLockedChip.classList.remove('hidden');
+            byesLockedChip.classList.add('inline-flex');
+          }
+          if (activeBadge) {
+            activeBadge.innerText = 'Optimize Teams Active';
+            activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200';
+          }
         } else {
-          warningIcon.classList.add('hidden');
+          if (byesRadio) byesRadio.disabled = false;
+          if (textByesTitle) textByesTitle.className = 'block text-sm font-bold text-slate-900';
+          if (textByesSubtitle) textByesSubtitle.className = 'block text-xs text-slate-500 mt-1';
+          if (textByesReason) textByesReason.classList.add('hidden');
+          if (byesLockedChip) byesLockedChip.classList.add('hidden');
+
+          if (state.balancingMode === 'optimizeTeamNumbers') {
+            if (optRadio) optRadio.checked = true;
+            if (labelOpt) labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-blue-50/60 border-blue-500 shadow-sm';
+            if (labelByes) labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
+            if (activeBadge) {
+              activeBadge.innerText = 'Optimize Teams Active';
+              activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-blue-100 text-blue-800 border border-blue-200';
+            }
+          } else {
+            if (byesRadio) byesRadio.checked = true;
+            if (labelOpt) labelOpt.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all border-slate-200 bg-white';
+            if (labelByes) labelByes.className = 'relative flex p-4 rounded-xl border-2 cursor-pointer transition-all bg-amber-50/60 border-amber-500 shadow-sm';
+            if (activeBadge) {
+              activeBadge.innerText = 'Standard Byes Active';
+              activeBadge.className = 'text-xs px-3 py-1 rounded-full font-bold bg-amber-100 text-amber-800 border border-amber-200';
+            }
+          }
         }
       }
-      // Always render matrix table, match cards, section play, and knockout bracket views so views are completely populated
-      renderScheduleMatrix();
-      renderMatchCards();
-      renderSectionPlayView();
-      renderKnockoutBracketView(state.viewMode);
-      if (state.viewMode === 'bracketScorecard' || state.viewMode === 'doubleLifeScorecard' || state.viewMode === 'sectionPlayScorecard') {
-        renderModeScorecardsView(state.viewMode);
+
+      if (state.isBestFitActive) {
+        const formatEntries = Object.entries(FORMAT_SPECS);
+        let bestKey = 'threeBowlTriples';
+        let minDiff = 9999;
+
+        for (const [key, spec] of formatEntries) {
+          const remainder = state.totalBowlers % spec.targetTeamSize;
+          if (remainder < minDiff) {
+            minDiff = remainder;
+            bestKey = key;
+          }
+        }
+        state.selectedFormat = bestKey;
+        const badge = document.getElementById('bestFitBadge');
+        const badgeText = document.getElementById('bestFitText');
+        if (badge && badgeText) {
+          badge.classList.remove('hidden');
+          badgeText.innerText = FORMAT_SPECS[bestKey].name;
+        }
+      } else {
+        const badge = document.getElementById('bestFitBadge');
+        if (badge) badge.classList.add('hidden');
       }
+
+      updateEstimatedMatchTime();
+
+      state.schedule = generateSchedule();
+
+      // Automatically switch away from Round Robin Score Cards if Tournament Format is not Round Robin
+      if (!isRoundRobin && state.viewMode === 'tabs') {
+        state.viewMode = (tFormat === 'sectionKnockout') ? 'sectionPlay' : 'bracket';
+      }
+
+      // Refresh Match Draw Schedule button states and visible panels
+      const btnTabs = document.getElementById('viewTabsBtn');
+      const btnMatrix = document.getElementById('viewMatrixBtn');
+      const btnBracket = document.getElementById('viewBracketBtn');
+      const btnBracketScorecard = document.getElementById('viewBracketScorecardBtn');
+      const btnDoubleLifeBracket = document.getElementById('viewDoubleLifeBracketBtn');
+      const btnDoubleLifeWinningLoser = document.getElementById('viewDoubleLifeWinningLoserBtn');
+      const btnDoubleLifeScorecard = document.getElementById('viewDoubleLifeScorecardBtn');
+      const btnSectionPlay = document.getElementById('viewSectionPlayBtn');
+      const btnSectionPlayScorecard = document.getElementById('viewSectionPlayScorecardBtn');
+      const btnPostSectionBracket = document.getElementById('viewPostSectionBracketBtn');
+
+      const inactiveBtnClass = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+      const activeBtnClass = 'px-3 py-1 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-xs';
+      const lockedBtnClass = 'px-3 py-1 rounded-lg text-xs font-bold transition text-slate-400 opacity-50 cursor-not-allowed';
+
+      if (btnTabs) {
+        btnTabs.disabled = !isRoundRobin;
+        btnTabs.className = !isRoundRobin ? lockedBtnClass : ((state.viewMode === 'tabs') ? activeBtnClass : inactiveBtnClass);
+      }
+      if (btnMatrix) btnMatrix.className = (state.viewMode === 'matrix') ? activeBtnClass : inactiveBtnClass;
+      if (btnBracket) btnBracket.className = (state.viewMode === 'bracket') ? activeBtnClass : inactiveBtnClass;
+      if (btnBracketScorecard) btnBracketScorecard.className = (state.viewMode === 'bracketScorecard') ? activeBtnClass : inactiveBtnClass;
+      if (btnDoubleLifeBracket) btnDoubleLifeBracket.className = (state.viewMode === 'doubleLifeBracket') ? activeBtnClass : inactiveBtnClass;
+      if (btnDoubleLifeWinningLoser) btnDoubleLifeWinningLoser.className = (state.viewMode === 'doubleLifeWinningLoser') ? activeBtnClass : inactiveBtnClass;
+      if (btnDoubleLifeScorecard) btnDoubleLifeScorecard.className = (state.viewMode === 'doubleLifeScorecard') ? activeBtnClass : inactiveBtnClass;
+      if (btnSectionPlay) btnSectionPlay.className = (state.viewMode === 'sectionPlay') ? activeBtnClass : inactiveBtnClass;
+      if (btnSectionPlayScorecard) btnSectionPlayScorecard.className = (state.viewMode === 'sectionPlayScorecard') ? activeBtnClass : inactiveBtnClass;
+      if (btnPostSectionBracket) btnPostSectionBracket.className = (state.viewMode === 'postSectionBracket') ? activeBtnClass : inactiveBtnClass;
+
+      const matrix = document.getElementById('fullScheduleMatrix');
+      const cards = document.getElementById('matchCardsContainer');
+      const bracket = document.getElementById('knockoutBracketContainer');
+      const sectionPlay = document.getElementById('sectionPlayContainer');
+      const modeScorecards = document.getElementById('modeScorecardsContainer');
+
+      if (matrix) matrix.classList.add('hidden');
+      if (cards) cards.classList.add('hidden');
+      if (bracket) bracket.classList.add('hidden');
+      if (sectionPlay) sectionPlay.classList.add('hidden');
+      if (modeScorecards) modeScorecards.classList.add('hidden');
+
+      renderMatchCards();
+      renderScheduleMatrix();
+
+      if (state.viewMode === 'matrix') {
+        if (matrix) matrix.classList.remove('hidden');
+      } else if (state.viewMode === 'bracket' || state.viewMode === 'doubleLifeBracket' || state.viewMode === 'doubleLifeWinningLoser' || state.viewMode === 'postSectionBracket') {
+        renderKnockoutBracketView(state.viewMode);
+        if (bracket) bracket.classList.remove('hidden');
+      } else if (state.viewMode === 'bracketScorecard' || state.viewMode === 'doubleLifeScorecard' || state.viewMode === 'sectionPlayScorecard') {
+        renderModeScorecardsView(state.viewMode);
+        if (modeScorecards) modeScorecards.classList.remove('hidden');
+      } else if (state.viewMode === 'sectionPlay') {
+        renderSectionPlayView();
+        if (sectionPlay) sectionPlay.classList.remove('hidden');
+      } else {
+        if (cards) cards.classList.remove('hidden');
+      }
+
+      renderMasterRosterTable();
     }
 
-    function showSkipsMismatchModal() {
-      const modal = document.getElementById('skipsMismatchModal');
-      if (modal) modal.classList.remove('hidden');
-    }
-
-    function closeSkipsMismatchModal() {
-      const modal = document.getElementById('skipsMismatchModal');
-      if (modal) modal.classList.add('hidden');
-    }
-
-    // --- INITIALIZATION ON WINDOW LOAD ---
-    window.onload = function() {
-      const loaded = loadAppStateFromLocalStorage();
-      if (!loaded) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const hasSaved = loadAppStateFromLocalStorage();
+      if (!hasSaved) {
         state.tournamentName = getDefaultTournamentName();
         const titleInput = document.getElementById('tournamentNameInput');
         if (titleInput) titleInput.value = state.tournamentName;
       }
       renderPriorityGreensTable();
       updateUI();
-    };
+    });
   </script>
 </body>
 </html>
