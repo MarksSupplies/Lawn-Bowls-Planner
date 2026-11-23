@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v147
+              v149
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -612,6 +612,11 @@
       <div id="matchCardsContainer" class="space-y-3">
         <!-- Dynamically Generated Match & Bye Cards -->
       </div>
+
+      <!-- Section Play Scorecards Container (Matches Round Robin Score Cards Layout) -->
+      <div id="sectionPlayScorecardsContainer" class="hidden space-y-3">
+        <!-- Dynamically Generated Section Play Team Scorecards -->
+      </div>
     </section>
 
     <!-- Master Roster Section -->
@@ -713,7 +718,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 147 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 149 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -764,7 +769,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v147';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v149';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -841,7 +846,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 147,
+          version: 149,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1196,6 +1201,7 @@
       state.viewMode = mode;
       const matrix = document.getElementById('fullScheduleMatrix');
       const cards = document.getElementById('matchCardsContainer');
+      const sectionPlayCards = document.getElementById('sectionPlayScorecardsContainer');
       const bracket = document.getElementById('knockoutBracketContainer');
       const sectionPlay = document.getElementById('sectionPlayContainer');
       const modeScorecards = document.getElementById('modeScorecardsContainer');
@@ -1232,6 +1238,7 @@
 
       if (matrix) matrix.classList.add('hidden');
       if (cards) cards.classList.add('hidden');
+      if (sectionPlayCards) sectionPlayCards.classList.add('hidden');
       if (bracket) bracket.classList.add('hidden');
       if (sectionPlay) sectionPlay.classList.add('hidden');
       if (modeScorecards) modeScorecards.classList.add('hidden');
@@ -1242,7 +1249,10 @@
       } else if (mode === 'bracket' || mode === 'doubleLifeBracket' || mode === 'doubleLifeWinningLoser' || mode === 'postSectionBracket') {
         renderKnockoutBracketView(mode);
         if (bracket) bracket.classList.remove('hidden');
-      } else if (mode === 'bracketScorecard' || mode === 'doubleLifeScorecard' || mode === 'sectionPlayScorecard') {
+      } else if (mode === 'sectionPlayScorecard') {
+        renderSectionPlayScorecards();
+        if (sectionPlayCards) sectionPlayCards.classList.remove('hidden');
+      } else if (mode === 'bracketScorecard' || mode === 'doubleLifeScorecard') {
         renderModeScorecardsView(mode);
         if (modeScorecards) modeScorecards.classList.remove('hidden');
       } else if (mode === 'sectionPlay') {
@@ -1499,7 +1509,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 147,
+        version: 149,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -1753,7 +1763,6 @@
       }
 
       if (tFormat === 'sectionKnockout') {
-        // Calculate the quantity of Rounds (including Quarter Final, Semi Final, Winners Final & Grand Final) in Post Section Play Knockout Brackets
         const sectionTeamsList = calculateSectionPlayTeams();
         const allTeamsCount = sectionTeamsList.length;
         const sectionSize = resolveEffectiveSectionSize(allTeamsCount);
@@ -1770,7 +1779,6 @@
         const isWinningLoserFinalActive = (state.selectedLifeSystem === 'doubleLife');
         const postSectionBracketRounds = basePostSectionRounds + (isWinningLoserFinalActive ? 1 : 0);
 
-        // Calculate the quantity of TEAMS in the largest section in Section Play
         const baseSectionSize = Math.floor(allTeamsCount / numSections);
         const extraTeams = allTeamsCount % numSections;
         const largestSectionTeamsCount = baseSectionSize + (extraTeams > 0 ? 1 : 0);
@@ -2098,7 +2106,6 @@
         teamOpponentHistory[t.label] = new Set();
       });
 
-      // Expand active priority greens into actual available rink slots
       const availableRinkSlots = [];
       priorityGreens.forEach((pGreen) => {
         const rawName = pGreen.name ? pGreen.name.trim().toUpperCase() : '';
@@ -2111,7 +2118,6 @@
         }
       });
 
-      // Fallback if no valid priority green names exist
       if (availableRinkSlots.length === 0) {
         for (let g = 1; g <= (state.greensAvailable || 1); g++) {
           const greenLabel = String.fromCharCode(64 + g);
@@ -2597,13 +2603,14 @@
     function attachScorecardKeyboardNav() {
       const inputs = document.querySelectorAll('.scorecard-nav-input');
       const fields = ['ends', 'ptsFor', 'ptsAgainst'];
-      const maxMatches = state.selectedRounds || 3;
+      const defaultMaxMatches = state.selectedRounds || 3;
 
       inputs.forEach(input => {
         input.addEventListener('keydown', function(e) {
           const team = this.getAttribute('data-team');
           const matchNum = parseInt(this.getAttribute('data-match'), 10);
           const col = parseInt(this.getAttribute('data-col'), 10);
+          const maxMatches = parseInt(this.getAttribute('data-max-matches'), 10) || defaultMaxMatches;
           const safeTeam = team.replace(/\s+/g, '_');
 
           let targetMatch = matchNum;
@@ -2650,7 +2657,7 @@
       const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
       const targetSize = format.targetTeamSize;
       const bowlsPerPlayer = format.bowlsPerPlayer;
-      const totalTeamBowls = targetSize * bowlsPerPlayer; // Singles: 4, Pairs: 4, 2B Triples: 6, 3B Triples: 9, Fours: 8
+      const totalTeamBowls = targetSize * bowlsPerPlayer;
       const totalBowlers = state.totalBowlers;
 
       function buildValidTeams(teamCount) {
@@ -2658,7 +2665,6 @@
         const basePlayers = Math.floor(totalBowlers / q);
         const remainder = totalBowlers % q;
 
-        // Enforce maximum 4 bowls per bowler cap: ceil(totalTeamBowls / playerCount) <= 4
         if (basePlayers <= 0 || Math.ceil(totalTeamBowls / basePlayers) > 4) {
           return null;
         }
@@ -2735,7 +2741,6 @@
         const numSec = Math.max(1, Math.ceil(totalTeamsCount / size));
         const maxTeamsInAnySection = Math.ceil(totalTeamsCount / numSec);
 
-        // Enforce rule: max number of teams in any section must always be strictly less than 6
         if (maxTeamsInAnySection >= 6) continue;
 
         const minTeamsInAnySection = Math.floor(totalTeamsCount / numSec);
@@ -2745,7 +2750,6 @@
         const desiredTotalQual = numSec * qualCount;
         const qualDiff = Math.abs(targetTotalSpots - desiredTotalQual);
 
-        // Prefer sections with 3 or 4 teams
         const isPreferred3or4 = (maxTeamsInAnySection === 3 || maxTeamsInAnySection === 4) && (minTeamsInAnySection === 3 || minTeamsInAnySection === 4);
         const prefPenalty = isPreferred3or4 ? 0 : (size === 3 || size === 4 ? 15 : 40);
         const score = (qualRem * 100) + (qualDiff * 15) + (rem * 10) + prefPenalty;
@@ -2854,7 +2858,489 @@
       }
     }
 
-    // --- MODE SCORECARDS ENGINE (Knockout, Double Life, Section Play Scorecards) ---
+    // --- SECTION PLAY SCORECARDS ENGINE ---
+    function getAvailablePriorityRinkSlots() {
+      const slots = [];
+      priorityGreens.forEach((pGreen) => {
+        const rawName = pGreen.name ? pGreen.name.trim().toUpperCase() : '';
+        if (rawName !== '') {
+          const startR = Math.min(pGreen.startRink || 1, pGreen.endRink || 8);
+          const endR = Math.max(pGreen.startRink || 1, pGreen.endRink || 8);
+          for (let r = startR; r <= endR; r++) {
+            slots.push({ green: rawName, rink: r });
+          }
+        }
+      });
+
+      if (slots.length === 0) {
+        for (let g = 1; g <= (state.greensAvailable || 1); g++) {
+          const greenLabel = String.fromCharCode(64 + g);
+          for (let r = 1; r <= (state.rinksPerGreen || 8); r++) {
+            slots.push({ green: greenLabel, rink: r });
+          }
+        }
+      }
+      return slots;
+    }
+
+    function buildSectionRoundRobinPairings(sectionTeams, sectionLetter) {
+      const count = sectionTeams.length;
+      if (count < 2) return [];
+
+      const list = [...sectionTeams];
+      if (list.length % 2 !== 0) {
+        list.push(null);
+      }
+      const n = list.length;
+      const totalRounds = n - 1;
+      const rot = list.slice(1);
+      const pairings = [];
+
+      for (let r = 0; r < totalRounds; r++) {
+        const roundList = [list[0], ...rot];
+        for (let m = 0; m < n / 2; m++) {
+          const teamA = roundList[m];
+          const teamB = roundList[n - 1 - m];
+          if (teamA && teamB) {
+            pairings.push({
+              sectionLetter,
+              teamA,
+              teamB
+            });
+          }
+        }
+        rot.unshift(rot.pop());
+      }
+      return pairings;
+    }
+
+    function generateSectionPlayScheduleData() {
+      const teams = calculateSectionPlayTeams();
+      if (teams.length === 0) {
+        return { sections: [], teamScheduleMap: {} };
+      }
+
+      const sectionSize = resolveEffectiveSectionSize(teams.length);
+      const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
+      const baseSectionSize = Math.floor(teams.length / numSections);
+      const extraTeams = teams.length % numSections;
+
+      const availableRinkSlots = getAvailablePriorityRinkSlots();
+      const totalRinksCount = Math.max(1, availableRinkSlots.length);
+
+      const sections = [];
+      const remainingMatchesBySection = [];
+      const teamScheduleMap = {};
+      const gamesScheduledCount = {};
+      const teamRinkUsageHistory = {};
+      let maxGamesPerTeam = 0;
+      let teamCursor = 0;
+
+      for (let s = 0; s < numSections; s++) {
+        const sectionLetter = String.fromCharCode(65 + s);
+        const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
+        const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
+        teamCursor += countForThisSection;
+
+        maxGamesPerTeam = Math.max(maxGamesPerTeam, Math.max(0, sectionTeams.length - 1));
+
+        sectionTeams.forEach(t => {
+          teamScheduleMap[t.label] = {
+            team: t,
+            sectionLetter,
+            games: []
+          };
+          gamesScheduledCount[t.label] = 0;
+          teamRinkUsageHistory[t.label] = {};
+        });
+
+        sections.push({
+          sectionLetter,
+          teams: sectionTeams
+        });
+        remainingMatchesBySection.push(buildSectionRoundRobinPairings(sectionTeams, sectionLetter));
+      }
+
+      for (let targetGameNum = 1; targetGameNum <= maxGamesPerTeam; targetGameNum++) {
+        let safetyCounter = 0;
+        while (safetyCounter < 500) {
+          safetyCounter++;
+
+          const anyTeamNeedsTargetGame = sections.some((sec, sIdx) =>
+            remainingMatchesBySection[sIdx].length > 0 &&
+            sec.teams.some(t => gamesScheduledCount[t.label] < targetGameNum)
+          );
+          if (!anyTeamNeedsTargetGame) break;
+
+          const waveMatches = [];
+          const busyTeamsInWave = new Set();
+
+          for (let sIdx = 0; sIdx < numSections; sIdx++) {
+            if (waveMatches.length >= totalRinksCount) break;
+            const remList = remainingMatchesBySection[sIdx];
+            const matchIdx = remList.findIndex(m =>
+              !busyTeamsInWave.has(m.teamA.label) &&
+              !busyTeamsInWave.has(m.teamB.label) &&
+              (gamesScheduledCount[m.teamA.label] < targetGameNum || gamesScheduledCount[m.teamB.label] < targetGameNum)
+            );
+            if (matchIdx !== -1) {
+              const [chosenMatch] = remList.splice(matchIdx, 1);
+              busyTeamsInWave.add(chosenMatch.teamA.label);
+              busyTeamsInWave.add(chosenMatch.teamB.label);
+              waveMatches.push(chosenMatch);
+            }
+          }
+
+          while (waveMatches.length < totalRinksCount) {
+            let addedInPass = false;
+            for (let sIdx = 0; sIdx < numSections; sIdx++) {
+              if (waveMatches.length >= totalRinksCount) break;
+              const remList = remainingMatchesBySection[sIdx];
+              const matchIdx = remList.findIndex(m =>
+                !busyTeamsInWave.has(m.teamA.label) &&
+                !busyTeamsInWave.has(m.teamB.label) &&
+                (gamesScheduledCount[m.teamA.label] < targetGameNum || gamesScheduledCount[m.teamB.label] < targetGameNum)
+              );
+              if (matchIdx !== -1) {
+                const [chosenMatch] = remList.splice(matchIdx, 1);
+                busyTeamsInWave.add(chosenMatch.teamA.label);
+                busyTeamsInWave.add(chosenMatch.teamB.label);
+                waveMatches.push(chosenMatch);
+                addedInPass = true;
+              }
+            }
+            if (!addedInPass) break;
+          }
+
+          if (waveMatches.length === 0) break;
+
+          const waveSlots = availableRinkSlots.slice(0, waveMatches.length);
+          const usedSlotIndices = new Set();
+
+          const orderedMatchIndices = waveMatches
+            .map((_, idx) => idx)
+            .sort((idxA, idxB) => {
+              const mA = waveMatches[idxA];
+              const mB = waveMatches[idxB];
+              const histA = Object.keys(teamRinkUsageHistory[mA.teamA.label]).length + Object.keys(teamRinkUsageHistory[mA.teamB.label]).length;
+              const histB = Object.keys(teamRinkUsageHistory[mB.teamA.label]).length + Object.keys(teamRinkUsageHistory[mB.teamB.label]).length;
+              if (histB !== histA) return histB - histA;
+              return idxA - idxB;
+            });
+
+          const assignedSlotForMatch = new Array(waveMatches.length);
+
+          orderedMatchIndices.forEach((mIdx) => {
+            const match = waveMatches[mIdx];
+            let bestSlotIdx = -1;
+            let bestPenalty = Infinity;
+
+            for (let slotIdx = 0; slotIdx < waveSlots.length; slotIdx++) {
+              if (usedSlotIndices.has(slotIdx)) continue;
+              const slot = waveSlots[slotIdx];
+              const rinkKey = `G${slot.green}-R${slot.rink}`;
+              const visitsA = teamRinkUsageHistory[match.teamA.label][rinkKey] || 0;
+              const visitsB = teamRinkUsageHistory[match.teamB.label][rinkKey] || 0;
+              const repeatPenalty = ((visitsA * visitsA) + (visitsB * visitsB)) * 100 + ((visitsA + visitsB) * 10);
+
+              if (repeatPenalty < bestPenalty) {
+                bestPenalty = repeatPenalty;
+                bestSlotIdx = slotIdx;
+              }
+            }
+
+            usedSlotIndices.add(bestSlotIdx);
+            assignedSlotForMatch[mIdx] = waveSlots[bestSlotIdx];
+          });
+
+          waveMatches.forEach((match, mIdx) => {
+            const chosenSlot = assignedSlotForMatch[mIdx] || availableRinkSlots[0];
+            const rinkKey = `G${chosenSlot.green}-R${chosenSlot.rink}`;
+
+            teamRinkUsageHistory[match.teamA.label][rinkKey] = (teamRinkUsageHistory[match.teamA.label][rinkKey] || 0) + 1;
+            teamRinkUsageHistory[match.teamB.label][rinkKey] = (teamRinkUsageHistory[match.teamB.label][rinkKey] || 0) + 1;
+
+            gamesScheduledCount[match.teamA.label] += 1;
+            gamesScheduledCount[match.teamB.label] += 1;
+
+            teamScheduleMap[match.teamA.label].games.push({
+              gameNum: gamesScheduledCount[match.teamA.label],
+              green: chosenSlot.green,
+              rink: chosenSlot.rink,
+              opponent: match.teamB.label
+            });
+
+            teamScheduleMap[match.teamB.label].games.push({
+              gameNum: gamesScheduledCount[match.teamB.label],
+              green: chosenSlot.green,
+              rink: chosenSlot.rink,
+              opponent: match.teamA.label
+            });
+          });
+        }
+      }
+
+      return { sections, teamScheduleMap };
+    }
+
+    function getSectionTeamScheduleBadge(teamGames) {
+      if (!teamGames || teamGames.length === 0) return '';
+
+      const greensMap = {};
+      teamGames.forEach(item => {
+        const gName = item.green;
+        if (!greensMap[gName]) greensMap[gName] = [];
+        greensMap[gName].push(item.rink);
+      });
+
+      const scheduleParts = Object.keys(greensMap).map(g => {
+        const rinks = greensMap[g].join(',');
+        return `Green ${g} Rink ${rinks}`;
+      });
+
+      return `<span class="ml-2 text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center">${scheduleParts.join(' | ')}</span>`;
+    }
+
+    function buildSectionPlayTeamScorecardHTML(teamLabel, teamGames) {
+      const storeKeyPrefix = `SEC_SC_${teamLabel}`;
+      const matchCount = teamGames.length;
+      let rowsHTML = '';
+      let sumEnds = 0;
+      let sumPtsFor = 0;
+      let sumPtsAgst = 0;
+      let sumMatchPts = 0;
+      let hasEnds = false;
+      let hasPtsFor = false;
+      let hasPtsAgst = false;
+      let hasOutcomes = false;
+
+      let winPoints = 3;
+      let drawPoints = 1;
+      if (state.selectedMatchPoints === '4_2') {
+        winPoints = 4;
+        drawPoints = 2;
+      } else if (state.selectedMatchPoints === '2_1') {
+        winPoints = 2;
+        drawPoints = 1;
+      }
+
+      for (let idx = 0; idx < matchCount; idx++) {
+        const m = idx + 1;
+        const gameInfo = teamGames[idx];
+        const greenDisplay = gameInfo ? `${gameInfo.green}` : '--';
+        const rinkDisplay = gameInfo ? `${gameInfo.rink}` : '--';
+        const oppositionDisplay = gameInfo && gameInfo.opponent ? `${gameInfo.opponent}` : '--';
+
+        const matchData = (matchResultStore[storeKeyPrefix] && matchResultStore[storeKeyPrefix][m]) || { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
+        const currentVal = matchData.outcome || '';
+
+        if (currentVal) {
+          hasOutcomes = true;
+          if (currentVal === 'W') sumMatchPts += winPoints;
+          else if (currentVal === 'D') sumMatchPts += drawPoints;
+        }
+
+        if (matchData.ends !== '') {
+          sumEnds += parseInt(matchData.ends, 10) || 0;
+          hasEnds = true;
+        }
+        if (matchData.ptsFor !== '') {
+          sumPtsFor += parseInt(matchData.ptsFor, 10) || 0;
+          hasPtsFor = true;
+        }
+        if (matchData.ptsAgainst !== '') {
+          sumPtsAgst += parseInt(matchData.ptsAgainst, 10) || 0;
+          hasPtsAgst = true;
+        }
+
+        const wClass = currentVal === 'W'
+          ? 'bg-emerald-600 text-white font-extrabold shadow-xs'
+          : 'bg-slate-100 text-slate-500 hover:bg-emerald-100 hover:text-emerald-800 font-semibold';
+        const dClass = currentVal === 'D'
+          ? 'bg-amber-500 text-white font-extrabold shadow-xs'
+          : 'bg-slate-100 text-slate-500 hover:bg-amber-100 hover:text-amber-800 font-semibold';
+        const lClass = currentVal === 'L'
+          ? 'bg-rose-600 text-white font-extrabold shadow-xs'
+          : 'bg-slate-100 text-slate-500 hover:bg-rose-100 hover:text-rose-800 font-semibold';
+
+        const safeLabel = storeKeyPrefix.replace(/\s+/g, '_');
+
+        rowsHTML += `
+          <tr>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-semibold bg-slate-50 text-[10px] sm:text-xs">${m}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-extrabold text-slate-700 text-[10px] sm:text-xs">${greenDisplay}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-extrabold text-emerald-700 text-[10px] sm:text-xs">${rinkDisplay}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100 font-bold text-slate-800 text-[10px] sm:text-xs leading-tight break-words">${oppositionDisplay}</td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <div class="inline-flex items-center space-x-0.5 sm:space-x-1 justify-center">
+                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'W')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${wClass}">W</button>
+                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'D')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${dClass}">D</button>
+                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'L')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${lClass}">L</button>
+              </div>
+            </td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <input type="text" inputmode="numeric" pattern="[0-9]*"
+                id="scorecard_input_${safeLabel}_${m}_ends"
+                data-team="${storeKeyPrefix}" data-match="${m}" data-field="ends" data-col="0" data-max-matches="${matchCount}"
+                value="${matchData.ends || ''}" 
+                placeholder="0"
+                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ends', this.value)"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+              />
+            </td>
+            <td class="p-0.5 sm:p-1 border-r border-slate-100">
+              <input type="text" inputmode="numeric" pattern="[0-9]*"
+                id="scorecard_input_${safeLabel}_${m}_ptsFor"
+                data-team="${storeKeyPrefix}" data-match="${m}" data-field="ptsFor" data-col="1" data-max-matches="${matchCount}"
+                value="${matchData.ptsFor || ''}" 
+                placeholder="0"
+                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsFor', this.value)"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+              />
+            </td>
+            <td class="p-0.5 sm:p-1">
+              <input type="text" inputmode="numeric" pattern="[0-9]*"
+                id="scorecard_input_${safeLabel}_${m}_ptsAgainst"
+                data-team="${storeKeyPrefix}" data-match="${m}" data-field="ptsAgainst" data-col="2" data-max-matches="${matchCount}"
+                value="${matchData.ptsAgainst || ''}" 
+                placeholder="0"
+                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsAgainst', this.value)"
+                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+              />
+            </td>
+          </tr>
+        `;
+      }
+
+      const safeLabel = storeKeyPrefix.replace(/\s+/g, '_');
+
+      return `
+        <div class="bg-white p-1.5 sm:p-2.5 rounded-xl border-2 border-emerald-600/30 ring-1 ring-emerald-600/10 shadow-sm min-h-[175px] h-full flex flex-col justify-between">
+          <table class="w-full text-center text-[10px] sm:text-xs border-collapse table-fixed">
+            <thead>
+              <tr class="bg-slate-100 text-slate-600 font-extrabold border-b border-slate-200">
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[9%] align-middle">Game</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[10%] align-middle">Green</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[9%] align-middle">Rink</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[15%] leading-tight align-middle">Opposition<br>Team</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[23%] sm:w-[24%] align-middle">Result</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11%] leading-tight align-middle">Ends<br>Won</th>
+                <th class="p-1 sm:p-1.5 border-r border-slate-200 w-[11.5%] sm:w-[11%] leading-tight align-middle">Pts<br>For</th>
+                <th class="p-1 sm:p-1.5 w-[11.5%] sm:w-[11%] leading-tight align-middle">Pts<br>Agst</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-700 font-medium">
+              ${rowsHTML}
+            </tbody>
+            <tfoot>
+              <tr class="bg-slate-900 text-white font-extrabold border-t-2 border-slate-900 text-[10px] sm:text-xs">
+                <td colspan="4" class="p-1 sm:p-1.5 border-r border-slate-800 text-center uppercase tracking-tight">Total</td>
+                <td id="total_wdl_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-amber-300 font-black">${hasOutcomes ? `${sumMatchPts} pts` : '--'}</td>
+                <td id="total_ends_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-emerald-300 font-black">${hasEnds ? sumEnds : '--'}</td>
+                <td id="total_ptsFor_${safeLabel}" class="p-1 sm:p-1.5 border-r border-slate-800 text-emerald-300 font-black">${hasPtsFor ? sumPtsFor : '--'}</td>
+                <td id="total_ptsAgst_${safeLabel}" class="p-1 sm:p-1.5 text-rose-300 font-black">${hasPtsAgst ? sumPtsAgst : '--'}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderSectionPlayScorecards() {
+      const container = document.getElementById('sectionPlayScorecardsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const { sections, teamScheduleMap } = generateSectionPlayScheduleData();
+      const sortedTeams = Object.values(teamScheduleMap).sort((a, b) =>
+        a.team.label.localeCompare(b.team.label, undefined, { numeric: true })
+      );
+
+      if (sortedTeams.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center bg-white rounded-2xl border border-dashed border-slate-300 text-slate-400 text-sm">No teams scheduled for Section Play.</div>`;
+        return;
+      }
+
+      const printBar = document.createElement('div');
+      printBar.className = 'no-print bg-white border border-slate-200/90 rounded-2xl px-4 py-2.5 shadow-2xs flex flex-wrap items-center justify-between gap-2';
+      printBar.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <i class="ph-bold ph-cards text-bowls-700 text-lg"></i>
+          <span class="text-sm font-extrabold text-slate-900">Section Play Score Cards</span>
+        </div>
+        <button type="button" onclick="printCurrentScheduleView()" class="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition shadow-xs inline-flex items-center space-x-1.5">
+          <i class="ph-bold ph-printer"></i>
+          <span>Print</span>
+        </button>
+      `;
+      container.appendChild(printBar);
+
+      sortedTeams.forEach((entry) => {
+        const team = entry.team;
+        const sectionLetter = entry.sectionLetter;
+        const teamGames = entry.games;
+        const teamIdx = parseTeamIndexFromLabel(team.label);
+
+        const card = document.createElement('div');
+        card.className = 'bg-white border border-slate-200/90 rounded-2xl p-2.5 sm:p-4 shadow-sm hover:shadow-md transition-shadow';
+
+        card.innerHTML = `
+          <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-0.5 rounded-md bg-bowls-900 text-white font-bold text-xs tracking-wide">
+                  ${team.label}
+                </span>
+                <span class="text-xs font-extrabold text-slate-700">
+                  Team Roster &amp; Scorecard
+                </span>
+              </div>
+              <span class="text-[11px] font-bold text-amber-900 bg-amber-100/90 border border-amber-300 px-2.5 py-0.5 rounded-full inline-flex items-center">
+                Remember to put Team A or Team B etc on your Score Card
+              </span>
+            </div>
+            <span class="text-xs font-semibold text-slate-500">${team.playerCount} Bowler${team.playerCount === 1 ? '' : 's'}</span>
+          </div>
+
+          <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-12 gap-2 items-stretch">
+            <div class="sm:col-span-5 bg-blue-50/40 rounded-xl p-2 border border-blue-200/60 flex flex-col min-w-0 overflow-hidden">
+              <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
+                <div class="flex items-center flex-wrap gap-1">
+                  <span class="text-sm font-extrabold text-slate-900">${team.label}</span>
+                  ${getSectionTeamScheduleBadge(teamGames)}
+                </div>
+                <span class="text-xs font-semibold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full">
+                  ${team.playerCount} Bowlers
+                </span>
+              </div>
+              <div class="flex-1 min-w-0">
+                ${buildTeamRosterHTML(teamIdx, team.playerCount, team.bowlDist)}
+              </div>
+            </div>
+
+            <div class="sm:col-span-7 bg-slate-50/70 rounded-xl p-2 border border-slate-200/80 flex flex-col min-w-0 overflow-hidden">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-sm font-extrabold text-slate-900">Scorecard</span>
+                <span class="text-xs font-extrabold text-bowls-800 bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 rounded-full">
+                  Section ${sectionLetter}
+                </span>
+                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                  Enter Match Results
+                </span>
+              </div>
+              <div class="flex-1 min-w-0">
+                ${buildSectionPlayTeamScorecardHTML(team.label, teamGames)}
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      attachScorecardKeyboardNav();
+    }
+
+    // --- MODE SCORECARDS ENGINE ---
     function getBracketSeedingOrderForSize(size) {
       let rounds = Math.log2(size) - 1;
       let seeds = [1, 2];
@@ -2937,7 +3423,6 @@
         currentMatchCount /= 2;
       }
 
-      // For Double Life systems, keep Round 1 name and default subsequent rounds to numbers (2, 3, ...) until W or L reveals the team's next round
       if (!isSingleLife) {
         knockoutTeams.forEach(t => {
           const storeKeyPrefix = `KO_SC_${t.label}`;
@@ -3169,11 +3654,7 @@
     }
 
     function getSectionPlayStandingsBySection() {
-      const teams = calculateSectionPlayTeams();
-      const sectionSize = resolveEffectiveSectionSize(teams.length);
-      const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
-      const baseSectionSize = Math.floor(teams.length / numSections);
-      const extraTeams = teams.length % numSections;
+      const { sections, teamScheduleMap } = generateSectionPlayScheduleData();
 
       let winPts = 3;
       let drawPts = 1;
@@ -3187,86 +3668,56 @@
 
       const priority = state.selectedTieBreakPriority || 'winsPointsEnds';
       const sectionsData = [];
-      let teamCursor = 0;
 
-      for (let s = 0; s < numSections; s++) {
-        const sectionLetter = String.fromCharCode(65 + s);
-        const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
-        const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
-        teamCursor += countForThisSection;
+      sections.forEach((sec) => {
+        const rankedTeams = sec.teams.map((t, idx) => {
+          const storeKeyPrefix = `SEC_SC_${t.label}`;
+          const teamStore = matchResultStore[storeKeyPrefix] || {};
+          const numGames = (teamScheduleMap[t.label] && teamScheduleMap[t.label].games.length) || Math.max(0, sec.teams.length - 1);
 
-        const statsMap = {};
-        sectionTeams.forEach((t, idx) => {
-          statsMap[t.label] = {
-            team: t,
-            originalIdx: idx,
-            wins: 0,
-            draws: 0,
-            losses: 0,
-            matchPts: 0,
-            endsWon: 0,
-            ptsFor: 0,
-            ptsAgainst: 0
-          };
-        });
+          let wins = 0;
+          let draws = 0;
+          let losses = 0;
+          let matchPts = 0;
+          let endsWon = 0;
+          let ptsFor = 0;
+          let ptsAgainst = 0;
 
-        // Replay section round-robin fixtures to tally recorded Section Play Scorecard results
-        const schedTeams = [...sectionTeams];
-        if (schedTeams.length % 2 !== 0) {
-          schedTeams.push({ label: 'BYE', isBye: true });
-        }
-        const n = schedTeams.length;
-        const totalSecRounds = n - 1;
-        const rot = schedTeams.slice(1);
-        let matchCounter = 1;
-
-        for (let r = 0; r < totalSecRounds; r++) {
-          const roundList = [schedTeams[0], ...rot];
-          for (let m = 0; m < n / 2; m++) {
-            const teamObjA = roundList[m];
-            const teamObjB = roundList[n - 1 - m];
-
-            if (teamObjA.isBye && teamObjB.isBye) continue;
-            if (teamObjA.isBye || teamObjB.isBye) continue;
-
-            const tA = teamObjA.label;
-            const tB = teamObjB.label;
-            const key = `sec_${sectionLetter}_M${matchCounter}`;
-            const data = modeScorecardStore[key] || {};
-
-            const eA = parseInt(data.endsA, 10) || 0;
-            const eB = parseInt(data.endsB, 10) || 0;
-            const pA = parseInt(data.ptsA, 10) || 0;
-            const pB = parseInt(data.ptsB, 10) || 0;
-
-            statsMap[tA].endsWon += eA;
-            statsMap[tB].endsWon += eB;
-            statsMap[tA].ptsFor += pA;
-            statsMap[tA].ptsAgainst += pB;
-            statsMap[tB].ptsFor += pB;
-            statsMap[tB].ptsAgainst += pA;
-
-            if (data.winner === 'A') {
-              statsMap[tA].wins += 1;
-              statsMap[tA].matchPts += winPts;
-              statsMap[tB].losses += 1;
-            } else if (data.winner === 'B') {
-              statsMap[tB].wins += 1;
-              statsMap[tB].matchPts += winPts;
-              statsMap[tA].losses += 1;
-            } else if (data.ptsA !== '' && data.ptsB !== '' && pA === pB && pA > 0) {
-              statsMap[tA].draws += 1;
-              statsMap[tB].draws += 1;
-              statsMap[tA].matchPts += drawPts;
-              statsMap[tB].matchPts += drawPts;
+          for (let m = 1; m <= numGames; m++) {
+            const matchData = teamStore[m] || {};
+            if (matchData.outcome === 'W') {
+              wins += 1;
+              matchPts += winPts;
+            } else if (matchData.outcome === 'D') {
+              draws += 1;
+              matchPts += drawPts;
+            } else if (matchData.outcome === 'L') {
+              losses += 1;
             }
 
-            matchCounter++;
+            if (matchData.ends !== '' && matchData.ends !== undefined) {
+              endsWon += parseInt(matchData.ends, 10) || 0;
+            }
+            if (matchData.ptsFor !== '' && matchData.ptsFor !== undefined) {
+              ptsFor += parseInt(matchData.ptsFor, 10) || 0;
+            }
+            if (matchData.ptsAgainst !== '' && matchData.ptsAgainst !== undefined) {
+              ptsAgainst += parseInt(matchData.ptsAgainst, 10) || 0;
+            }
           }
-          rot.unshift(rot.pop());
-        }
 
-        const rankedTeams = Object.values(statsMap).sort((a, b) => {
+          return {
+            team: t,
+            originalIdx: idx,
+            wins,
+            draws,
+            losses,
+            matchPts,
+            endsWon,
+            ptsFor,
+            ptsAgainst
+          };
+        }).sort((a, b) => {
           const diffA = a.ptsFor - a.ptsAgainst;
           const diffB = b.ptsFor - b.ptsAgainst;
           if (priority === 'winsEndsPoints') {
@@ -3286,10 +3737,10 @@
         });
 
         sectionsData.push({
-          sectionLetter,
+          sectionLetter: sec.sectionLetter,
           rankedTeams
         });
-      }
+      });
 
       return sectionsData;
     }
@@ -3350,7 +3801,6 @@
           let matchRows = '';
           let matchCounter = 1;
 
-          // Build round-robin section schedule ensuring a Bye never plays another Bye (at most 1 BYE if section has odd teams)
           const schedTeams = [...sectionTeams];
           if (schedTeams.length % 2 !== 0) {
             schedTeams.push({ label: 'BYE', isBye: true });
@@ -3365,7 +3815,6 @@
               const teamObjA = roundList[m];
               const teamObjB = roundList[n - 1 - m];
 
-              // Ensure a Bye never plays another Bye
               if (teamObjA.isBye && teamObjB.isBye) continue;
 
               if (teamObjA.isBye || teamObjB.isBye) {
@@ -3428,7 +3877,6 @@
       while (bracketSize < teams.length) bracketSize *= 2;
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
-      // Knockout Brackets Scorecard populated strictly from the Knockout Brackets data (including Quarter Final, Semi Final, Winners Final & Grand Final, and dynamic Double Life rounds)
       if (mode === 'bracketScorecard') {
         const distResult = calculateKnockoutTeamDistribution();
         const knockoutTeams = distResult.teams;
@@ -3530,7 +3978,6 @@
         return;
       }
 
-      // Double Life Knockout Scorecard
       const isDoubleLife = (mode === 'doubleLifeScorecard');
       if (heading) {
         heading.innerText = isDoubleLife ? 'Knockout Brackets Double Life Scorecard' : 'Knockout Brackets Scorecard';
@@ -3648,17 +4095,15 @@
       const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
       const targetSize = format.targetTeamSize;
       const bowlsPerPlayer = format.bowlsPerPlayer;
-      const totalTeamBowls = targetSize * bowlsPerPlayer; // Singles: 4, Pairs: 4, 2B Triples: 6, 3B Triples: 9, Fours: 8
+      const totalTeamBowls = targetSize * bowlsPerPlayer;
       const totalBowlers = state.totalBowlers;
-      const mode = state.balancingMode; // 'byes' or 'optimizeTeamNumbers'
+      const mode = state.balancingMode;
 
-      // Helper to distribute remainder bowlers across Q teams obeying Rule 1C (equal team bowls, max 4 bowls/player)
       function buildTeamsWithRule1C(teamCount) {
         const q = Math.max(2, teamCount);
         const basePlayers = Math.floor(totalBowlers / q);
         const remainder = totalBowlers % q;
 
-        // Check Rule 1C max 4 bowls/player cap: ceil(totalTeamBowls / playerCount) <= 4
         if (basePlayers <= 0 || Math.ceil(totalTeamBowls / basePlayers) > 4) {
           return null;
         }
@@ -3686,12 +4131,10 @@
         return { teams, adjustedTeamsCount };
       }
 
-      // Rule 1D: Closest whole number divisor of Total Bowlers / Match Format, then distribute remainder via Rule 1C
       function applyRule1D() {
         const rawRatio = totalBowlers / targetSize;
         let candidate = Math.max(2, Math.round(rawRatio));
 
-        // Search outward from closest whole number for a valid team count obeying Rule 1C
         for (let offset = 0; offset <= 160; offset++) {
           const candidates = offset === 0 ? [candidate] : [candidate + offset, candidate - offset];
           for (const c of candidates) {
@@ -3707,7 +4150,6 @@
       }
 
       if (mode === 'byes') {
-        // Rule 1: Total Bowlers / Match Format; if whole number -> Quantity of Knockout Teams, else Rule 1D
         if (totalBowlers % targetSize === 0 && (totalBowlers / targetSize) >= 2) {
           const exactQ = totalBowlers / targetSize;
           const res = buildTeamsWithRule1C(exactQ);
@@ -3717,11 +4159,9 @@
         }
         return applyRule1D();
       } else {
-        // Optimize Team Numbers -> Rule 1B
         const powersOfTwo = [2, 4, 8, 16, 32, 64, 128, 256, 512];
         const rawRatio = totalBowlers / targetSize;
 
-        // Find closest power of 2 in [2, 4, 8, 16, 32, 64, 128, 256, 512]
         let closestPow2 = powersOfTwo[0];
         let minDiff = Math.abs(rawRatio - closestPow2);
         for (let i = 1; i < powersOfTwo.length; i++) {
@@ -3733,8 +4173,6 @@
         }
 
         const res1B = buildTeamsWithRule1C(closestPow2);
-        // Rule 1B check: If less than half of Quantity of Knockout Teams adjusted their bowler count -> proceed;
-        // If more than half (or >= half when exceeding threshold) had to adjust -> fallback to Rule 1D
         if (res1B && res1B.adjustedTeamsCount < (closestPow2 / 2)) {
           return { ...res1B, ruleUsed: 'Rule 1B' };
         }
@@ -3755,7 +4193,6 @@
       const lifeSys = state.selectedLifeSystem || 'singleLife';
       const keepBothLivesInFinal = (state.selectedFinalLives !== 'resetToOneLife');
 
-      // Determine Double Life & Winning-Loser-Final modes across all 4 bracket views
       const isWinningLoserFinal = (isPostSection || activeView === 'bracket')
         ? (lifeSys === 'doubleLife')
         : (activeView === 'doubleLifeWinningLoser');
@@ -3810,7 +4247,6 @@
         }
 
         if (transitionMode === 'seeded') {
-          // Sort qualifiers in seeded order based on Section Play points (and tie-break priority)
           rawQualifiers.sort((a, b) => {
             if (b.matchPts !== a.matchPts) return b.matchPts - a.matchPts;
             if (priority === 'winsEndsPoints') {
@@ -3832,7 +4268,6 @@
             label: `#${idx + 1} ${qItem.label}`
           }));
         } else {
-          // Random Draw order
           for (let i = rawQualifiers.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [rawQualifiers[i], rawQualifiers[j]] = [rawQualifiers[j], rawQualifiers[i]];
@@ -3883,7 +4318,6 @@
         }
       }
 
-      // Calculate nearest power of 2 >= totalTeams (Standard Byes added only if necessary, never Bye vs Bye)
       let bracketSize = 2;
       while (bracketSize < totalTeams) {
         bracketSize *= 2;
@@ -3891,7 +4325,6 @@
 
       const totalRounds = Math.ceil(Math.log2(bracketSize));
 
-      // Build Single Life (Main / Winners) Tree
       const winnersBracketResult = generateSingleBracketTree('Main Winners Bracket', knockoutTeams, bracketSize, totalRounds, {
         isWinningLoserFinal,
         keepBothLivesInFinal
@@ -3900,7 +4333,6 @@
       if (!isDoubleLife) {
         container.innerHTML = winnersBracketResult.html;
       } else {
-        // Build Losers (Double Life Elimination) Tree using the exact same bracketSize and Round 1 BYE structure as Winners Bracket (Life #1)
         const losersBracketHTML = generateDoubleLifeLosersTree(
           'Losers / Elimination Bracket',
           bracketSize,
@@ -3918,7 +4350,6 @@
               ${winnersBracketResult.html}
             </div>
 
-            <!-- Middle Native Horizontal Scrollbar Between Winners & Losers Brackets (Same Length as Top & Bottom Scrollbars) -->
             <div id="bracketMiddleScrollbar" class="overflow-x-auto sticky left-0" onscroll="syncBracketScroll('middle')">
               <div id="bracketMiddleScrollbarInner" class="h-4"></div>
             </div>
@@ -3947,7 +4378,6 @@
         else roundNames.push(`Round ${r}`);
       }
 
-      // Standard tournament seeding ensures top seeds receive any necessary byes and a Bye NEVER plays another Bye
       function getBracketSeedingOrder(size) {
         let rounds = Math.log2(size) - 1;
         let seeds = [1, 2];
@@ -4091,7 +4521,6 @@
                   : `<span class="text-slate-600 font-extrabold">Knockout</span>`}
               </div>
               <div class="p-2 space-y-1.5">
-                <!-- Team A Slot -->
                 <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.slotA.label ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isABye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
                   <div class="min-w-0 pr-1.5">
                     <div class="text-xs truncate" title="${match.slotA.label}">${detailsA.title}</div>
@@ -4101,7 +4530,6 @@
                     ${winnerLabel === match.slotA.label ? 'ADVANCES' : isABye ? 'BYE' : 'Slot'}
                   </span>
                 </div>
-                <!-- Team B Slot -->
                 <div class="flex items-center justify-between p-1.5 rounded-lg ${winnerLabel === match.slotB.label ? 'bg-emerald-50 border border-emerald-300 text-emerald-950 font-black' : isBBye ? 'bg-slate-50 text-slate-400' : 'bg-slate-50 text-slate-900 font-bold'}">
                   <div class="min-w-0 pr-1.5">
                     <div class="text-xs truncate" title="${match.slotB.label}">${detailsB.title}</div>
@@ -4441,7 +4869,6 @@
         `;
       }
 
-      // Sync top native scrollbar width with rendered bracket width
       setTimeout(updateBracketTopScrollbarWidth, 0);
 
       treeHTML += `</div>`;
@@ -4753,12 +5180,10 @@
 
       state.schedule = generateSchedule();
 
-      // Automatically switch away from Round Robin Score Cards if Tournament Format is not Round Robin
       if (!isRoundRobin && state.viewMode === 'tabs') {
         state.viewMode = (tFormat === 'sectionKnockout') ? 'sectionPlay' : 'bracket';
       }
 
-      // Refresh Match Draw Schedule button states and visible panels
       const btnTabs = document.getElementById('viewTabsBtn');
       const btnMatrix = document.getElementById('viewMatrixBtn');
       const btnBracket = document.getElementById('viewBracketBtn');
@@ -4790,12 +5215,14 @@
 
       const matrix = document.getElementById('fullScheduleMatrix');
       const cards = document.getElementById('matchCardsContainer');
+      const sectionPlayCards = document.getElementById('sectionPlayScorecardsContainer');
       const bracket = document.getElementById('knockoutBracketContainer');
       const sectionPlay = document.getElementById('sectionPlayContainer');
       const modeScorecards = document.getElementById('modeScorecardsContainer');
 
       if (matrix) matrix.classList.add('hidden');
       if (cards) cards.classList.add('hidden');
+      if (sectionPlayCards) sectionPlayCards.classList.add('hidden');
       if (bracket) bracket.classList.add('hidden');
       if (sectionPlay) sectionPlay.classList.add('hidden');
       if (modeScorecards) modeScorecards.classList.add('hidden');
@@ -4808,7 +5235,10 @@
       } else if (state.viewMode === 'bracket' || state.viewMode === 'doubleLifeBracket' || state.viewMode === 'doubleLifeWinningLoser' || state.viewMode === 'postSectionBracket') {
         renderKnockoutBracketView(state.viewMode);
         if (bracket) bracket.classList.remove('hidden');
-      } else if (state.viewMode === 'bracketScorecard' || state.viewMode === 'doubleLifeScorecard' || state.viewMode === 'sectionPlayScorecard') {
+      } else if (state.viewMode === 'sectionPlayScorecard') {
+        renderSectionPlayScorecards();
+        if (sectionPlayCards) sectionPlayCards.classList.remove('hidden');
+      } else if (state.viewMode === 'bracketScorecard' || state.viewMode === 'doubleLifeScorecard') {
         renderModeScorecardsView(state.viewMode);
         if (modeScorecards) modeScorecards.classList.remove('hidden');
       } else if (state.viewMode === 'sectionPlay') {
