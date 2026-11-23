@@ -739,6 +739,28 @@
     </div>
   </div>
 
+  <!-- Section Size Warning Alert Modal -->
+  <div id="sectionSizeWarningModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+    <div class="bg-white rounded-2xl border border-orange-200 shadow-2xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in duration-150">
+      <div class="flex items-start space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center text-orange-600 flex-shrink-0">
+          <i class="ph-bold ph-warning text-xl"></i>
+        </div>
+        <div class="flex-1">
+          <h3 class="text-base font-bold text-slate-900">Section Size Warning</h3>
+          <p class="text-xs font-semibold text-orange-600 mt-2 leading-relaxed">
+            Sections larger than 5 will be difficult to finish in 1 day unless the ends are reduced or a timer is used.
+          </p>
+        </div>
+      </div>
+      <div class="flex justify-end pt-2 border-t border-slate-100">
+        <button type="button" onclick="closeSectionSizeWarningModal()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Application Logic -->
   <script>
     // System State Storage Key
@@ -1309,6 +1331,10 @@
       const sSizeEl = document.getElementById('sectionSizeSelect');
       if (sSizeEl) {
         state.selectedSectionSize = sSizeEl.value;
+        const parsedSize = parseInt(sSizeEl.value, 10);
+        if (!isNaN(parsedSize) && parsedSize >= 6) {
+          showSectionSizeWarningModal();
+        }
         saveAppStateToLocalStorage();
         updateUI();
       }
@@ -4481,6 +4507,20 @@
 
     function closeSkipsMismatchModal() {
       const modal = document.getElementById('skipsMismatchModal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function showSectionSizeWarningModal() {
+      const modal = document.getElementById('sectionSizeWarningModal');
+      if (modal) {
+        modal.classList.remove('hidden');
+      }
+    }
+
+    function closeSectionSizeWarningModal() {
+      const modal = document.getElementById('sectionSizeWarningModal');
       if (modal) {
         modal.classList.add('hidden');
       }
