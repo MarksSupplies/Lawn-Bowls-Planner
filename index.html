@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v154
+              v155
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -718,7 +718,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 154 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 155 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -789,7 +789,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v154';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v155';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -871,7 +871,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 154,
+          version: 155,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1537,7 +1537,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 154,
+        version: 155,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -4422,65 +4422,74 @@
         const { perSectionSpots } = calculateAdjustedSectionQualifyingSpots(allTeamsCount, numSections, qualCount);
 
         const sectionsStandings = getSectionPlayStandingsBySection();
+        const allSectionResultsEntered = sectionsStandings.length > 0 && sectionsStandings.every(sec => sec.allResultsEntered);
         const transitionMode = state.selectedSectionBracketTransition || 'random';
         const priority = state.selectedTieBreakPriority || 'winsPointsEnds';
 
-        let rawQualifiers = [];
-        for (let s = 0; s < numSections; s++) {
-          const secInfo = sectionsStandings[s];
-          const sectionLetter = secInfo ? secInfo.sectionLetter : String.fromCharCode(65 + s);
-          const spotsForSection = perSectionSpots[s] || 0;
-          for (let q = 0; q < spotsForSection; q++) {
-            const standingEntry = secInfo && secInfo.rankedTeams[q] ? secInfo.rankedTeams[q] : null;
-            const teamObj = standingEntry ? standingEntry.team : null;
-            const hasStats = standingEntry && (standingEntry.matchPts > 0 || standingEntry.ptsFor > 0 || standingEntry.endsWon > 0);
-            const displayLabel = teamObj
-              ? (hasStats ? `${teamObj.label} (Sec ${sectionLetter} #${q + 1} • ${standingEntry.matchPts}pts)` : `${teamObj.label} (Sec ${sectionLetter} #${q + 1})`)
-              : `Sec ${sectionLetter} #${q + 1}`;
-
-            rawQualifiers.push({
-              label: displayLabel,
-              playerCount: teamObj ? teamObj.playerCount : null,
-              deltaTag: teamObj ? teamObj.deltaTag : '',
-              bowlDist: teamObj ? teamObj.bowlDist : null,
-              sectionIndex: s,
-              sectionRank: q,
-              matchPts: standingEntry ? standingEntry.matchPts : 0,
-              wins: standingEntry ? standingEntry.wins : 0,
-              endsWon: standingEntry ? standingEntry.endsWon : 0,
-              ptsDiff: standingEntry ? (standingEntry.ptsFor - standingEntry.ptsAgainst) : 0,
-              ptsFor: standingEntry ? standingEntry.ptsFor : 0
-            });
-          }
-        }
-
-        if (transitionMode === 'seeded') {
-          rawQualifiers.sort((a, b) => {
-            if (b.matchPts !== a.matchPts) return b.matchPts - a.matchPts;
-            if (priority === 'winsEndsPoints') {
-              if (b.wins !== a.wins) return b.wins - a.wins;
-              if (b.endsWon !== a.endsWon) return b.endsWon - a.endsWon;
-              if (b.ptsDiff !== a.ptsDiff) return b.ptsDiff - a.ptsDiff;
-              if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
-            } else {
-              if (b.wins !== a.wins) return b.wins - a.wins;
-              if (b.ptsDiff !== a.ptsDiff) return b.ptsDiff - a.ptsDiff;
-              if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
-              if (b.endsWon !== a.endsWon) return b.endsWon - a.endsWon;
-            }
-            if (a.sectionRank !== b.sectionRank) return a.sectionRank - b.sectionRank;
-            return a.sectionIndex - b.sectionIndex;
-          });
-          knockoutTeams = rawQualifiers.map((qItem, idx) => ({
-            ...qItem,
-            label: `#${idx + 1} ${qItem.label}`
+        if (!allSectionResultsEntered) {
+          const totalQualifyingSlots = perSectionSpots.reduce((acc, spots) => acc + spots, 0);
+          knockoutTeams = Array.from({ length: totalQualifyingSlots }, () => ({
+            label: 'Waiting for results',
+            isPlaceholder: true
           }));
         } else {
-          for (let i = rawQualifiers.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [rawQualifiers[i], rawQualifiers[j]] = [rawQualifiers[j], rawQualifiers[i]];
+          let rawQualifiers = [];
+          for (let s = 0; s < numSections; s++) {
+            const secInfo = sectionsStandings[s];
+            const sectionLetter = secInfo ? secInfo.sectionLetter : String.fromCharCode(65 + s);
+            const spotsForSection = perSectionSpots[s] || 0;
+            for (let q = 0; q < spotsForSection; q++) {
+              const standingEntry = secInfo && secInfo.rankedTeams[q] ? secInfo.rankedTeams[q] : null;
+              const teamObj = standingEntry ? standingEntry.team : null;
+              const hasStats = standingEntry && (standingEntry.matchPts > 0 || standingEntry.ptsFor > 0 || standingEntry.endsWon > 0);
+              const displayLabel = teamObj
+                ? (hasStats ? `${teamObj.label} (Sec ${sectionLetter} #${q + 1} • ${standingEntry.matchPts}pts)` : `${teamObj.label} (Sec ${sectionLetter} #${q + 1})`)
+                : `Sec ${sectionLetter} #${q + 1}`;
+
+              rawQualifiers.push({
+                label: displayLabel,
+                playerCount: teamObj ? teamObj.playerCount : null,
+                deltaTag: teamObj ? teamObj.deltaTag : '',
+                bowlDist: teamObj ? teamObj.bowlDist : null,
+                sectionIndex: s,
+                sectionRank: q,
+                matchPts: standingEntry ? standingEntry.matchPts : 0,
+                wins: standingEntry ? standingEntry.wins : 0,
+                endsWon: standingEntry ? standingEntry.endsWon : 0,
+                ptsDiff: standingEntry ? (standingEntry.ptsFor - standingEntry.ptsAgainst) : 0,
+                ptsFor: standingEntry ? standingEntry.ptsFor : 0
+              });
+            }
           }
-          knockoutTeams = rawQualifiers;
+
+          if (transitionMode === 'seeded') {
+            rawQualifiers.sort((a, b) => {
+              if (b.matchPts !== a.matchPts) return b.matchPts - a.matchPts;
+              if (priority === 'winsEndsPoints') {
+                if (b.wins !== a.wins) return b.wins - a.wins;
+                if (b.endsWon !== a.endsWon) return b.endsWon - a.endsWon;
+                if (b.ptsDiff !== a.ptsDiff) return b.ptsDiff - a.ptsDiff;
+                if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
+              } else {
+                if (b.wins !== a.wins) return b.wins - a.wins;
+                if (b.ptsDiff !== a.ptsDiff) return b.ptsDiff - a.ptsDiff;
+                if (b.ptsFor !== a.ptsFor) return b.ptsFor - a.ptsFor;
+                if (b.endsWon !== a.endsWon) return b.endsWon - a.endsWon;
+              }
+              if (a.sectionRank !== b.sectionRank) return a.sectionRank - b.sectionRank;
+              return a.sectionIndex - b.sectionIndex;
+            });
+            knockoutTeams = rawQualifiers.map((qItem, idx) => ({
+              ...qItem,
+              label: `#${idx + 1} ${qItem.label}`
+            }));
+          } else {
+            for (let i = rawQualifiers.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [rawQualifiers[i], rawQualifiers[j]] = [rawQualifiers[j], rawQualifiers[i]];
+            }
+            knockoutTeams = rawQualifiers;
+          }
         }
       } else {
         const distResult = calculateKnockoutTeamDistribution();
