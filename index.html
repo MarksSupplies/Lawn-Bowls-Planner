@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v150
+              v151
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -718,7 +718,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 150 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 151 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -769,7 +769,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v150';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v151';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -846,7 +846,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 150,
+          version: 151,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1509,7 +1509,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 150,
+        version: 151,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -3090,24 +3090,6 @@
       return { sections, teamScheduleMap };
     }
 
-    function getSectionTeamScheduleBadge(teamGames) {
-      if (!teamGames || teamGames.length === 0) return '';
-
-      const greensMap = {};
-      teamGames.forEach(item => {
-        const gName = item.green;
-        if (!greensMap[gName]) greensMap[gName] = [];
-        greensMap[gName].push(item.rink);
-      });
-
-      const scheduleParts = Object.keys(greensMap).map(g => {
-        const rinks = greensMap[g].join(',');
-        return `Green ${g} Rink ${rinks}`;
-      });
-
-      return `<span class="ml-2 text-[10px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full inline-flex items-center">${scheduleParts.join(' | ')}</span>`;
-    }
-
     function buildSectionPlayTeamScorecardHTML(teamLabel, teamGames) {
       const storeKeyPrefix = `SEC_SC_${teamLabel}`;
       const matchCount = teamGames.length;
@@ -3314,7 +3296,6 @@
               <div class="flex flex-wrap items-center justify-between gap-1 mb-1">
                 <div class="flex items-center flex-wrap gap-1">
                   <span class="text-sm font-extrabold text-slate-900">${team.label}</span>
-                  ${getSectionTeamScheduleBadge(teamGames)}
                 </div>
                 <span class="text-xs font-semibold text-blue-700 bg-blue-100/80 px-2 py-0.5 rounded-full">
                   ${team.playerCount} Bowlers
