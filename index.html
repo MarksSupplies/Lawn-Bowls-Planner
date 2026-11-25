@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v155
+              v156
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -718,7 +718,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 155 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 156 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -789,7 +789,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v155';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v156';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -871,7 +871,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 155,
+          version: 156,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1537,7 +1537,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 155,
+        version: 156,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2336,6 +2336,16 @@
       updateUI();
     }
 
+    function isSectionPlayByeGame(teamLabel, matchNum) {
+      if (!teamLabel || !teamLabel.startsWith('SEC_SC_')) return false;
+      const actualTeamLabel = teamLabel.replace(/^SEC_SC_/, '');
+      const { teamScheduleMap } = generateSectionPlayScheduleData();
+      const entry = teamScheduleMap[actualTeamLabel];
+      if (!entry || !entry.games) return false;
+      const gameInfo = entry.games[matchNum - 1];
+      return !!(gameInfo && gameInfo.isBye);
+    }
+
     function updateScorecardFooterTotalsLive(teamLabel) {
       const teamMatches = matchResultStore[teamLabel] || {};
       let sumEnds = 0;
@@ -2371,6 +2381,14 @@
     }
 
     function setScoreMetric(teamLabel, matchNum, field, val) {
+      if (isSectionPlayByeGame(teamLabel, matchNum)) {
+        if (!matchResultStore[teamLabel]) matchResultStore[teamLabel] = {};
+        matchResultStore[teamLabel][matchNum] = { outcome: 'W', ends: '0', ptsFor: '0', ptsAgainst: '0' };
+        updateScorecardFooterTotalsLive(teamLabel);
+        saveAppStateToLocalStorage();
+        return;
+      }
+
       const cleanVal = val.replace(/[^0-9]/g, '');
       if (!matchResultStore[teamLabel]) matchResultStore[teamLabel] = {};
       if (!matchResultStore[teamLabel][matchNum]) {
@@ -3012,8 +3030,11 @@
       const teamScheduleMap = {};
       const gamesScheduledCount = {};
       const teamRinkUsageHistory = {};
-      let maxGamesPerTeam = 0;
       let teamCursor = 0;
+
+      const rawSectionGroups = [];
+      let largestSectionCount = 0;
+      let smallestSectionCount = Infinity;
 
       for (let s = 0; s < numSections; s++) {
         const sectionLetter = String.fromCharCode(65 + s);
@@ -3021,24 +3042,52 @@
         const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
         teamCursor += countForThisSection;
 
-        maxGamesPerTeam = Math.max(maxGamesPerTeam, Math.max(0, sectionTeams.length - 1));
+        largestSectionCount = Math.max(largestSectionCount, sectionTeams.length);
+        smallestSectionCount = Math.min(smallestSectionCount, sectionTeams.length);
 
-        sectionTeams.forEach(t => {
-          teamScheduleMap[t.label] = {
-            team: t,
-            sectionLetter,
-            games: []
-          };
-          gamesScheduledCount[t.label] = 0;
-          teamRinkUsageHistory[t.label] = {};
+        rawSectionGroups.push({
+          sectionLetter,
+          sectionTeams
+        });
+      }
+
+      const sectionsHaveUnequalCounts = (numSections > 1 && smallestSectionCount < largestSectionCount);
+      const maxGamesPerTeam = Math.max(0, largestSectionCount - 1);
+
+      rawSectionGroups.forEach(({ sectionLetter, sectionTeams }) => {
+        const paddedSectionTeams = [...sectionTeams];
+        if (sectionsHaveUnequalCounts) {
+          let byeIndex = 1;
+          while (paddedSectionTeams.length < largestSectionCount) {
+            paddedSectionTeams.push({
+              label: `BYE_${sectionLetter}_${byeIndex}`,
+              displayOpponent: 'BYE',
+              playerCount: 0,
+              deltaTag: '',
+              isBye: true
+            });
+            byeIndex++;
+          }
+        }
+
+        paddedSectionTeams.forEach(t => {
+          if (!t.isBye) {
+            teamScheduleMap[t.label] = {
+              team: t,
+              sectionLetter,
+              games: []
+            };
+            gamesScheduledCount[t.label] = 0;
+            teamRinkUsageHistory[t.label] = {};
+          }
         });
 
         sections.push({
           sectionLetter,
-          teams: sectionTeams
+          teams: paddedSectionTeams
         });
-        remainingMatchesBySection.push(buildSectionRoundRobinPairings(sectionTeams, sectionLetter));
-      }
+        remainingMatchesBySection.push(buildSectionRoundRobinPairings(paddedSectionTeams, sectionLetter));
+      });
 
       let nextRinkPoolCursor = 0;
 
@@ -3049,7 +3098,7 @@
 
           const anyTeamNeedsTargetGame = sections.some((sec, sIdx) =>
             remainingMatchesBySection[sIdx].length > 0 &&
-            sec.teams.some(t => gamesScheduledCount[t.label] < targetGameNum)
+            sec.teams.some(t => !t.isBye && gamesScheduledCount[t.label] < targetGameNum)
           );
           if (!anyTeamNeedsTargetGame) break;
 
@@ -3062,7 +3111,8 @@
             const matchIdx = remList.findIndex(m =>
               !busyTeamsInWave.has(m.teamA.label) &&
               !busyTeamsInWave.has(m.teamB.label) &&
-              (gamesScheduledCount[m.teamA.label] < targetGameNum || gamesScheduledCount[m.teamB.label] < targetGameNum)
+              ((!m.teamA.isBye && gamesScheduledCount[m.teamA.label] < targetGameNum) ||
+               (!m.teamB.isBye && gamesScheduledCount[m.teamB.label] < targetGameNum))
             );
             if (matchIdx !== -1) {
               const [chosenMatch] = remList.splice(matchIdx, 1);
@@ -3080,7 +3130,8 @@
               const matchIdx = remList.findIndex(m =>
                 !busyTeamsInWave.has(m.teamA.label) &&
                 !busyTeamsInWave.has(m.teamB.label) &&
-                (gamesScheduledCount[m.teamA.label] < targetGameNum || gamesScheduledCount[m.teamB.label] < targetGameNum)
+                ((!m.teamA.isBye && gamesScheduledCount[m.teamA.label] < targetGameNum) ||
+                 (!m.teamB.isBye && gamesScheduledCount[m.teamB.label] < targetGameNum))
               );
               if (matchIdx !== -1) {
                 const [chosenMatch] = remList.splice(matchIdx, 1);
@@ -3108,8 +3159,10 @@
             .sort((idxA, idxB) => {
               const mA = waveMatches[idxA];
               const mB = waveMatches[idxB];
-              const histA = Object.keys(teamRinkUsageHistory[mA.teamA.label]).length + Object.keys(teamRinkUsageHistory[mA.teamB.label]).length;
-              const histB = Object.keys(teamRinkUsageHistory[mB.teamA.label]).length + Object.keys(teamRinkUsageHistory[mB.teamB.label]).length;
+              const histA = (mA.teamA.isBye ? 0 : Object.keys(teamRinkUsageHistory[mA.teamA.label]).length) +
+                            (mA.teamB.isBye ? 0 : Object.keys(teamRinkUsageHistory[mA.teamB.label]).length);
+              const histB = (mB.teamA.isBye ? 0 : Object.keys(teamRinkUsageHistory[mB.teamA.label]).length) +
+                            (mB.teamB.isBye ? 0 : Object.keys(teamRinkUsageHistory[mB.teamB.label]).length);
               if (histB !== histA) return histB - histA;
               return idxA - idxB;
             });
@@ -3125,8 +3178,8 @@
               if (usedSlotIndices.has(slotIdx)) continue;
               const slot = waveSlots[slotIdx];
               const rinkKey = `G${slot.green}-R${slot.rink}`;
-              const visitsA = teamRinkUsageHistory[match.teamA.label][rinkKey] || 0;
-              const visitsB = teamRinkUsageHistory[match.teamB.label][rinkKey] || 0;
+              const visitsA = match.teamA.isBye ? 0 : (teamRinkUsageHistory[match.teamA.label][rinkKey] || 0);
+              const visitsB = match.teamB.isBye ? 0 : (teamRinkUsageHistory[match.teamB.label][rinkKey] || 0);
               const repeatPenalty = ((visitsA * visitsA) + (visitsB * visitsB)) * 100 + ((visitsA + visitsB) * 10);
 
               if (repeatPenalty < bestPenalty) {
@@ -3140,28 +3193,37 @@
           });
 
           waveMatches.forEach((match, mIdx) => {
+            const isByeMatch = !!(match.teamA.isBye || match.teamB.isBye);
             const chosenSlot = assignedSlotForMatch[mIdx] || availableRinkSlots[0];
             const rinkKey = `G${chosenSlot.green}-R${chosenSlot.rink}`;
 
-            teamRinkUsageHistory[match.teamA.label][rinkKey] = (teamRinkUsageHistory[match.teamA.label][rinkKey] || 0) + 1;
-            teamRinkUsageHistory[match.teamB.label][rinkKey] = (teamRinkUsageHistory[match.teamB.label][rinkKey] || 0) + 1;
+            if (!match.teamA.isBye) {
+              if (!isByeMatch) {
+                teamRinkUsageHistory[match.teamA.label][rinkKey] = (teamRinkUsageHistory[match.teamA.label][rinkKey] || 0) + 1;
+              }
+              gamesScheduledCount[match.teamA.label] += 1;
+              teamScheduleMap[match.teamA.label].games.push({
+                gameNum: gamesScheduledCount[match.teamA.label],
+                green: isByeMatch ? '--' : chosenSlot.green,
+                rink: isByeMatch ? '--' : chosenSlot.rink,
+                opponent: match.teamB.isBye ? 'BYE' : match.teamB.label,
+                isBye: match.teamB.isBye
+              });
+            }
 
-            gamesScheduledCount[match.teamA.label] += 1;
-            gamesScheduledCount[match.teamB.label] += 1;
-
-            teamScheduleMap[match.teamA.label].games.push({
-              gameNum: gamesScheduledCount[match.teamA.label],
-              green: chosenSlot.green,
-              rink: chosenSlot.rink,
-              opponent: match.teamB.label
-            });
-
-            teamScheduleMap[match.teamB.label].games.push({
-              gameNum: gamesScheduledCount[match.teamB.label],
-              green: chosenSlot.green,
-              rink: chosenSlot.rink,
-              opponent: match.teamA.label
-            });
+            if (!match.teamB.isBye) {
+              if (!isByeMatch) {
+                teamRinkUsageHistory[match.teamB.label][rinkKey] = (teamRinkUsageHistory[match.teamB.label][rinkKey] || 0) + 1;
+              }
+              gamesScheduledCount[match.teamB.label] += 1;
+              teamScheduleMap[match.teamB.label].games.push({
+                gameNum: gamesScheduledCount[match.teamB.label],
+                green: isByeMatch ? '--' : chosenSlot.green,
+                rink: isByeMatch ? '--' : chosenSlot.rink,
+                opponent: match.teamA.isBye ? 'BYE' : match.teamA.label,
+                isBye: match.teamA.isBye
+              });
+            }
           });
         }
       }
@@ -3195,11 +3257,15 @@
       for (let idx = 0; idx < matchCount; idx++) {
         const m = idx + 1;
         const gameInfo = teamGames[idx];
-        const greenRinkDisplay = gameInfo ? `${gameInfo.green}${gameInfo.rink}` : '--';
-        const oppositionDisplay = gameInfo && gameInfo.opponent ? `${gameInfo.opponent}` : '--';
+        const isByeGame = !!(gameInfo && gameInfo.isBye);
+        const greenRinkDisplay = isByeGame ? 'BYE' : (gameInfo ? `${gameInfo.green}${gameInfo.rink}` : '--');
+        const oppositionDisplay = isByeGame ? 'BYE' : (gameInfo && gameInfo.opponent ? `${gameInfo.opponent}` : '--');
 
-        const matchData = (matchResultStore[storeKeyPrefix] && matchResultStore[storeKeyPrefix][m]) || { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
-        const currentVal = matchData.outcome || '';
+        const storedMatchData = (matchResultStore[storeKeyPrefix] && matchResultStore[storeKeyPrefix][m]) || { outcome: '', ends: '', ptsFor: '', ptsAgainst: '' };
+        const currentVal = isByeGame ? 'W' : (storedMatchData.outcome || '');
+        const endsVal = isByeGame ? '0' : (storedMatchData.ends || '');
+        const ptsForVal = isByeGame ? '0' : (storedMatchData.ptsFor || '');
+        const ptsAgstVal = isByeGame ? '0' : (storedMatchData.ptsAgainst || '');
 
         if (currentVal) {
           hasOutcomes = true;
@@ -3207,16 +3273,16 @@
           else if (currentVal === 'D') sumMatchPts += drawPoints;
         }
 
-        if (matchData.ends !== '') {
-          sumEnds += parseInt(matchData.ends, 10) || 0;
+        if (endsVal !== '') {
+          sumEnds += parseInt(endsVal, 10) || 0;
           hasEnds = true;
         }
-        if (matchData.ptsFor !== '') {
-          sumPtsFor += parseInt(matchData.ptsFor, 10) || 0;
+        if (ptsForVal !== '') {
+          sumPtsFor += parseInt(ptsForVal, 10) || 0;
           hasPtsFor = true;
         }
-        if (matchData.ptsAgainst !== '') {
-          sumPtsAgst += parseInt(matchData.ptsAgainst, 10) || 0;
+        if (ptsAgstVal !== '') {
+          sumPtsAgst += parseInt(ptsAgstVal, 10) || 0;
           hasPtsAgst = true;
         }
 
@@ -3239,42 +3305,39 @@
             <td class="p-0.5 sm:p-1 border-r border-slate-100 font-bold text-slate-800 text-[10px] sm:text-xs leading-tight whitespace-nowrap">${oppositionDisplay}</td>
             <td class="p-0.5 sm:p-1 border-r border-slate-100">
               <div class="inline-flex items-center space-x-0.5 sm:space-x-1 justify-center">
-                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'W')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${wClass}">W</button>
-                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'D')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${dClass}">D</button>
-                <button type="button" onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'L')" class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${lClass}">L</button>
+                <button type="button" ${isByeGame ? 'disabled' : `onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'W')"`} class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${wClass} ${isByeGame ? 'cursor-default' : ''}">W</button>
+                <button type="button" ${isByeGame ? 'disabled' : `onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'D')"`} class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${dClass} ${isByeGame ? 'opacity-50 cursor-not-allowed' : ''}">D</button>
+                <button type="button" ${isByeGame ? 'disabled' : `onclick="setMatchResult('${storeKeyPrefix}', ${m}, 'L')"`} class="w-4 h-5 sm:w-6 sm:h-6 rounded text-[9px] sm:text-xs transition ${lClass} ${isByeGame ? 'opacity-50 cursor-not-allowed' : ''}">L</button>
               </div>
             </td>
             <td class="p-0.5 sm:p-1 border-r border-slate-100">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                 id="scorecard_input_${safeLabel}_${m}_ends"
                 data-team="${storeKeyPrefix}" data-match="${m}" data-field="ends" data-col="0" data-max-matches="${matchCount}"
-                value="${matchData.ends || ''}" 
+                value="${endsVal}" 
                 placeholder="0"
-                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ends', this.value)"
-                onblur="handleScoreMetricBlur('${storeKeyPrefix}')"
-                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+                ${isByeGame ? 'readonly' : `oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ends', this.value)" onblur="handleScoreMetricBlur('${storeKeyPrefix}')"`}
+                class="scorecard-nav-input w-full text-center ${isByeGame ? 'bg-slate-100 text-slate-600 cursor-default' : 'bg-slate-50 text-slate-800 focus:bg-white focus:border-bowls-700'} border border-slate-200 rounded py-0.5 text-[10px] sm:text-xs font-bold outline-none transition"
               />
             </td>
             <td class="p-0.5 sm:p-1 border-r border-slate-100">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                 id="scorecard_input_${safeLabel}_${m}_ptsFor"
                 data-team="${storeKeyPrefix}" data-match="${m}" data-field="ptsFor" data-col="1" data-max-matches="${matchCount}"
-                value="${matchData.ptsFor || ''}" 
+                value="${ptsForVal}" 
                 placeholder="0"
-                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsFor', this.value)"
-                onblur="handleScoreMetricBlur('${storeKeyPrefix}')"
-                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+                ${isByeGame ? 'readonly' : `oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsFor', this.value)" onblur="handleScoreMetricBlur('${storeKeyPrefix}')"`}
+                class="scorecard-nav-input w-full text-center ${isByeGame ? 'bg-slate-100 text-slate-600 cursor-default' : 'bg-slate-50 text-slate-800 focus:bg-white focus:border-bowls-700'} border border-slate-200 rounded py-0.5 text-[10px] sm:text-xs font-bold outline-none transition"
               />
             </td>
             <td class="p-0.5 sm:p-1">
               <input type="text" inputmode="numeric" pattern="[0-9]*"
                 id="scorecard_input_${safeLabel}_${m}_ptsAgainst"
                 data-team="${storeKeyPrefix}" data-match="${m}" data-field="ptsAgainst" data-col="2" data-max-matches="${matchCount}"
-                value="${matchData.ptsAgainst || ''}" 
+                value="${ptsAgstVal}" 
                 placeholder="0"
-                oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsAgainst', this.value)"
-                onblur="handleScoreMetricBlur('${storeKeyPrefix}')"
-                class="scorecard-nav-input w-full text-center bg-slate-50 border border-slate-200 focus:bg-white focus:border-bowls-700 rounded py-0.5 text-[10px] sm:text-xs font-bold text-slate-800 outline-none transition"
+                ${isByeGame ? 'readonly' : `oninput="setScoreMetric('${storeKeyPrefix}', ${m}, 'ptsAgainst', this.value)" onblur="handleScoreMetricBlur('${storeKeyPrefix}')"`}
+                class="scorecard-nav-input w-full text-center ${isByeGame ? 'bg-slate-100 text-slate-600 cursor-default' : 'bg-slate-50 text-slate-800 focus:bg-white focus:border-bowls-700'} border border-slate-200 rounded py-0.5 text-[10px] sm:text-xs font-bold outline-none transition"
               />
             </td>
           </tr>
@@ -3754,12 +3817,14 @@
       const sectionsData = [];
 
       sections.forEach((sec) => {
-        let allResultsEntered = sec.teams.length > 0;
+        const realTeams = sec.teams.filter(t => !t.isBye);
+        let allResultsEntered = realTeams.length > 0;
 
-        const rankedTeams = sec.teams.map((t, idx) => {
+        const rankedTeams = realTeams.map((t, idx) => {
           const storeKeyPrefix = `SEC_SC_${t.label}`;
           const teamStore = matchResultStore[storeKeyPrefix] || {};
-          const numGames = (teamScheduleMap[t.label] && teamScheduleMap[t.label].games.length) || Math.max(0, sec.teams.length - 1);
+          const teamGames = (teamScheduleMap[t.label] && teamScheduleMap[t.label].games) || [];
+          const numGames = teamGames.length;
 
           if (numGames === 0) {
             allResultsEntered = false;
@@ -3774,6 +3839,18 @@
           let ptsAgainst = 0;
 
           for (let m = 1; m <= numGames; m++) {
+            const gameInfo = teamGames[m - 1];
+            const isByeGame = !!(gameInfo && gameInfo.isBye);
+
+            if (isByeGame) {
+              wins += 1;
+              matchPts += winPts;
+              endsWon += 0;
+              ptsFor += 0;
+              ptsAgainst += 0;
+              continue;
+            }
+
             const matchData = teamStore[m] || {};
             const hasOutcome = matchData.outcome === 'W' || matchData.outcome === 'D' || matchData.outcome === 'L';
             const hasEndsVal = matchData.ends !== '' && matchData.ends !== undefined && matchData.ends !== null;
