@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v156
+              v157
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -718,7 +718,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 156 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 157 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -789,7 +789,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v156';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v157';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -871,7 +871,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 156,
+          version: 157,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1537,7 +1537,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 156,
+        version: 157,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -2862,6 +2862,90 @@
       return bestSize;
     }
 
+    function getSectionPlayGroups() {
+      const teams = calculateSectionPlayTeams();
+      if (teams.length === 0) {
+        return {
+          teams: [],
+          sectionSize: 4,
+          numSections: 0,
+          rawSections: [],
+          paddedSections: [],
+          largestSectionCount: 0,
+          smallestSectionCount: 0,
+          sectionsHaveUnequalCounts: false
+        };
+      }
+
+      const rawSetting = state.selectedSectionSize || 'bestMatch';
+      let numSections;
+      let sectionSize;
+      const rawSections = [];
+      let largestSectionCount = 0;
+      let smallestSectionCount = Infinity;
+      let teamCursor = 0;
+
+      if (rawSetting !== 'bestMatch') {
+        sectionSize = Math.max(2, parseInt(rawSetting, 10) || 4);
+        numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
+        for (let s = 0; s < numSections; s++) {
+          const sectionLetter = String.fromCharCode(65 + s);
+          const sectionTeams = teams.slice(teamCursor, teamCursor + sectionSize);
+          teamCursor += sectionTeams.length;
+          largestSectionCount = Math.max(largestSectionCount, sectionTeams.length);
+          smallestSectionCount = Math.min(smallestSectionCount, sectionTeams.length);
+          rawSections.push({ sectionLetter, teams: sectionTeams });
+        }
+      } else {
+        sectionSize = resolveEffectiveSectionSize(teams.length);
+        numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
+        const baseSectionSize = Math.floor(teams.length / numSections);
+        const extraTeams = teams.length % numSections;
+        for (let s = 0; s < numSections; s++) {
+          const sectionLetter = String.fromCharCode(65 + s);
+          const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
+          const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
+          teamCursor += sectionTeams.length;
+          largestSectionCount = Math.max(largestSectionCount, sectionTeams.length);
+          smallestSectionCount = Math.min(smallestSectionCount, sectionTeams.length);
+          rawSections.push({ sectionLetter, teams: sectionTeams });
+        }
+        sectionSize = Math.max(sectionSize, largestSectionCount);
+      }
+
+      if (!isFinite(smallestSectionCount)) smallestSectionCount = 0;
+      const sectionsHaveUnequalCounts = (numSections > 1 && smallestSectionCount < largestSectionCount);
+
+      const paddedSections = rawSections.map(({ sectionLetter, teams: secTeams }) => {
+        const paddedTeams = [...secTeams];
+        if (sectionsHaveUnequalCounts) {
+          let byeIndex = 1;
+          while (paddedTeams.length < largestSectionCount) {
+            paddedTeams.push({
+              label: `BYE_${sectionLetter}_${byeIndex}`,
+              displayOpponent: 'BYE',
+              playerCount: 0,
+              deltaTag: '',
+              isBye: true
+            });
+            byeIndex++;
+          }
+        }
+        return { sectionLetter, teams: paddedTeams };
+      });
+
+      return {
+        teams,
+        sectionSize,
+        numSections,
+        rawSections,
+        paddedSections,
+        largestSectionCount,
+        smallestSectionCount,
+        sectionsHaveUnequalCounts
+      };
+    }
+
     function renderSectionPlayView() {
       const container = document.getElementById('sectionPlayContent');
       const badge = document.getElementById('sectionPlayBadge');
@@ -2870,11 +2954,17 @@
 
       container.innerHTML = '';
 
-      const teams = calculateSectionPlayTeams();
+      const {
+        teams,
+        paddedSections,
+        numSections,
+        largestSectionCount,
+        sectionsHaveUnequalCounts
+      } = getSectionPlayGroups();
       const format = FORMAT_SPECS[state.selectedFormat] || FORMAT_SPECS.threeBowlTriples;
       const totalTeamBowls = format.targetTeamSize * format.bowlsPerPlayer;
       const isBestMatch = (state.selectedSectionSize === 'bestMatch' || !state.selectedSectionSize);
-      const sectionSize = resolveEffectiveSectionSize(teams.length);
+      const sectionSize = largestSectionCount || resolveEffectiveSectionSize(teams.length);
       const qualMap = { top1: 1, top2: 2, top3: 3, top4: 4 };
       const qualCount = Math.min(sectionSize, qualMap[state.selectedSectionQualifying] || 2);
       const sizeLabel = isBestMatch ? `Best Match (${sectionSize})` : `${sectionSize}`;
@@ -2887,7 +2977,6 @@
         return;
       }
 
-      const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
       const { targetTotalSpots, perSectionSpots } = calculateAdjustedSectionQualifyingSpots(teams.length, numSections, qualCount);
       const sectionsStandings = getSectionPlayStandingsBySection();
 
@@ -2901,9 +2990,13 @@
 
       for (let s = 0; s < numSections; s++) {
         const secStanding = sectionsStandings[s];
+        const paddedSec = paddedSections[s];
         const sectionLetter = secStanding ? secStanding.sectionLetter : String.fromCharCode(65 + s);
         const rankedEntries = secStanding ? secStanding.rankedTeams : [];
         const spotsInThisSection = perSectionSpots[s] || 0;
+        const byeEntries = (sectionsHaveUnequalCounts && paddedSec)
+          ? paddedSec.teams.filter(t => t.isBye)
+          : [];
 
         let teamRowsHTML = '';
         rankedEntries.forEach((entry, rankIdx) => {
@@ -2929,12 +3022,29 @@
           `;
         });
 
+        byeEntries.forEach((byeTeam, bIdx) => {
+          const displayRowNum = rankedEntries.length + bIdx + 1;
+          teamRowsHTML += `
+            <tr class="bg-amber-50/70 border-b border-slate-100 last:border-b-0">
+              <td class="p-2 font-bold text-amber-800 text-center w-10">${displayRowNum}</td>
+              <td class="p-2 font-extrabold text-amber-900">${byeTeam.displayOpponent || 'BYE'}</td>
+              <td class="p-2 text-center text-amber-800 font-semibold">0</td>
+              <td class="p-2 text-center text-amber-800 font-bold text-[11px]">--</td>
+              <td class="p-2 text-right">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">BYE</span>
+              </td>
+            </tr>
+          `;
+        });
+
+        const totalSectionSlotsCount = rankedEntries.length + byeEntries.length;
+
         const sectionCard = document.createElement('div');
         sectionCard.className = 'border border-slate-200 rounded-xl overflow-hidden bg-slate-50/40 shadow-2xs';
         sectionCard.innerHTML = `
           <div class="bg-slate-900 text-white px-3.5 py-2 flex items-center justify-between">
             <span class="font-extrabold text-xs uppercase tracking-wider">Section ${sectionLetter}</span>
-            <span class="text-[11px] text-emerald-300 font-bold">${rankedEntries.length} Teams &bull; ${totalTeamBowls} Bowls/Team</span>
+            <span class="text-[11px] text-emerald-300 font-bold">${totalSectionSlotsCount} Teams &bull; ${totalTeamBowls} Bowls/Team</span>
           </div>
           <table class="w-full text-left text-xs border-collapse">
             <thead>
@@ -3012,15 +3122,16 @@
     }
 
     function generateSectionPlayScheduleData() {
-      const teams = calculateSectionPlayTeams();
+      const {
+        teams,
+        paddedSections,
+        numSections,
+        largestSectionCount
+      } = getSectionPlayGroups();
+
       if (teams.length === 0) {
         return { sections: [], teamScheduleMap: {} };
       }
-
-      const sectionSize = resolveEffectiveSectionSize(teams.length);
-      const numSections = Math.max(1, Math.ceil(teams.length / sectionSize));
-      const baseSectionSize = Math.floor(teams.length / numSections);
-      const extraTeams = teams.length % numSections;
 
       const availableRinkSlots = getAvailablePriorityRinkSlots();
       const totalRinksCount = Math.max(1, availableRinkSlots.length);
@@ -3030,46 +3141,9 @@
       const teamScheduleMap = {};
       const gamesScheduledCount = {};
       const teamRinkUsageHistory = {};
-      let teamCursor = 0;
-
-      const rawSectionGroups = [];
-      let largestSectionCount = 0;
-      let smallestSectionCount = Infinity;
-
-      for (let s = 0; s < numSections; s++) {
-        const sectionLetter = String.fromCharCode(65 + s);
-        const countForThisSection = baseSectionSize + (s < extraTeams ? 1 : 0);
-        const sectionTeams = teams.slice(teamCursor, teamCursor + countForThisSection);
-        teamCursor += countForThisSection;
-
-        largestSectionCount = Math.max(largestSectionCount, sectionTeams.length);
-        smallestSectionCount = Math.min(smallestSectionCount, sectionTeams.length);
-
-        rawSectionGroups.push({
-          sectionLetter,
-          sectionTeams
-        });
-      }
-
-      const sectionsHaveUnequalCounts = (numSections > 1 && smallestSectionCount < largestSectionCount);
       const maxGamesPerTeam = Math.max(0, largestSectionCount - 1);
 
-      rawSectionGroups.forEach(({ sectionLetter, sectionTeams }) => {
-        const paddedSectionTeams = [...sectionTeams];
-        if (sectionsHaveUnequalCounts) {
-          let byeIndex = 1;
-          while (paddedSectionTeams.length < largestSectionCount) {
-            paddedSectionTeams.push({
-              label: `BYE_${sectionLetter}_${byeIndex}`,
-              displayOpponent: 'BYE',
-              playerCount: 0,
-              deltaTag: '',
-              isBye: true
-            });
-            byeIndex++;
-          }
-        }
-
+      paddedSections.forEach(({ sectionLetter, teams: paddedSectionTeams }) => {
         paddedSectionTeams.forEach(t => {
           if (!t.isBye) {
             teamScheduleMap[t.label] = {
