@@ -65,7 +65,7 @@
           <div class="flex items-center space-x-2">
             <h1 class="text-xl font-extrabold tracking-tight">Lawn Bowls Tournament Engine</h1>
             <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold px-2 py-0.5 rounded-md tracking-wide uppercase">
-              v158
+              v159
             </span>
           </div>
           <p class="text-xs text-emerald-200/80">Equal Team Bowls & Capped Bowler Engine (Max 4 Bowls/Player)</p>
@@ -717,7 +717,7 @@
   <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 py-4 mt-8">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      Lawn Bowls Tournament Planner Engine &bull; Version 158 &bull; Auto-Save &amp; Preset File Engine Active
+      Lawn Bowls Tournament Planner Engine &bull; Version 159 &bull; Auto-Save &amp; Preset File Engine Active
     </div>
   </footer>
 
@@ -788,7 +788,7 @@
   <!-- Application Logic -->
   <script>
     // System State Storage Key
-    const STORAGE_KEY = 'lawn_bowls_app_full_state_v158';
+    const STORAGE_KEY = 'lawn_bowls_app_full_state_v159';
 
     // Format Specifications Definition
     const FORMAT_SPECS = {
@@ -839,7 +839,7 @@
       head_to_head_winner: { id: 'head_to_head_winner', label: 'If all tied teams have met, winner bias.' },
       winning_ends: { id: 'winning_ends', label: 'Winning ENDS' },
       points_for: { id: 'points_for', label: 'Points for' },
-      one_end_play_off: { id: 'one_end_play_off', label: 'A 1 End Play Off' }
+      one_end_play_off: { id: 'one_end_play_off', label: 'A one end Play Off' }
     };
 
     function normalizeTieBreakPriorityOrder(order) {
@@ -1010,7 +1010,7 @@
     function saveAppStateToLocalStorage() {
       try {
         const payload = {
-          version: 158,
+          version: 159,
           timestamp: new Date().toISOString(),
           state: state,
           priorityGreens: priorityGreens,
@@ -1668,7 +1668,7 @@
     function exportFullTournamentJSON() {
       const payload = {
         appName: 'Lawn Bowls Tournament Planner Engine',
-        version: 158,
+        version: 159,
         exportDate: new Date().toISOString(),
         state: state,
         priorityGreens: priorityGreens,
@@ -4261,7 +4261,7 @@
       const sectionsStandings = getSectionPlayStandingsBySection();
       const priorityOrder = getActiveTieBreakOrder();
       const lastItemKey = priorityOrder[priorityOrder.length - 1] || 'one_end_play_off';
-      const lastItemLabel = (TIE_BREAK_ITEMS[lastItemKey] && TIE_BREAK_ITEMS[lastItemKey].label) || 'A 1 End Play Off';
+      const lastItemLabel = (TIE_BREAK_ITEMS[lastItemKey] && TIE_BREAK_ITEMS[lastItemKey].label) || 'A one end Play Off';
 
       const tieBreakMessages = [];
       const signatureParts = [];
@@ -5809,6 +5809,7 @@
       checkSectionPlayTieBreakWarning();
     }
 
+    // Ensure Version 159 state is saved on load
     document.addEventListener('DOMContentLoaded', () => {
       const hasSaved = loadAppStateFromLocalStorage();
       if (!hasSaved) {
@@ -5820,6 +5821,7 @@
       renderPriorityGreensTable();
       renderTieBreakPriorityMenu();
       updateUI();
+      saveAppStateToLocalStorage();
     });
   </script>
 </body>
